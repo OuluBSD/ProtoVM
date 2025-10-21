@@ -126,6 +126,10 @@ public:
 	// Dependency tracking for topological sorting
 	Vector<ElectricNodeBase*> dependents;    // Components that depend on this one
 	Vector<ElectricNodeBase*> dependencies;  // Components this one depends on
+	
+	// Clock domain tracking
+	int clock_domain_id = 0;                 // ID of the clock domain this component belongs to
+	int clock_frequency_hz = 0;              // Frequency of the clock for this domain (0 = asynchronous)
 
 public:
 	bool HasChanged() const { return has_changed; }
@@ -155,6 +159,11 @@ public:
 	void AddDependency(ElectricNodeBase& dependent);  // This component depends on 'dependent'
 	Vector<ElectricNodeBase*>& GetDependents();      // Components that depend on this one
 	Vector<ElectricNodeBase*>& GetDependencies();    // Components this one depends on
+	
+	// Methods for clock domain management
+	void SetClockDomain(int domain_id, int freq_hz = 0);  // Set the clock domain and frequency
+	int GetClockDomainId() const;                         // Get the clock domain ID
+	int GetClockFrequency() const;                        // Get the clock frequency in Hz
 	
 	virtual bool Tick() {
 		LOG("error: Tick not implemented in " << GetClassName()); return false;

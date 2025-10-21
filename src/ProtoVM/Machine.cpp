@@ -70,6 +70,9 @@ bool ElectricNodeBase::CheckTimingConstraints(String input_name, int current_tic
 		return true;
 	}
 	
+	// In clock domain crossing scenarios, timing analysis becomes more complex
+	// For now, we'll perform basic setup/hold checks within the same domain
+	
 	// Check setup time: data must be stable before the clock edge
 	if (info.data_change_tick >= (current_tick - setup_time_ticks)) {
 		// Data changed too recently before the clock edge (setup time violation)
@@ -80,7 +83,7 @@ bool ElectricNodeBase::CheckTimingConstraints(String input_name, int current_tic
 		return false;
 	}
 	
-	// Check hold time: data must be stable after the clock edge
+	// Check hold time: data must remain stable after the clock edge
 	// For this, we'd need to track if data changed too soon after the clock edge,
 	// which we'll detect in the next call to this function when the data changes
 	
@@ -120,6 +123,19 @@ Vector<ElectricNodeBase*>& ElectricNodeBase::GetDependents() {
 
 Vector<ElectricNodeBase*>& ElectricNodeBase::GetDependencies() {
 	return dependencies;
+}
+
+void ElectricNodeBase::SetClockDomain(int domain_id, int freq_hz) {
+	clock_domain_id = domain_id;
+	clock_frequency_hz = freq_hz;
+}
+
+int ElectricNodeBase::GetClockDomainId() const {
+	return clock_domain_id;
+}
+
+int ElectricNodeBase::GetClockFrequency() const {
+	return clock_frequency_hz;
 }
 
 
@@ -196,6 +212,13 @@ bool Machine::Tick() {
 	
 	// Increment the current tick counter
 	current_tick++;
+	
+	// Check for clock domain crossings if needed
+	// For now, we'll perform this check periodically, maybe every N ticks
+	// In a real implementation, this might be configurable
+	if (current_tick % 100 == 0) {  // Check every 100 ticks
+		CheckClockDomainCrossings();
+	}
 	
 	// Implement convergence-based simulation to handle feedback loops and signal propagation
 	bool changed = true;
@@ -548,6 +571,79 @@ Vector<ElectricNodeBase*> Machine::PerformTopologicalSort() {
 	}
 	
 	return result;
+}
+
+int Machine::CreateClockDomain(int frequency_hz) {
+	// In a real implementation, we might want to track clock domains in a map
+	// For now, we'll just use integer IDs starting from 1
+	// In the real system, the Machine might track domains in a member variable
+	// but to avoid changing the class definition again, we'll just return an ID
+	// In practice, this would be more sophisticated
+	
+	// Since we don't have a domain storage, we'll just return the next available ID
+	// We'll assume that domain IDs 0 is the default, so new ones start at 1
+	// This is a simplified implementation - in a real system, we would track domains
+	
+	// For simplicity, we'll just return a sequential ID
+	// In a real implementation, we'd store the frequency for the domain
+	static int next_domain_id = 1;
+	return next_domain_id++;
+}
+
+void Machine::AssignComponentToClockDomain(ElectricNodeBase* component, int domain_id) {
+	if (component) {
+		component->SetClockDomain(domain_id);
+	}
+}
+
+Vector<ElectricNodeBase*> Machine::GetComponentsInClockDomain(int domain_id) {
+	Vector<ElectricNodeBase*> result;
+	
+	for (Pcb& pcb : pcbs) {
+		for (int i = 0; i < pcb.nodes.GetCount(); i++) {
+			ElectricNodeBase& node = pcb.nodes[i];
+			if (node.GetClockDomainId() == domain_id) {
+				result.Add(&node);
+			}
+		}
+	}
+	
+	return result;
+}
+
+void Machine::CheckClockDomainCrossings() {
+	// This method checks if there are any connections between components in different clock domains
+	// which might need special handling
+	
+	for (Pcb& pcb : pcbs) {
+		for (int i = 0; i < pcb.nodes.GetCount(); i++) {
+			ElectricNodeBase& node = pcb.nodes[i];
+			
+			// Look at each connector of this node
+			for (int j = 0; j < node.conns.GetCount(); j++) {
+				ElectricNodeBase::Connector& conn = node.conns[j];
+				
+				// If this is a sink (input), check if it's connected to sources in different domains
+				if (conn.IsConnected()) {
+					for (int k = 0; k < conn.links.GetCount(); k++) {
+						ElectricNodeBase::CLink& cLink = conn.links[k];
+						if (cLink.link) {
+							ElectricNodeBase::Connector* src_conn = cLink.link->src;
+							if (src_conn && src_conn->base) {
+								// Check if the source is in a different clock domain
+								if (node.GetClockDomainId() != src_conn->base->GetClockDomainId()) {
+									LOG("CLOCK DOMAIN CROSSING: Component " << node.GetDynamicName() 
+										<< " (domain " << node.GetClockDomainId() << ") connected to "
+										<< src_conn->base->GetDynamicName() << " (domain " 
+										<< src_conn->base->GetClockDomainId() << ")");
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 

@@ -59,6 +59,12 @@ public:
 	Vector<ElectricNodeBase*> PerformTopologicalSort();
 	void BuildDependencyGraph();
 	
+	// Methods for clock domain management
+	int CreateClockDomain(int frequency_hz = 0);  // Create a new clock domain with given frequency
+	void AssignComponentToClockDomain(ElectricNodeBase* component, int domain_id);  // Assign component to a domain
+	Vector<ElectricNodeBase*> GetComponentsInClockDomain(int domain_id);           // Get all components in a domain
+	void CheckClockDomainCrossings();  // Check for signals crossing between clock domains
+	
 	//Port& GetPower() {return power;}
 	
 };

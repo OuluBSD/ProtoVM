@@ -1,0 +1,45 @@
+description "\377B128,0,0";
+
+uses
+	Local,
+	plugin/chips;
+
+file
+	ProtoVM.h,
+	ProtoVM.cpp,
+	Test01.cpp,
+	Test10.cpp,
+	UK101.cpp,
+	Interak.cpp,
+	MiniMax8085.cpp,
+	Generic.h,
+	Generic.cpp,
+	Machine.h,
+	Machine.cpp,
+	Link.h,
+	Link.cpp,
+	Pcb.h,
+	Pcb.cpp,
+	Component.h,
+	Component.cpp,
+	Mechanical.h,
+	Mechanical.cpp,
+	ICs.h,
+	ICs.cpp,
+	IC6502.cpp,
+	ICRamRom.h,
+	ICRamRom.cpp,
+	D8A16.inl highlight cpp,
+	Chip.h,
+	Bus.h,
+	Bus.cpp,
+	Common.h,
+	Common.cpp,
+	Router readonly separator,
+	Router.h,
+	Router.cpp,
+	_ readonly separator;
+
+mainconfig
+	"" = "STDEXC";
+

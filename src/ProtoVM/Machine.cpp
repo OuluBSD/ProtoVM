@@ -1,6 +1,16 @@
 #include "ProtoVM.h"
 
-
+// Implementation of ScheduleTick method for ElectricNodeBase
+void ElectricNodeBase::ScheduleTick(int delay) {
+	// This method is intended to schedule this component to be ticked after a delay.
+	// However, since components don't directly have access to the Machine (due to protected field),
+	// this method provides a framework that can be used by the system.
+	// In practice, components would call this from their Tick method, and the Machine
+	// would be responsible for scheduling based on component needs.
+	// This implementation serves as a placeholder; actual scheduling should happen
+	// from Machine context where the component is passed as a parameter.
+	LOG("ScheduleTick called - actual scheduling should happen from Machine context with component reference");
+}
 
 
 bool Machine::Init() {
@@ -70,6 +80,12 @@ bool Machine::Tick() {
 		if (!pcb.Tick())
 			return false;
 	}*/
+	
+	// Process any delayed events scheduled for this tick
+	ProcessDelayedEvents();
+	
+	// Increment the current tick counter
+	current_tick++;
 	
 	// Implement convergence-based simulation to handle feedback loops and signal propagation
 	bool changed = true;
@@ -146,7 +162,7 @@ bool Machine::RunRtOpsWithChangeDetection(bool& changed) {
 		bool op_changed = false;
 		switch (op.type) {
 		//case ProcessType::READ:
-		case ProcessType::WRITE:
+		case ProcessType::WRITE: {
 			ASSERT(op.processor);
 			// For write operations, remember the destination's change state before processing
 			bool dest_changed_before = op.dest->HasChanged();
@@ -163,8 +179,8 @@ bool Machine::RunRtOpsWithChangeDetection(bool& changed) {
 				op_changed = true;
 			}
 			break;
-			
-		case ProcessType::TICK:
+		}
+		case ProcessType::TICK: {
 			// Clear the change flag before ticking to detect changes properly
 			op.dest->SetChanged(false);
 			// Call the Tick method - it should internally call SetChanged if state changes
@@ -176,7 +192,7 @@ bool Machine::RunRtOpsWithChangeDetection(bool& changed) {
 				op_changed = true;
 			}
 			break;
-			
+		}
 		default:
 			LOG("Machine::RunRtOpsWithChangeDetection: unhandled ProcessType");
 			return false;
@@ -194,6 +210,43 @@ Pcb& Machine::AddPcb() {
 	Pcb& p = pcbs.Add();
 	p.mach = this;
 	return p;
+}
+
+void Machine::ScheduleEvent(int delay, std::function<bool()> action) {
+	if (delay < 0) {
+		LOG("Warning: Negative delay value passed to ScheduleEvent, clamping to 0");
+		delay = 0;
+	}
+	
+	DelayedEvent event;
+	event.delay = delay;
+	event.original_tick = current_tick;
+	event.action = action;
+	
+	delay_queue.push(event);
+}
+
+void Machine::ProcessDelayedEvents() {
+	// Process all events that are scheduled for the current tick
+	while (!delay_queue.empty()) {
+		const DelayedEvent& event = delay_queue.top();
+		int execution_tick = event.original_tick + event.delay;
+		
+		// If the next event is scheduled for a future tick, stop processing
+		if (execution_tick > current_tick) {
+			break;
+		}
+		
+		// We need to copy the action since we can't call it on a const reference
+		// So we'll pop the event, then execute it
+		DelayedEvent current_event = delay_queue.top();
+		delay_queue.pop();
+		
+		// Execute the event's action
+		if (!current_event.action()) {
+			LOG("Warning: Delayed event action failed");
+		}
+	}
 }
 
 

@@ -1,8 +1,8 @@
 description "\377B128,0,0";
 
 uses
-	Local,
-	plugin/chips;
+	plugin/chips,
+	Core;
 
 file
 	ProtoVM.h,
@@ -41,5 +41,5 @@ file
 	_ readonly separator;
 
 mainconfig
-	"" = "STDEXC";
+	"" = "";
 

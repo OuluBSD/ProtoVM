@@ -67,6 +67,7 @@ protected:
 	
 	
 	
+
 	Connector& AddSource(String name);
 	Connector& AddSink(String name);
 	Connector& AddBidirectional(String name);
@@ -75,7 +76,7 @@ public:
 	typedef ElectricNodeBase CLASSNAME;
 	ElectricNodeBase();
 	virtual ~ElectricNodeBase() {}
-	
+
 	void Clear();
 	ElectricNodeBase& SetName(String s);
 	ElectricNodeBase& NotRequired(String s);
@@ -103,10 +104,18 @@ public:
 	virtual int GetFixedPriority() const {return -1;}
 private:
 	bool has_changed = true;  // Default to true to ensure first update
-	
+	int delay_ticks = 0;  // Propagation delay for this component in simulation ticks
+
 public:
 	bool HasChanged() const { return has_changed; }
 	void SetChanged(bool changed = true) { has_changed = changed; }
+	
+	// Get/set propagation delay for this component
+	int GetDelayTicks() const { return delay_ticks; }
+	void SetDelayTicks(int delay) { delay_ticks = delay; }
+	
+	// Schedule this component to tick after a specified delay
+	void ScheduleTick(int delay);
 	
 	virtual bool Tick() {
 		LOG("error: Tick not implemented in " << GetClassName()); return false;

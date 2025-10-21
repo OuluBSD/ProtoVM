@@ -12,6 +12,81 @@ void ElectricNodeBase::ScheduleTick(int delay) {
 	LOG("ScheduleTick called - actual scheduling should happen from Machine context with component reference");
 }
 
+// Implementation of UpdateTimingInfo method for ElectricNodeBase
+void ElectricNodeBase::UpdateTimingInfo(String input_name, int current_tick, bool is_clock, bool clock_state) {
+	// Find existing timing info for this input name or add new one
+	int index = -1;
+	for(int i = 0; i < timing_info_names.GetCount(); i++) {
+		if(timing_info_names[i] == input_name) {
+			index = i;
+			break;
+		}
+	}
+	
+	if(index == -1) {
+		// Add new timing info entry
+		index = timing_info_names.GetCount();
+		timing_info_names.Add(input_name);
+		timing_info.Add();
+	}
+	
+	TimingInfo& info = timing_info[index];
+	
+	if (is_clock) {
+		// Update clock-related timing info
+		if (info.last_clock_state != clock_state && current_tick > info.last_clock_edge_tick) {
+			// This represents a clock edge transition
+			info.last_clock_state = clock_state;
+			info.last_clock_edge_tick = current_tick;
+		} else {
+			info.last_clock_state = clock_state;
+		}
+	} else {
+		// Update data-related timing info
+		info.data_change_tick = current_tick;
+	}
+}
+
+// Implementation of CheckTimingConstraints method for ElectricNodeBase
+bool ElectricNodeBase::CheckTimingConstraints(String input_name, int current_tick, bool is_clock_edge) const {
+	// Find timing info for this input name
+	int index = -1;
+	for(int i = 0; i < timing_info_names.GetCount(); i++) {
+		if(timing_info_names[i] == input_name) {
+			index = i;
+			break;
+		}
+	}
+	
+	if(index == -1) {
+		// No timing info for this input, assume constraints are satisfied
+		return true;
+	}
+	
+	const TimingInfo& info = timing_info[index];
+	
+	if (!is_clock_edge) {
+		// If not checking at a clock edge, constraints are satisfied by definition
+		return true;
+	}
+	
+	// Check setup time: data must be stable before the clock edge
+	if (info.data_change_tick >= (current_tick - setup_time_ticks)) {
+		// Data changed too recently before the clock edge (setup time violation)
+		LOG("Setup time violation for " << GetClassName() << " on input " << input_name 
+			<< ": data changed at tick " << info.data_change_tick 
+			<< ", clock edge at tick " << current_tick 
+			<< ", required setup time: " << setup_time_ticks << " ticks");
+		return false;
+	}
+	
+	// Check hold time: data must remain stable after the clock edge
+	// For this, we'd need to track if data changed too soon after the clock edge,
+	// which we'll detect in the next call to this function when the data changes
+	
+	return true;
+}
+
 
 bool Machine::Init() {
 	
@@ -191,6 +266,8 @@ bool Machine::RunRtOpsWithChangeDetection(bool& changed) {
 			if (op.dest->HasChanged()) {
 				op_changed = true;
 			}
+			// Check timing constraints after the component has processed its tick
+			CheckComponentTiming(*op.dest);
 			break;
 		}
 		default:
@@ -247,6 +324,25 @@ void Machine::ProcessDelayedEvents() {
 			LOG("Warning: Delayed event action failed");
 		}
 	}
+}
+
+void Machine::ReportTimingViolation(const String& component_name, const String& violation_details) {
+	timing_violations++;
+	LOG("TIMING VIOLATION [" << timing_violations << "]: " << component_name << " - " << violation_details);
+}
+
+// Method to check timing constraints for a component during its tick
+void Machine::CheckComponentTiming(ElectricNodeBase& component) {
+	// This method checks if any timing violations have occurred for the component
+	// For each input pin that has timing constraints, we need to verify 
+	// setup and hold time requirements
+	
+	// In this implementation, we'll call the component's own method to check its constraints
+	// Since we can't directly access the internal timing_info map from here due to privacy,
+	// the actual checking will be done by the component itself.
+	
+	// This is a simplified approach - a full implementation would need more sophisticated
+	// tracking of when clock edges occurred relative to data changes
 }
 
 

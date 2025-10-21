@@ -105,6 +105,21 @@ public:
 private:
 	bool has_changed = true;  // Default to true to ensure first update
 	int delay_ticks = 0;  // Propagation delay for this component in simulation ticks
+	
+	// Timing constraint tracking
+	struct TimingInfo {
+		int last_clock_edge_tick = -1;  // Tick when last clock edge occurred
+		int data_change_tick = -1;      // Tick when input data last changed
+		bool last_clock_state = false;  // Previous state of the clock signal
+	};
+	
+	// Vector to track timing info for input pins (using Vector instead of Map to avoid template issues)
+	Vector<TimingInfo> timing_info;
+	Vector<String> timing_info_names;  // Names corresponding to timing_info entries
+	
+	// Setup and hold time requirements (in simulation ticks)
+	int setup_time_ticks = 0;  // Minimum setup time in ticks
+	int hold_time_ticks = 0;   // Minimum hold time in ticks
 
 public:
 	bool HasChanged() const { return has_changed; }
@@ -114,8 +129,21 @@ public:
 	int GetDelayTicks() const { return delay_ticks; }
 	void SetDelayTicks(int delay) { delay_ticks = delay; }
 	
+	// Get/set timing constraints (setup and hold times) in simulation ticks
+	int GetSetupTimeTicks() const { return setup_time_ticks; }
+	void SetSetupTimeTicks(int setup_time) { setup_time_ticks = setup_time; }
+	
+	int GetHoldTimeTicks() const { return hold_time_ticks; }
+	void SetHoldTimeTicks(int hold_time) { hold_time_ticks = hold_time; }
+	
 	// Schedule this component to tick after a specified delay
 	void ScheduleTick(int delay);
+	
+	// Update timing information when input changes
+	void UpdateTimingInfo(String input_name, int current_tick, bool is_clock = false, bool clock_state = false);
+	
+	// Check if timing constraints are satisfied
+	bool CheckTimingConstraints(String input_name, int current_tick, bool is_clock_edge = false) const;
 	
 	virtual bool Tick() {
 		LOG("error: Tick not implemented in " << GetClassName()); return false;

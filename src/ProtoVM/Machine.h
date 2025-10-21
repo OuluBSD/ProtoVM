@@ -27,6 +27,9 @@ public:
 	std::priority_queue<DelayedEvent, std::vector<DelayedEvent>, std::greater<DelayedEvent>> delay_queue;
 	int current_tick = 0;  // Current simulation tick
 	
+	// Timing violation tracking
+	int timing_violations = 0;  // Count of timing violations detected
+	
 	bool Init();
 	bool Tick();
 	bool RunInitOps();
@@ -40,6 +43,15 @@ public:
 	// Methods for handling delayed events
 	void ScheduleEvent(int delay, std::function<bool()> action);
 	void ProcessDelayedEvents();
+	
+	// Methods for timing violation reporting
+	void ReportTimingViolation(const String& component_name, const String& violation_details);
+	int GetTimingViolationCount() const { return timing_violations; }
+	void ResetTimingViolationCount() { timing_violations = 0; }
+	
+	// Method to check component timing constraints
+	void CheckComponentTiming(ElectricNodeBase& component);
+	
 	//Port& GetPower() {return power;}
 	
 };

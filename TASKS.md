@@ -2,10 +2,6 @@
 
 ## TODO
 
-- [ ] Add propagation delay modeling system
-- [ ] Model setup and hold time constraints
-- [ ] Add topological ordering for component evaluation
-- [ ] Add timing simulation for different clock domains
 
 ## IN PROGRESS
 
@@ -19,3 +15,7 @@
 - [x] Implement oscillation detection to prevent infinite loops
 - [x] Add feedback loop resolution within each tick
 - [x] Implement state change detection to optimize processing
+- [x] Add propagation delay modeling system
+- [x] Model setup and hold time constraints
+- [x] Add topological ordering for component evaluation
+- [x] Add timing simulation for different clock domains

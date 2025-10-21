@@ -1,9 +1,9 @@
 #include "ProtoVM.h"
 
-NAMESPACE_UPP
+
 
 /*
-Links:
+LinkBases:
 - http://searle.x10host.com/6502/Simple6502.html
 - https://satoshinm.github.io/blog/180113_stm32_6502_pill_6502_8_bit_6502_cpu_and_6850_acia_emulation_on_the_stm32_blue_pill_to_run_microsoft_basic_from_1977.html
 - https://hackaday.io/project/167711-3-chip-z80-design/log/170107-emulating-the-6850-with-a-psoc
@@ -15,7 +15,7 @@ Notes:
 	- https://github.com/vygr/C-PCB
 */
 
-void SetupTest2_6502(Engine& mach) {
+void SetupTest2_6502(Machine& mach) {
 	Pcb& b = mach.AddPcb();
 	
 	Pin& ground = b.Add<Pin>("ground").SetReference(0);
@@ -71,4 +71,4 @@ void SetupTest2_6502(Engine& mach) {
 	}
 }
 
-END_UPP_NAMESPACE
+

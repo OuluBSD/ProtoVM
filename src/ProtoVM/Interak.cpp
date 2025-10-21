@@ -1,9 +1,9 @@
 #include "ProtoVM.h"
 
-NAMESPACE_UPP
 
 
-void SetupInterak(Engine& mach) {
+
+void SetupInterak(Machine& mach) {
 	
 	// CPU-CF Issue 4
 	{
@@ -116,4 +116,4 @@ void SetupInterak(Engine& mach) {
 }
 
 
-END_UPP_NAMESPACE
+

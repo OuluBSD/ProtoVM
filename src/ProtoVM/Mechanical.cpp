@@ -1,6 +1,6 @@
 #include "ProtoVM.h"
 
-NAMESPACE_UPP
+
 
 
 PushButtonComp::PushButtonComp() {
@@ -9,4 +9,4 @@ PushButtonComp::PushButtonComp() {
 }
 
 
-END_UPP_NAMESPACE
+

@@ -1,6 +1,6 @@
 #include "ProtoVM.h"
 
-NAMESPACE_UPP
+
 
 
 ICMem8Base::ICMem8Base(byte* data, int size, bool writable) {
@@ -45,17 +45,37 @@ ICMem8Base::ICMem8Base(byte* data, int size, bool writable) {
 }
 
 bool ICMem8Base::Tick() {
+	// Store old values to detect changes
+	uint16_t old_addr = addr;
+	uint8_t old_reading = reading;
+	uint8_t old_enabled = enabled;
+	uint8_t old_writing = writing;
+	uint8_t old_data_at_addr = (addr < size) ? data[addr] : 0;
+	
 	bool verbose = 1;
 	addr = in_addr;
 	writing = in_writing;
 	reading = in_reading;
 	enabled = in_enabled;
+	
 	if (writing && addr < size) {
 		data[addr] = in_data;
 	}
+	
 	if (verbose) {
 		LOG("ICMem8Base::Tick: r=" << (int)in_reading << ", w=" << (int)in_writing << ", addr=" << HexStr(in_addr) << ", data=" << HexStr(in_data));
 	}
+	
+	// Detect if any important state changed
+	bool state_changed = (addr != old_addr) || 
+	                     (reading != old_reading) || 
+	                     (enabled != old_enabled) ||
+	                     (writing != old_writing) ||
+	                     (writing && addr < size && data[addr] != old_data_at_addr);  // Write operation changes memory state
+	
+	// Update change status
+	SetChanged(state_changed);
+	
 	in_data = 0;
 	in_addr = 0;
 	return true;
@@ -101,12 +121,27 @@ bool ICMem8Base::Process(ProcessType type, int bytes, int bits, uint16 conn_id, 
 		case OE:
 		case CS:
 		case WR:
-			// skip (write of RW)
+			// skip (write of control signals)
 			break;
-		case D0:
-			if (reading && enabled) {
+		case D0:  // Data bus - only drive when reading from memory
+			if (reading && enabled && !writing) {  // When reading and not writing, drive the data bus
 				tmp[0] = this->addr < size ? this->data[this->addr] : 0;
 				return dest.PutRaw(dest_conn_id, &tmp[0], 1, 0);
+			}
+			// When not reading or disabled, don't drive the bus
+			break;
+		case D0+1:
+		case D0+2:
+		case D0+3:
+		case D0+4:
+		case D0+5:
+		case D0+6:
+		case D0+7:
+			// Handle individual data pins similarly
+			if (reading && enabled && !writing) {
+				int bit_pos = conn_id - D0;
+				tmp[0] = ((this->addr < size ? this->data[this->addr] : 0) >> bit_pos) & 1;
+				return dest.PutRaw(dest_conn_id, &tmp[0], 0, 1);  // Send 1 bit
 			}
 			break;
 		default:
@@ -151,4 +186,4 @@ bool ICMem8Base::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bit
 
 
 
-END_UPP_NAMESPACE
+

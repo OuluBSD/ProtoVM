@@ -1,6 +1,6 @@
 #include "ProtoVM.h"
 
-NAMESPACE_UPP
+
 
 
 ElectricNodeBase::ElectricNodeBase() {
@@ -298,4 +298,4 @@ ElectricNode::ElectricNode() {
 }
 
 
-END_UPP_NAMESPACE
+

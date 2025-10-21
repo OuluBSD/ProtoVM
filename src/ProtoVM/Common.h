@@ -1,7 +1,7 @@
 #ifndef _ProtoVM_Common_h_
 #define _ProtoVM_Common_h_
 
-NAMESPACE_UPP
+
 
 
 typedef enum {
@@ -11,9 +11,9 @@ typedef enum {
 } ProcessType;
 
 class Pcb;
-struct Link;
+struct LinkBase;
 
-class ElectricNodeBase : RTTIBase {
+class ElectricNodeBase {
 	
 	
 public:
@@ -27,7 +27,7 @@ public:
 	
 	struct CLink : Moveable<CLink> {
 		Connector* conn = 0;
-		Link* link = 0;
+		::LinkBase* link = 0;
 	};
 	
 	struct Connector : Moveable<Connector> {
@@ -51,7 +51,7 @@ public:
 	
 protected:
 	friend class Pcb;
-	friend class LinkMap;
+	friend class LinkBaseMap;
 	
 	Pcb* pcb = 0;
 	ElectricNodeBase* ptr = 0;
@@ -76,8 +76,6 @@ public:
 	ElectricNodeBase();
 	virtual ~ElectricNodeBase() {}
 	
-	RTTI_DECL0(ElectricNodeBase);
-	
 	void Clear();
 	ElectricNodeBase& SetName(String s);
 	ElectricNodeBase& NotRequired(String s);
@@ -94,7 +92,8 @@ public:
 	Connector& GetTrivialSink();
 	//ElectricNodeBase& GetRange(int off, int len);
 	String GetName() const {return name;}
-	String GetClassName() const {return GetDynamicName();}
+	String GetClassName() const {return "ElectricNodeBase";}
+	String GetDynamicName() const {return GetClassName() + "(" + name + ")";}
 	
 	ElectricNodeBase& operator>>(ElectricNodeBase& b);
 	ElectricNodeBase& operator[](String code);
@@ -102,6 +101,13 @@ public:
 	
 	virtual int GetMemorySize() const {return 0;}
 	virtual int GetFixedPriority() const {return -1;}
+private:
+	bool has_changed = true;  // Default to true to ensure first update
+	
+public:
+	bool HasChanged() const { return has_changed; }
+	void SetChanged(bool changed = true) { has_changed = changed; }
+	
 	virtual bool Tick() {
 		LOG("error: Tick not implemented in " << GetClassName()); return false;
 	}
@@ -127,7 +133,7 @@ public:
 	typedef ElectricNode CLASSNAME;
 	ElectricNode();
 	
-	RTTI_DECL1(ElectricNode, ElectricNodeBase);
+	//RTTI_DECL1(ElectricNode, ElectricNodeBase);
 	
 };
 
@@ -135,6 +141,6 @@ public:
 using ENode = ElectricNode;
 
 
-END_UPP_NAMESPACE
+
 
 #endif

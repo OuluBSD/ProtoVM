@@ -1,13 +1,13 @@
 #include "ProtoVM.h"
 
-NAMESPACE_UPP
 
 
-Link::Link() {
+
+LinkBase::LinkBase() {
 	
 }
 
-bool Link::operator()(const Link& a, const Link& b) const {
+bool LinkBase::operator()(const LinkBase& a, const LinkBase& b) const {
 	//if (a.layer != b.layer) return a.layer < b.layer;
 	if (a.sink->base != b.sink->base) return a.sink->base < b.sink->base;
 	if (a.sink->id != b.sink->id) return a.sink->id < b.sink->id;
@@ -16,7 +16,7 @@ bool Link::operator()(const Link& a, const Link& b) const {
 	return &a < &b;
 }
 
-String Link::ToString() const {
+String LinkBase::ToString() const {
 	String s;
 	s << "src: " << src->base->GetName() << ":" << src->base->GetClassName() << ":" << src->name
 	<< ", sink: " << sink->base->GetName() << ":" << sink->base->GetClassName() << ":" << sink->name;
@@ -70,14 +70,14 @@ bool ProcessOp::operator()(const ProcessOp& a, const ProcessOp& b) const {
 }*/
 
 #if 1
-void LinkMap::UpdateLinkLayers() {
+void LinkBaseMap::UpdateLinkBaseLayers() {
 	rt_ops.SetCount(0);
 	rt_ops.Reserve(links.GetCount() * 2);
 	units.Clear();
 	
 	Vector<ElcBase*> unit_ptrs;
 	
-	for (Link& link : links) {
+	for (LinkBase& link : links) {
 		VectorFindAdd(unit_ptrs, link.sink->base);
 		VectorFindAdd(unit_ptrs, link.src->base);
 	}
@@ -88,7 +88,7 @@ void LinkMap::UpdateLinkLayers() {
 	}
 	
 	DUMPC(links);
-	for (Link& link : links) {
+	for (LinkBase& link : links) {
 		UnitOps& src_unit = units.Get((size_t)link.src->base);
 		UnitOps& sink_unit = units.Get((size_t)link.sink->base);
 		
@@ -174,7 +174,7 @@ void LinkMap::UpdateLinkLayers() {
 	
 }
 
-bool LinkMap::UpdateProcess() {
+bool LinkBaseMap::UpdateProcess() {
 	/*
 	- sort by chip
 		- chips with all inputs ready earlier
@@ -242,7 +242,7 @@ bool LinkMap::UpdateProcess() {
 		}
 		
 		if (!ticked_count) {
-			LOG("LinkMap::UpdateProcess: error: couldn't tick any unit");
+			LOG("LinkBaseMap::UpdateProcess: error: couldn't tick any unit");
 			return false;
 		}
 		
@@ -335,11 +335,11 @@ bool LinkMap::UpdateProcess() {
 }
 
 #else
-void LinkMap::UpdateLinkLayers() {
-	for (Link& l : links)
+void LinkBaseMap::UpdateLinkBaseLayers() {
+	for (LinkBase& l : links)
 		l.layer = -1;
 	
-	for (Link& l : links) {
+	for (LinkBase& l : links) {
 		Pin* src_pin = CastPtr<Pin>(l.src->base);
 		Pin* sink_pin = CastPtr<Pin>(l.sink->base);
 		ASSERT(!src_pin || !src_pin->is_high);
@@ -352,14 +352,14 @@ void LinkMap::UpdateLinkLayers() {
 		}
 	}
 	
-	Sort(links, Link());
+	Sort(links, LinkBase());
 	DUMPC(links);
 	
 	while (1) {
 		bool have_orphans = false;
 		bool changes = false;
 		
-		for (Link& l : links) {
+		for (LinkBase& l : links) {
 			if (l.layer >= 0)
 				continue;
 			
@@ -389,18 +389,18 @@ void LinkMap::UpdateLinkLayers() {
 	}
 	
 	
-	Sort(links, Link());
+	Sort(links, LinkBase());
 	DUMPC(links);
 }
 
-void LinkMap::GetLayerRange(const ElectricNodeBase& n, int& min, int& max) {
+void LinkBaseMap::GetLayerRange(const ElectricNodeBase& n, int& min, int& max) {
 	min = INT_MAX;
 	max = INT_MIN;
 	
 	for (const ElectricNodeBase::Connector& c : n.conns) {
 		
 		for (const ElectricNodeBase::CLink& l : c.links) {
-			Link& link = *l.link;
+			LinkBase& link = *l.link;
 			if (link.layer < 0)
 				continue;
 			
@@ -416,12 +416,12 @@ void LinkMap::GetLayerRange(const ElectricNodeBase& n, int& min, int& max) {
 	}
 }
 
-void LinkMap::UpdateProcess() {
+void LinkBaseMap::UpdateProcess() {
 	rt_ops.SetCount(0);
 	
 	Vector<ElcBase*> units;
 	
-	for (Link& link : links) {
+	for (LinkBase& link : links) {
 		VectorFindAdd(units, link.sink->base);
 		VectorFindAdd(units, link.src->base);
 	}
@@ -451,7 +451,7 @@ void LinkMap::UpdateProcess() {
 	#endif
 	
 	for(int i = 0; i < links.GetCount(); i++) {
-		Link& link = links[i];
+		LinkBase& link = links[i];
 		
 		// Hack: find byte ranges for speedup
 		bool found_byte_range = false;
@@ -461,7 +461,7 @@ void LinkMap::UpdateProcess() {
 			String sink_prefix = link.sink->name.Left(link.sink->name.GetCount()-1);
 			int match_count = 1;
 			for(int j = i+1, k = 1; j < links.GetCount(); j++, k++) {
-				Link& link0 = links[j];
+				LinkBase& link0 = links[j];
 				String chk_src = src_prefix + IntStr(k);
 				String chk_sink = sink_prefix + IntStr(k);
 				
@@ -520,4 +520,4 @@ void LinkMap::UpdateProcess() {
 #endif
 
 
-END_UPP_NAMESPACE
+

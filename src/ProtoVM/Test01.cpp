@@ -1,8 +1,8 @@
 #include "ProtoVM.h"
 
-NAMESPACE_UPP
 
-void SetupTest1_Memory(Engine& mach) {
+
+void SetupTest1_Memory(Machine& mach) {
 	struct MemTester : Chip {
 		Vector<byte> data;
 		int addr;
@@ -11,7 +11,7 @@ void SetupTest1_Memory(Engine& mach) {
 		byte in_data = 0;
 		uint16 in_addr = 0;
 		
-		RTTI_DECL1(MemTester, Chip)
+		//RTTI_DECL1(MemTester, Chip)
 		MemTester() {
 			AddBidirectional("A0"); // 0
 			AddBidirectional("A1");
@@ -142,4 +142,4 @@ void SetupTest1_Memory(Engine& mach) {
 	}
 }
 
-END_UPP_NAMESPACE
+

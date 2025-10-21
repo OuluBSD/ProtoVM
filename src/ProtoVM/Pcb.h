@@ -1,16 +1,16 @@
 #ifndef _ProtoVM_Pcb_h_
 #define _ProtoVM_Pcb_h_
 
-NAMESPACE_UPP
 
 
-class Engine;
+
+class Machine;
 
 class Pcb {
 	
 protected:
-	friend class Engine;
-	Engine* mach = 0;
+	friend class Machine;
+	Machine* mach = 0;
 	Array<ElectricNodeBase> nodes;
 	Array<ElectricNodeBase> refs;
 	String name;
@@ -46,11 +46,11 @@ public:
 	String GetName() const {return name;}
 	
 	void Attach(ElectricNodeBase& from, ElectricNodeBase& to);
-	void GetLinks(Array<Link>& links);
+	void GetLinkBases(Array<LinkBase>& links);
 	
 };
 
 
-END_UPP_NAMESPACE
+
 
 #endif

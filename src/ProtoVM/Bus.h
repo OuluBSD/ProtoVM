@@ -1,18 +1,19 @@
 #ifndef _ProtoVM_Bus_h_
 #define _ProtoVM_Bus_h_
 
-NAMESPACE_UPP
+
 
 
 template <int Width>
 class Bus : public ElcBase {
-	RTTI_DECL1(Bus, ElcBase);
+	//RTTI_DECL1(Bus, ElcBase);
 	
 	static constexpr int BYTES = Width / 8 + ((Width % 8) ? 1 : 0);
 	static constexpr int BITS = Width % 8;
 	
 	bool processing = false;
 	byte data[BYTES];
+	bool is_driven[BYTES];  // Track which bytes are actively driven
 	bool verbose = 1;
 	
 public:
@@ -20,6 +21,7 @@ public:
 		for(int i = 0; i < Width; i++)
 			AddBidirectional(IntStr(i)).SetMultiConn();
 		Clear();
+		InitDrivers();
 	}
 	
 	Bus& Verbose(bool b=true) {verbose = b; return *this;}
@@ -31,14 +33,37 @@ public:
 			data[i] = 0;
 	}
 	
+	void InitDrivers() {
+		for(int i = 0; i < BYTES; i++)
+			is_driven[i] = false;
+	}
+	
+	void ResetDrivers() {
+		InitDrivers();
+	}
+	
+	bool IsDriven(int byte_idx) const {
+		if (byte_idx >= 0 && byte_idx < BYTES)
+			return is_driven[byte_idx];
+		return false;
+	}
+	
+	void SetDriven(int byte_idx, bool driven) {
+		if (byte_idx >= 0 && byte_idx < BYTES)
+			is_driven[byte_idx] = driven;
+	}
+	
 	bool Tick() override {
 		if (verbose) {
 			LOG("Bus::Tick(" << GetName() << "): " << HexString((const char*)data, BYTES));
 		}
 		
-		// Clearing bus doesn't really work
-		//Clear();
+		// Reset driver flags for next cycle
+		ResetDrivers();
 		
+		// For buses, we consider them as having potentially changed
+		// since other components may have driven new values
+		SetChanged(true);
 		return true;
 	}
 	
@@ -68,11 +93,28 @@ public:
 			if (BITS == 0) {
 				ASSERT(data_bytes == BYTES && data_bits == 0);
 				int copy_bytes = min(data_bytes, BYTES);
-				memcpy(this->data, data, copy_bytes);
+				
+				// Handle tri-state behavior - only update if data is valid
+				for (int i = 0; i < copy_bytes; i++) {
+					if (!is_driven[i]) {
+						// First driver takes control
+						this->data[i] = data[i];
+						is_driven[i] = true;
+					} else {
+						// If another driver is trying to drive a different value, handle bus contention
+						if (this->data[i] != data[i]) {
+							LOG("Bus contention detected on " << GetName() << " byte " << i 
+								<< ": was 0x" << HexStr(this->data[i]) << " now 0x" << HexStr(data[i]));
+							// For now, set to undefined value (0xFF) to indicate contention
+							this->data[i] = 0xFF;
+						}
+					}
+				}
 				return true;
 			}
 			else {
-				TODO
+				LOG("Bus: partial bit writes not implemented yet");
+				return false;
 			}
 		}
 		LOG("error: Bus: unexpected conn id");
@@ -86,7 +128,7 @@ using Bus16 = Bus<16>;
 
 
 class InterakBus : public ElcBase {
-	RTTI_DECL1(InterakBus, ElcBase);
+	//RTTI_DECL1(InterakBus, ElcBase);
 	
 	
 public:
@@ -95,6 +137,6 @@ public:
 };
 
 
-END_UPP_NAMESPACE
+
 
 #endif

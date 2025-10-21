@@ -1,11 +1,11 @@
 #ifndef _ProtoVM_Mechanical_h_
 #define _ProtoVM_Mechanical_h_
 
-NAMESPACE_UPP
+
 
 
 class PushButtonComp : public ElcBase {
-	RTTI_DECL1(PushButtonComp, ElcBase);
+	//RTTI_DECL1(PushButtonComp, ElcBase);
 	
 	
 	
@@ -17,6 +17,6 @@ public:
 };
 
 
-END_UPP_NAMESPACE
+
 
 #endif

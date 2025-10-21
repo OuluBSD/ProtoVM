@@ -1,11 +1,11 @@
 #ifndef _ProtoVM_Component_h_
 #define _ProtoVM_Component_h_
 
-NAMESPACE_UPP
+
 
 
 struct Pin : public ElcBase {
-	RTTI_DECL1(Pin, ElcBase);
+	//RTTI_DECL1(Pin, ElcBase);
 	
 	byte is_high = 0;
 	
@@ -19,7 +19,7 @@ struct Pin : public ElcBase {
 };
 
 struct Port : public ElcBase {
-	RTTI_DECL1(Port, ElcBase);
+	//RTTI_DECL1(Port, ElcBase);
 	
 	Array<Pin> pins;
 	
@@ -33,7 +33,7 @@ struct Port : public ElcBase {
 
 //template <int Ohm>
 class Resistor : public ElcBase {
-	RTTI_DECL1(Resistor, ElcBase);
+	//RTTI_DECL1(Resistor, ElcBase);
 	
 	
 public:
@@ -52,7 +52,7 @@ using Resistor4k7 = Resistor;//<4700>;
 
 
 class ResistorPack : public ElcBase {
-	RTTI_DECL1(ResistorPack, ElcBase);
+	//RTTI_DECL1(ResistorPack, ElcBase);
 	
 	
 public:
@@ -70,7 +70,7 @@ public:
 
 
 class Crystal : public ElcBase {
-	RTTI_DECL1(Crystal, ElcBase);
+	//RTTI_DECL1(Crystal, ElcBase);
 	int hz = 0;
 	
 public:
@@ -82,7 +82,7 @@ public:
 
 
 class ElcNor : public ElcBase {
-	RTTI_DECL1(ElcNor, ElcBase);
+	//RTTI_DECL1(ElcNor, ElcBase);
 	
 	
 public:
@@ -92,7 +92,7 @@ public:
 
 
 class ElcNand : public ElcBase {
-	RTTI_DECL1(ElcNand, ElcBase);
+	//RTTI_DECL1(ElcNand, ElcBase);
 	bool in0 = 0;
 	bool in1 = 0;
 	bool out = 0;
@@ -107,7 +107,7 @@ public:
 
 
 class ElcNot : public ElcBase {
-	RTTI_DECL1(ElcNot, ElcBase);
+	//RTTI_DECL1(ElcNot, ElcBase);
 	
 	
 public:
@@ -117,7 +117,7 @@ public:
 
 
 class ElcCapacitor : public ElcBase {
-	RTTI_DECL1(ElcCapacitor, ElcBase);
+	//RTTI_DECL1(ElcCapacitor, ElcBase);
 	
 	
 public:
@@ -127,7 +127,7 @@ public:
 
 
 class FlipFlopJK : public ElcBase {
-	RTTI_DECL1(FlipFlopJK, ElcBase);
+	//RTTI_DECL1(FlipFlopJK, ElcBase);
 	
 public:
 	FlipFlopJK();
@@ -136,6 +136,6 @@ public:
 };
 
 
-END_UPP_NAMESPACE
+
 
 #endif

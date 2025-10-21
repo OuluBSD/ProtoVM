@@ -1,9 +1,9 @@
 #include "ProtoVM.h"
 
-NAMESPACE_UPP
 
 
-void SetupMiniMax8085(Engine& mach) {
+
+void SetupMiniMax8085(Machine& mach) {
 	
 	// http://www.malinov.com/Home/sergeys-projects/minimax8085
 	
@@ -40,4 +40,4 @@ void SetupMiniMax8085(Engine& mach) {
 }
 
 
-END_UPP_NAMESPACE
+

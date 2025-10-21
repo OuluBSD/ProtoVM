@@ -1,6 +1,6 @@
 #include "ProtoVM.h"
 
-NAMESPACE_UPP
+
 
 
 Z80::Z80() {
@@ -149,4 +149,4 @@ ICGAL16V8::ICGAL16V8() {
 }
 
 
-END_UPP_NAMESPACE
+

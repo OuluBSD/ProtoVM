@@ -1,17 +1,17 @@
-#ifndef _ProtoVM_Link_h_
-#define _ProtoVM_Link_h_
-
-NAMESPACE_UPP
+#ifndef _ProtoVM_LinkBase_h_
+#define _ProtoVM_LinkBase_h_
 
 
-struct Link {
-	Link* to = 0;
+
+
+struct LinkBase {
+	LinkBase* to = 0;
 	ElectricNodeBase::Connector* sink = 0;
 	ElectricNodeBase::Connector* src = 0;
 	
-	typedef Link CLASSNAME;
-	Link();
-	bool operator()(const Link& a, const Link& b) const;
+	typedef LinkBase CLASSNAME;
+	LinkBase();
+	bool operator()(const LinkBase& a, const LinkBase& b) const;
 	
 	String ToString() const;
 	
@@ -19,7 +19,7 @@ struct Link {
 
 struct ProcessOp {
 	ProcessType type = INVALID;
-	Link* link = 0;
+	LinkBase* link = 0;
 	int priority = -1;
 	ElectricNodeBase* processor = 0;
 	ElectricNodeBase* dest = 0;
@@ -50,20 +50,20 @@ struct UnitOps : Moveable<UnitOps> {
 	bool HasReadOps() const {return !read_ops.IsEmpty();}
 };
 
-class LinkMap {
+class LinkBaseMap {
 public:
-	Array<Link> links;
+	Array<LinkBase> links;
 	Array<ProcessOp> rt_ops;
 	VectorMap<size_t, UnitOps> units;
 	
 	
-	void UpdateLinkLayers();
+	void UpdateLinkBaseLayers();
 	bool UpdateProcess();
 	//void GetLayerRange(const ElectricNodeBase& n, int& min, int& max);
 	
 };
 
 
-END_UPP_NAMESPACE
+
 
 #endif

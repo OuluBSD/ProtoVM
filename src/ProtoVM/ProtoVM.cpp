@@ -1,25 +1,26 @@
 #include "ProtoVM.h"
 
 /*
-Links:
+LinkBases:
 	- https://github.com/vygr/C-PCB
 */
 
 
-NAMESPACE_UPP
 
-void SetupTest1_Memory(Engine& mach);
-void SetupTest2_6502(Engine& mach);
-void SetupUK101(Engine& mach);
-void SetupInterak(Engine& mach);
-void SetupMiniMax8085(Engine& mach);
 
-END_UPP_NAMESPACE
+void SetupTest1_Memory(Machine& mach);
+void SetupTest2_6502(Machine& mach);
+void SetupUK101(Machine& mach);
+void SetupInterak(Machine& mach);
+void SetupMiniMax8085(Machine& mach);
+
+
 
 #ifdef flagMAIN
 
 CONSOLE_APP_MAIN {
 	using namespace Upp;
+	SetCoutLog();
 	
 	Machine		mach;
 	int			max_ticks = 100;

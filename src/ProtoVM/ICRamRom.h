@@ -1,11 +1,11 @@
 #ifndef _ProtoVM_ICRamRom_h_
 #define _ProtoVM_ICRamRom_h_
 
-NAMESPACE_UPP
+
 
 
 class ICMem8Base : public Chip {
-	RTTI_DECL1(ICMem8Base, Chip)
+	//RTTI_DECL1(ICMem8Base, Chip)
 	
 	static constexpr int A0 = 0;
 	static constexpr int D0 = 16;
@@ -39,7 +39,7 @@ public:
 
 template <int I, bool WRITABLE>
 class ICMem8T : public ICMem8Base {
-	RTTI_DECL1(ICMem8T, ICMem8Base)
+	//RTTI_DECL1(ICMem8T, ICMem8Base)
 	using MemCls = ICMem8T<I,WRITABLE>;
 	
 	static constexpr int size = I;
@@ -59,7 +59,7 @@ public:
 // https://www.futurlec.com/Memory/62256.shtml
 class IC62256 : public ICMem8T<32768, true> {
 public:
-	RTTI_DECL1(IC62256, MemCls)
+	//RTTI_DECL1(IC62256, MemCls)
 	IC62256() {}
 };
 
@@ -67,7 +67,7 @@ public:
 // https://www.futurlec.com/Memory/27256_Datasheet.shtml
 class IC27256 : public ICMem8T<32768, false> {
 public:
-	RTTI_DECL1(IC27256, MemCls)
+	//RTTI_DECL1(IC27256, MemCls)
 	IC27256() {}
 };
 
@@ -75,11 +75,11 @@ public:
 // https://www.futurlec.com/Memory/27128-150.shtml
 class IC27128 : public ICMem8T<16384, false> {
 public:
-	RTTI_DECL1(IC27128, Chip)
+	//RTTI_DECL1(IC27128, Chip)
 	IC27128() {}
 };
 
 
-END_UPP_NAMESPACE
+
 
 #endif

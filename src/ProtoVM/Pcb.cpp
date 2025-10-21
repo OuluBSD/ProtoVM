@@ -1,6 +1,6 @@
 #include "ProtoVM.h"
 
-NAMESPACE_UPP
+
 
 
 bool Pcb::Tick() {
@@ -153,7 +153,7 @@ void Pcb::Attach(ElectricNodeBase& from, ElectricNodeBase& to) {
 	
 }
 
-void Pcb::GetLinks(Array<Link>& links) {
+void Pcb::GetLinkBases(Array<LinkBase>& links) {
 	
 	for (ElectricNodeBase& n : nodes) {
 		for (ElectricNodeBase::Connector& from : n.conns) {
@@ -181,7 +181,7 @@ void Pcb::GetLinks(Array<Link>& links) {
 					Panic("internal error");
 				}
 					
-				Link& l = links.Add();
+				LinkBase& l = links.Add();
 				if (from.is_src && from.is_sink && !to.is_src) {
 					l.sink = &to;
 					l.src = &from;
@@ -210,4 +210,4 @@ void Pcb::GetLinks(Array<Link>& links) {
 }
 
 
-END_UPP_NAMESPACE
+

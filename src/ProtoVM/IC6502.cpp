@@ -4,7 +4,7 @@
 // https://github.com/floooh/chips-test/blob/master/tests/m6502-int.c
 
 
-NAMESPACE_UPP
+
 
 
 IC6502::IC6502()
@@ -49,6 +49,15 @@ IC6502::IC6502()
 }
 
 bool IC6502::Tick() {
+	// Store old values to detect changes
+	uint64_t old_pins = pins;
+	uint8_t old_A = cpu.A;
+	uint8_t old_X = cpu.X;
+	uint8_t old_Y = cpu.Y;
+	uint8_t old_S = cpu.S;
+	uint8_t old_P = cpu.P;
+	uint16_t old_PC = cpu.PC;
+	
 	pins = (pins & 0xFFFFFFFFFF000000ULL) | (uint64)in_addr | ((uint64)in_data << 16ULL);
 	pins = (pins & ~in_pins_mask) | in_pins;
 	
@@ -67,15 +76,15 @@ bool IC6502::Tick() {
 	    s << "  S: " << HexStr(cpu.S) << "\n";
 	    const uint8_t f = cpu.P;
 	    char f_str[9] = {
-	        (f & M6502_NF) ? 'N':'-',
-	        (f & M6502_VF) ? 'V':'-',
-	        (f & M6502_XF) ? 'X':'-',
-	        (f & M6502_BF) ? 'B':'-',
-	        (f & M6502_DF) ? 'D':'-',
-	        (f & M6502_IF) ? 'I':'-',
-	        (f & M6502_ZF) ? 'Z':'-',
-	        (f & M6502_CF) ? 'C':'-',
-	        0
+		    (f & M6502_NF) ? 'N' : '-',
+		    (f & M6502_VF) ? 'V' : '-',
+		    (f & M6502_XF) ? 'X' : '-',
+		    (f & M6502_BF) ? 'B' : '-',
+		    (f & M6502_DF) ? 'D' : '-',
+		    (f & M6502_IF) ? 'I' : '-',
+		    (f & M6502_ZF) ? 'Z' : '-',
+		    (f & M6502_CF) ? 'C' : '-',
+		    0
 	    };
 	    s << "  P:  " << HexStr(f) << " " << String(f_str) << "\n";
 	    s << "  PC: " << HexStr(cpu.PC) << "\n";
@@ -91,10 +100,23 @@ bool IC6502::Tick() {
 	    LOG("IC6502::Tick:\n" << s);
     }
     
+	// Detect if any important state changed
+	bool state_changed = (pins != old_pins) || 
+	                     (cpu.A != old_A) || 
+	                     (cpu.X != old_X) || 
+	                     (cpu.Y != old_Y) || 
+	                     (cpu.S != old_S) || 
+	                     (cpu.P != old_P) || 
+	                     (cpu.PC != old_PC);
+	
+	// Update change status
+	SetChanged(state_changed);
+    
 	in_addr = 0;
 	in_data = 0;
 	in_pins = 0;
     return true;
+}
 }
 
 bool IC6502::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
@@ -135,11 +157,13 @@ bool IC6502::Process(ProcessType type, int bytes, int bits, uint16 conn_id, Elec
 		case D0+5:
 		case D0+6:
 		case D0+7:
+			// For data bus, only drive when writing (not reading)
 			if (!reading && sync) {
-				tmp[0] = (pins >> (uint64)(conn_id));
+				tmp[0] = (pins >> (uint64)(conn_id-D0)) & 0xFF;
 				if (conn_id == D0 && bytes == 1) {LOG("IC6502::Process: sent data: " << HexStr(tmp[0]));}
 				return dest.PutRaw(dest_conn_id, tmp, bytes, bits);
 			}
+			// When reading, don't drive the bus - let other components drive it
 			break;
 		case IRQ:
 		case NMI:
@@ -206,4 +230,4 @@ void IC6502::SetPin(int i, bool b) {
 		in_pins &= ~mask;
 }
 
-END_UPP_NAMESPACE
+

@@ -1,6 +1,6 @@
 #include "ProtoVM.h"
 
-NAMESPACE_UPP
+
 
 
 InterakBus::InterakBus() {
@@ -98,4 +98,4 @@ InterakBus::InterakBus() {
 }
 
 
-END_UPP_NAMESPACE
+

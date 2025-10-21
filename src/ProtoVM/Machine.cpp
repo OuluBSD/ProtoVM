@@ -80,11 +80,46 @@ bool ElectricNodeBase::CheckTimingConstraints(String input_name, int current_tic
 		return false;
 	}
 	
-	// Check hold time: data must remain stable after the clock edge
+	// Check hold time: data must be stable after the clock edge
 	// For this, we'd need to track if data changed too soon after the clock edge,
 	// which we'll detect in the next call to this function when the data changes
 	
 	return true;
+}
+
+// Implementation of dependency management methods for ElectricNodeBase
+void ElectricNodeBase::AddDependency(ElectricNodeBase& dependent) {
+	// This component depends on 'dependent', so add it to dependencies
+	// and also add this component to the dependent's dependents list
+	bool found = false;
+	for (int i = 0; i < dependencies.GetCount(); i++) {
+		if (dependencies[i] == &dependent) {
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		dependencies.Add(&dependent);
+	}
+	
+	found = false;
+	for (int i = 0; i < dependent.dependents.GetCount(); i++) {
+		if (dependent.dependents[i] == this) {
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		dependent.dependents.Add(this);
+	}
+}
+
+Vector<ElectricNodeBase*>& ElectricNodeBase::GetDependents() {
+	return dependents;
+}
+
+Vector<ElectricNodeBase*>& ElectricNodeBase::GetDependencies() {
+	return dependencies;
 }
 
 
@@ -233,52 +268,113 @@ bool Machine::IsStateInHistory(uint64 current_state, const Vector<uint64>& histo
 bool Machine::RunRtOpsWithChangeDetection(bool& changed) {
 	changed = false; // Start with no changes detected
 	int op_i = 0;
-	for (const ProcessOp& op : l.rt_ops) {
-		bool op_changed = false;
-		switch (op.type) {
-		//case ProcessType::READ:
-		case ProcessType::WRITE: {
-			ASSERT(op.processor);
-			// For write operations, remember the destination's change state before processing
-			bool dest_changed_before = op.dest->HasChanged();
-			if (!op.processor->Process(op.type, op.mem_bytes, op.mem_bits, op.id, *op.dest, op.dest_id)) {
-				LOG("error: processing failed in " << op.processor->GetClassName());
-				return false;
+	
+	if (use_topological_ordering) {
+		// Use topological ordering for TICK operations
+		// Get components in topological order
+		Vector<ElectricNodeBase*> topo_order = PerformTopologicalSort();
+		
+		// First process all WRITE operations in the original order
+		for (const ProcessOp& op : l.rt_ops) {
+			if (op.type == ProcessType::WRITE) {
+				ASSERT(op.processor);
+				// For write operations, remember the destination's change state before processing
+				bool op_changed = false;
+				bool dest_changed_before = op.dest->HasChanged();
+				if (!op.processor->Process(op.type, op.mem_bytes, op.mem_bits, op.id, *op.dest, op.dest_id)) {
+					LOG("error: processing failed in " << op.processor->GetClassName());
+					return false;
+				}
+				// Check if the destination state changed as a result
+				if (op.dest->HasChanged() != dest_changed_before) {
+					op_changed = true;
+				} else {
+					// The write operation may have changed the destination without setting the flag
+					// Conservatively assume it changed to ensure proper simulation
+					op_changed = true;
+				}
+				
+				if (op_changed) {
+					changed = true;
+				}
 			}
-			// Check if the destination state changed as a result
-			if (op.dest->HasChanged() != dest_changed_before) {
-				op_changed = true;
-			} else {
-				// The write operation may have changed the destination without setting the flag
-				// Conservatively assume it changed to ensure proper simulation
-				op_changed = true;
-			}
-			break;
-		}
-		case ProcessType::TICK: {
-			// Clear the change flag before ticking to detect changes properly
-			op.dest->SetChanged(false);
-			// Call the Tick method - it should internally call SetChanged if state changes
-			if (!op.dest->Tick()) {
-				return false;
-			}
-			// Check if the component indicated its state changed
-			if (op.dest->HasChanged()) {
-				op_changed = true;
-			}
-			// Check timing constraints after the component has processed its tick
-			CheckComponentTiming(*op.dest);
-			break;
-		}
-		default:
-			LOG("Machine::RunRtOpsWithChangeDetection: unhandled ProcessType");
-			return false;
 		}
 		
-		if (op_changed) {
-			changed = true;
+		// Then process TICK operations in topological order
+		for (ElectricNodeBase* comp : topo_order) {
+			// Find the corresponding TICK operation for this component
+			for (const ProcessOp& op : l.rt_ops) {
+				if (op.type == ProcessType::TICK && op.dest == comp) {
+					// Clear the change flag before ticking to detect changes properly
+					op.dest->SetChanged(false);
+					// Call the Tick method - it should internally call SetChanged if state changes
+					if (!op.dest->Tick()) {
+						return false;
+					}
+					// Check if the component indicated its state changed
+					bool op_changed = false;
+					if (op.dest->HasChanged()) {
+						op_changed = true;
+					}
+					// Check timing constraints after the component has processed its tick
+					CheckComponentTiming(*op.dest);
+					
+					if (op_changed) {
+						changed = true;
+					}
+					break; // Found and processed the tick for this component
+				}
+			}
 		}
-		op_i++;
+	} else {
+		// Use the original order
+		for (const ProcessOp& op : l.rt_ops) {
+			bool op_changed = false;
+			switch (op.type) {
+			//case ProcessType::READ:
+			case ProcessType::WRITE: {
+				ASSERT(op.processor);
+				// For write operations, remember the destination's change state before processing
+				bool dest_changed_before = op.dest->HasChanged();
+				if (!op.processor->Process(op.type, op.mem_bytes, op.mem_bits, op.id, *op.dest, op.dest_id)) {
+					LOG("error: processing failed in " << op.processor->GetClassName());
+					return false;
+				}
+				// Check if the destination state changed as a result
+				if (op.dest->HasChanged() != dest_changed_before) {
+					op_changed = true;
+				} else {
+					// The write operation may have changed the destination without setting the flag
+					// Conservatively assume it changed to ensure proper simulation
+					op_changed = true;
+				}
+				break;
+			}
+			case ProcessType::TICK: {
+				// Clear the change flag before ticking to detect changes properly
+				op.dest->SetChanged(false);
+				// Call the Tick method - it should internally call SetChanged if state changes
+				if (!op.dest->Tick()) {
+					return false;
+				}
+				// Check if the component indicated its state changed
+				if (op.dest->HasChanged()) {
+					op_changed = true;
+				}
+				// Check timing constraints after the component has processed its tick
+				CheckComponentTiming(*op.dest);
+				break;
+			}
+			default:
+				LOG("Machine::RunRtOpsWithChangeDetection: unhandled ProcessType");
+				return false;
+			}
+			
+			if (op_changed) {
+				changed = true;
+			}
+			op_i++;
+		}
 	}
 	return true;
 }
@@ -343,6 +439,115 @@ void Machine::CheckComponentTiming(ElectricNodeBase& component) {
 	
 	// This is a simplified approach - a full implementation would need more sophisticated
 	// tracking of when clock edges occurred relative to data changes
+}
+
+// Build the dependency graph by analyzing connections between components
+void Machine::BuildDependencyGraph() {
+	// Clear existing dependencies
+	for (Pcb& pcb : pcbs) {
+		for (int i = 0; i < pcb.nodes.GetCount(); i++) {
+			ElectricNodeBase& node = pcb.nodes[i];
+			node.dependencies.Clear();
+			node.dependents.Clear();
+		}
+	}
+	
+	// Analyze each PCB's connections to build dependency graph
+	for (Pcb& pcb : pcbs) {
+		// Process each link to establish dependencies
+		// In this system, when one component's output is connected to another's input,
+		// the output component should be evaluated before the input component
+		// So input component depends on output component
+		
+		for (int i = 0; i < pcb.nodes.GetCount(); i++) {
+			ElectricNodeBase& node = pcb.nodes[i];
+			
+			// Look at each connector of this node
+			for (int j = 0; j < node.conns.GetCount(); j++) {
+				ElectricNodeBase::Connector& conn = node.conns[j];
+				
+				// If this is a sink (input), it depends on its source(s)
+				if (conn.IsConnected()) {
+					for (int k = 0; k < conn.links.GetCount(); k++) {
+						ElectricNodeBase::CLink& cLink = conn.links[k];
+						if (cLink.link) {
+							ElectricNodeBase::Connector* src_conn = cLink.link->src;
+							if (src_conn && src_conn->base) {
+								// This node (sink) depends on the source component
+								node.AddDependency(*src_conn->base);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// Perform topological sort using Kahn's algorithm
+Vector<ElectricNodeBase*> Machine::PerformTopologicalSort() {
+	BuildDependencyGraph();
+	
+	// Initialize with components that have no dependencies (in-degree = 0)
+	Vector<ElectricNodeBase*> result;
+	Vector<ElectricNodeBase*> no_dependency_nodes;
+	
+	// Find all nodes with no dependencies (in-degree = 0)
+	for (Pcb& pcb : pcbs) {
+		for (int i = 0; i < pcb.nodes.GetCount(); i++) {
+			ElectricNodeBase& node = pcb.nodes[i];
+			if (node.GetDependencies().GetCount() == 0) {
+				no_dependency_nodes.Add(&node);
+			}
+		}
+	}
+	
+	// Process nodes in topological order
+	while (!no_dependency_nodes.IsEmpty()) {
+		// Remove a node from the list of nodes with no dependencies
+		ElectricNodeBase* current = no_dependency_nodes[0];
+		no_dependency_nodes.Remove(0);
+		
+		// Add it to the result
+		result.Add(current);
+		
+		// For each node that depends on the current node, remove the dependency
+		Vector<ElectricNodeBase*>& dependents = current->GetDependents();
+		for (int i = 0; i < dependents.GetCount(); i++) {
+			ElectricNodeBase* dependent = dependents[i];
+			
+			// Remove this dependency from the dependent's dependency list
+			Vector<ElectricNodeBase*>& deps = dependent->GetDependencies();
+			int idx = -1;
+			for (int j = 0; j < deps.GetCount(); j++) {
+				if (deps[j] == current) {
+					idx = j;
+					break;
+				}
+			}
+			if (idx >= 0) {
+				deps.Remove(idx);
+			}
+			
+			// If the dependent now has no more dependencies, add it to the list
+			if (deps.GetCount() == 0) {
+				no_dependency_nodes.Add(dependent);
+			}
+		}
+	}
+	
+	// Check if all nodes were included (if not, there was a cycle)
+	int total_node_count = 0;
+	for (Pcb& pcb : pcbs) {
+		total_node_count += pcb.nodes.GetCount();
+	}
+	
+	if (result.GetCount() != total_node_count) {
+		LOG("Warning: Topological sort detected a cycle in the dependency graph. "
+			<< (total_node_count - result.GetCount()) << " components not included in sort.");
+	}
+	
+	return result;
 }
 
 

@@ -52,6 +52,7 @@ public:
 protected:
 	friend class Pcb;
 	friend class LinkBaseMap;
+	friend class Machine;  // Allow Machine to access connections for topological sort
 	
 	Pcb* pcb = 0;
 	ElectricNodeBase* ptr = 0;
@@ -120,6 +121,11 @@ private:
 	// Setup and hold time requirements (in simulation ticks)
 	int setup_time_ticks = 0;  // Minimum setup time in ticks
 	int hold_time_ticks = 0;   // Minimum hold time in ticks
+	
+public:
+	// Dependency tracking for topological sorting
+	Vector<ElectricNodeBase*> dependents;    // Components that depend on this one
+	Vector<ElectricNodeBase*> dependencies;  // Components this one depends on
 
 public:
 	bool HasChanged() const { return has_changed; }
@@ -144,6 +150,11 @@ public:
 	
 	// Check if timing constraints are satisfied
 	bool CheckTimingConstraints(String input_name, int current_tick, bool is_clock_edge = false) const;
+	
+	// Methods for topological sorting
+	void AddDependency(ElectricNodeBase& dependent);  // This component depends on 'dependent'
+	Vector<ElectricNodeBase*>& GetDependents();      // Components that depend on this one
+	Vector<ElectricNodeBase*>& GetDependencies();    // Components this one depends on
 	
 	virtual bool Tick() {
 		LOG("error: Tick not implemented in " << GetClassName()); return false;

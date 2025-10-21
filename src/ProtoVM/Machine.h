@@ -30,6 +30,9 @@ public:
 	// Timing violation tracking
 	int timing_violations = 0;  // Count of timing violations detected
 	
+	// Topological ordering flag
+	bool use_topological_ordering = false;  // Whether to use topological ordering for component evaluation
+	
 	bool Init();
 	bool Tick();
 	bool RunInitOps();
@@ -51,6 +54,10 @@ public:
 	
 	// Method to check component timing constraints
 	void CheckComponentTiming(ElectricNodeBase& component);
+	
+	// Methods for topological sorting
+	Vector<ElectricNodeBase*> PerformTopologicalSort();
+	void BuildDependencyGraph();
 	
 	//Port& GetPower() {return power;}
 	

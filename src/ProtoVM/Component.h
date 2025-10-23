@@ -113,11 +113,15 @@ public:
 
 class ElcNot : public ElcBase {
 	//RTTI_DECL1(ElcNot, ElcBase);
-	
+	bool in = 0;  // Input value
+	bool out = 1; // Output value (starts high by default)
 	
 public:
 	ElcNot();
 	
+	bool Tick() override;
+	bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
+	bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
 };
 
 class ElcXor : public ElcBase {
@@ -290,6 +294,38 @@ public:
 };
 
 
+class FlipFlopD : public ElcBase {
+	//RTTI_DECL1(FlipFlopD, ElcBase);
+	bool d = 0;      // Data input
+	bool clk = 0;    // Clock input
+	bool q = 0;      // Output
+	bool qn = 1;     // Inverted output
+	bool en = 1;     // Enable input (active high)
+	bool clr = 0;    // Clear input (active high)
+	bool last_clk = 0;  // Previous clock state for edge detection
 
+public:
+	FlipFlopD();
+
+	bool Tick() override;
+	bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
+	bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+};
+class Register4Bit : public ElcBase {
+	//RTTI_DECL1(Register4Bit, ElcBase);
+	bool d[4] = {0, 0, 0, 0};   // 4-bit data input
+	bool clk = 0;               // Clock input
+	bool en = 1;                // Enable input (active high)
+	bool clr = 0;               // Clear input (active high)
+	bool q[4] = {0, 0, 0, 0};   // 4-bit output
+	bool last_clk = 0;          // Previous clock state for edge detection
+
+public:
+	Register4Bit();
+
+	bool Tick() override;
+	bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
+	bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+};
 
 #endif

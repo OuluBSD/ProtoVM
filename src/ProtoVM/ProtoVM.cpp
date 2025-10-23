@@ -17,6 +17,8 @@ void SetupTest4_6502(Machine& mach);
 void SetupTest3_BasicLogicGates(Machine& mach);
 void SetupTest4_MuxDemux(Machine& mach);
 void SetupTest5_DecoderEncoder(Machine& mach);
+void TestBasicLogicGates(Machine& mach);
+void Test4BitRegister(Machine& mach);
 void SetupUK101(Machine& mach);
 void SetupInterak(Machine& mach);
 void SetupMiniMax8085(Machine& mach);
@@ -48,14 +50,17 @@ CONSOLE_APP_MAIN {
 		Cout() << "  memory      - Memory test circuit\n";
 		Cout() << "  6502        - 6502 CPU test circuit\n";
 		Cout() << "  basiclogic  - Basic logic gates test circuit\n";
+		Cout() << "  test4bit    - 4-bit register test circuit\n";
 		Cout() << "  muxdemux    - Multiplexer/demultiplexer test circuit\n";
 		Cout() << "  decenc      - Decoder/encoder test circuit\n";
+		Cout() << "  testgates   - Comprehensive logic gates test\n";
 		Cout() << "  uk101       - UK101 computer circuit\n";
 		Cout() << "  interak     - Interak computer circuit\n";
 		Cout() << "  minimax     - MiniMax 8085 computer circuit\n";
 		Cout() << "\nExamples:\n";
 		Cout() << "  " << GetExeTitle() << " 6502 -t 1000    # Run 6502 circuit for 1000 ticks\n";
 		Cout() << "  " << GetExeTitle() << " --cli           # Start interactive CLI mode\n";
+		Cout() << "  " << GetExeTitle() << " testgates       # Run comprehensive logic gate test\n";
 		return;
 	}
 	
@@ -82,7 +87,7 @@ CONSOLE_APP_MAIN {
 		else if (arg == "--cli") {
 			interactive_cli = true;
 		}
-		else if (arg == "flipflop" || arg == "andgate" || arg == "counter" || arg == "memory" || arg == "6502" || arg == "basiclogic" || arg == "muxdemux" || arg == "decenc" || arg == "uk101" || arg == "interak" || arg == "minimax") {
+		else if (arg == "flipflop" || arg == "andgate" || arg == "counter" || arg == "memory" || arg == "6502" || arg == "basiclogic" || arg == "test4bit" || arg == "muxdemux" || arg == "decenc" || arg == "testgates" || arg == "uk101" || arg == "interak" || arg == "minimax") {
 			circuit_name = arg;
 		}
 	}
@@ -114,6 +119,14 @@ CONSOLE_APP_MAIN {
 	else if (circuit_name == "basiclogic") {
 		SetupTest3_BasicLogicGates(mach);
 		LOG("Loaded Basic Logic Gates Test circuit");
+	}
+	else if (circuit_name == "test4bit") {
+		Test4BitRegister(mach);
+		LOG("Loaded 4-bit Register Test circuit");
+	}
+	else if (circuit_name == "testgates") {
+		TestBasicLogicGates(mach);
+		LOG("Loaded Comprehensive Logic Gates Test circuit");
 	}
 	else if (circuit_name == "muxdemux") {
 		SetupTest4_MuxDemux(mach);

@@ -6,6 +6,12 @@ ProtoVM is a custom digital logic simulator originally designed as a simple sequ
 
 This document outlines the original state assessment, identified issues, recommended improvements, implementation strategy, and final outcomes of the enhancement process.
 
+## Build Configuration
+
+Note: The project uses U++ (ultimate++). The build script has been updated to use the Topside U++ fork:
+- Build script: `build.sh` uses `$HOME/Topside/uppsrc` as the U++ source path
+- To build: `./build.sh`
+
 ## Current State Analysis
 
 ### System Architecture

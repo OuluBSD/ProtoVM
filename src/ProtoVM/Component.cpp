@@ -60,6 +60,90 @@ FlipFlopJK::FlipFlopJK() {
 	
 }
 
+FlipFlopD::FlipFlopD() {
+	AddSink("D");      // Data input
+	AddSink("Ck");     // Clock input
+	AddSink("En");     // Enable input (active high)
+	AddSink("Clr");    // Clear input (active high)
+	AddSource("Q").SetMultiConn();     // Output
+	AddSource("~Q").SetMultiConn();    // Inverted output
+	
+}
+
+bool FlipFlopD::Tick() {
+	// Check for clear condition - if clear is active, reset outputs regardless of clock
+	if (clr) {
+		q = 0;
+		qn = 1;
+	} else {
+		// Detect rising edge of clock
+		bool rising_edge = (clk && !last_clk);
+		
+		// On rising edge, and if enabled, update the output with the D input value
+		if (rising_edge && en) {
+			q = d;
+			qn = !d;  // Inverted output
+		}
+	}
+	
+	// Store current clock state for next rising edge detection
+	last_clk = clk;
+	
+	return true;
+}
+
+bool FlipFlopD::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
+	if (type == WRITE) {
+		switch (conn_id) {
+		case 0:  // D (Data input)
+		case 1:  // Ck (Clock input)
+		case 2:  // En (Enable input)
+		case 3:  // Clr (Clear input)
+			// skip (write of inputs - handled by PutRaw)
+			break;
+		case 4:  // Q (Output)
+			return dest.PutRaw(dest_conn_id, (byte*)&q, 0, 1);
+			break;
+		case 5:  // ~Q (Inverted output)
+			return dest.PutRaw(dest_conn_id, (byte*)&qn, 0, 1);
+			break;
+		default:
+			// For any other connection IDs, just acknowledge (for dummy pins or similar)
+			break;
+		}
+	}
+	else {
+		LOG("error: FlipFlopD: unimplemented ProcessType");
+		return false;
+	}
+	return true;
+}
+
+bool FlipFlopD::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+	switch (conn_id) {
+	case 0: // D (Data input)
+		ASSERT(data_bytes == 0 && data_bits == 1);
+		d = *data & 1;
+		break;
+	case 1: // Ck (Clock input)
+		ASSERT(data_bytes == 0 && data_bits == 1);
+		clk = *data & 1;
+		break;
+	case 2: // En (Enable input)
+		ASSERT(data_bytes == 0 && data_bits == 1);
+		en = *data & 1;
+		break;
+	case 3: // Clr (Clear input)
+		ASSERT(data_bytes == 0 && data_bits == 1);
+		clr = *data & 1;
+		break;
+	default:
+		LOG("error: FlipFlopD: unimplemented conn-id " << conn_id);
+		return false;
+	}
+	return true;
+}
+
 
 
 
@@ -182,6 +266,49 @@ ElcNot::ElcNot() {
 	AddSink("I");
 	AddSource("O").SetMultiConn();
 	
+}
+
+bool ElcNot::Tick() {
+	// NOT operation: output is inverse of input
+	out = !in;
+	return true;
+}
+
+bool ElcNot::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
+	if (type == WRITE) {
+		switch (conn_id) {
+		case 0:  // I (Input)
+			// skip (write of input - handled by PutRaw)
+			break;
+		case 1:  // O (Output)
+			return dest.PutRaw(dest_conn_id, (byte*)&out, 0, 1);
+			break;
+		default:
+			// For any other connection IDs, just acknowledge (for dummy pins or similar)
+			break;
+		}
+	}
+	else {
+		LOG("error: ElcNot: unimplemented ProcessType");
+		return false;
+	}
+	return true;
+}
+
+bool ElcNot::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+	switch (conn_id) {
+	case 0: // I (Input)
+		ASSERT(data_bytes == 0 && data_bits == 1);
+		in = *data & 1;
+		break;
+	case 1: // This shouldn't happen - output can't be written to
+		LOG("error: ElcNot: Attempt to write to output");
+		return false;
+	default:
+		LOG("error: ElcNot: unimplemented conn-id " << conn_id);
+		return false;
+	}
+	return true;
 }
 
 ElcXor::ElcXor() {
@@ -963,6 +1090,125 @@ ElcCapacitor::ElcCapacitor() {
 	AddSource("O").SetMultiConn();
 	
 }
+
+Register4Bit::Register4Bit() {
+	// Add sinks for 4-bit data input (D3, D2, D1, D0)
+	AddSink("D3");
+	AddSink("D2"); 
+	AddSink("D1");
+	AddSink("D0");
+	// Add sinks for control signals
+	AddSink("Ck");     // Clock
+	AddSink("En");     // Enable
+	AddSink("Clr");    // Clear
+	// Add sources for 4-bit output (Q3, Q2, Q1, Q0)
+	AddSource("Q3").SetMultiConn();
+	AddSource("Q2").SetMultiConn();
+	AddSource("Q1").SetMultiConn();
+	AddSource("Q0").SetMultiConn();
+}
+
+bool Register4Bit::Tick() {
+	// Check for clear condition - if clear is active, reset all outputs regardless of clock
+	if (clr) {
+		for (int i = 0; i < 4; i++) {
+			q[i] = 0;
+		}
+	} else {
+		// Detect rising edge of clock
+		bool rising_edge = (clk && !last_clk);
+	
+		// On rising edge, and if enabled, update all output bits with input data
+		if (rising_edge && en) {
+			for (int i = 0; i < 4; i++) {
+				q[i] = d[i];
+			}
+		}
+	}
+	
+	// Store current clock state for next rising edge detection
+	last_clk = clk;
+	
+	return true;
+}
+
+bool Register4Bit::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
+	if (type == WRITE) {
+		switch (conn_id) {
+		case 0:  // D3 (Data bit 3)
+		case 1:  // D2 (Data bit 2)
+		case 2:  // D1 (Data bit 1)
+		case 3:  // D0 (Data bit 0)
+		case 4:  // Ck (Clock input)
+		case 5:  // En (Enable input)
+		case 6:  // Clr (Clear input)
+			// skip (write of inputs - handled by PutRaw)
+			break;
+		case 7:  // Q3 (Output bit 3)
+			return dest.PutRaw(dest_conn_id, (byte*)&q[3], 0, 1);
+			break;
+		case 8:  // Q2 (Output bit 2)
+			return dest.PutRaw(dest_conn_id, (byte*)&q[2], 0, 1);
+			break;
+		case 9:  // Q1 (Output bit 1)
+			return dest.PutRaw(dest_conn_id, (byte*)&q[1], 0, 1);
+			break;
+		case 10: // Q0 (Output bit 0)
+			return dest.PutRaw(dest_conn_id, (byte*)&q[0], 0, 1);
+			break;
+		default:
+			// For any other connection IDs, just acknowledge (for dummy pins or similar)
+			break;
+		}
+	}
+	else {
+		LOG("error: Register4Bit: unimplemented ProcessType");
+		return false;
+	}
+	return true;
+}
+
+bool Register4Bit::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+	switch (conn_id) {
+	case 0: // D3 (Data bit 3)
+		ASSERT(data_bytes == 0 && data_bits == 1);
+		d[3] = *data & 1;
+		break;
+	case 1: // D2 (Data bit 2)
+		ASSERT(data_bytes == 0 && data_bits == 1);
+		d[2] = *data & 1;
+		break;
+	case 2: // D1 (Data bit 1)
+		ASSERT(data_bytes == 0 && data_bits == 1);
+		d[1] = *data & 1;
+		break;
+	case 3: // D0 (Data bit 0)
+		ASSERT(data_bytes == 0 && data_bits == 1);
+		d[0] = *data & 1;
+		break;
+	case 4: // Ck (Clock input)
+		ASSERT(data_bytes == 0 && data_bits == 1);
+		clk = *data & 1;
+		break;
+	case 5: // En (Enable input)
+		ASSERT(data_bytes == 0 && data_bits == 1);
+		en = *data & 1;
+		break;
+	case 6: // Clr (Clear input)
+		ASSERT(data_bytes == 0 && data_bits == 1);
+		clr = *data & 1;
+		break;
+	default:
+		LOG("error: Register4Bit: unimplemented conn-id " << conn_id);
+		return false;
+	}
+	return true;
+}
+
+
+
+
+
 
 
 

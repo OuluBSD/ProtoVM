@@ -1,6 +1,6 @@
 #include "ProtoVM.h"
 
-// Test circuit for basic logic gates: NAND, NOR, XOR, XNOR - simple connected version
+// Test circuit for all basic logic gates: NAND, NOR, XOR, XNOR, NOT
 void SetupTest3_BasicLogicGates(Machine& mach) {
     Pcb& b = mach.AddPcb();
     
@@ -10,16 +10,40 @@ void SetupTest3_BasicLogicGates(Machine& mach) {
     Pin& vcc = b.Add<Pin>("vcc");        // Logic 1
     vcc.SetReference(1);
     
-    // Create a single one of my new logic gates to test
+    // Create all basic logic gates
+    ElcNand& nand_gate = b.Add<ElcNand>("nand_gate");
     ElcNor& nor_gate = b.Add<ElcNor>("nor_gate");
+    ElcXor& xor_gate = b.Add<ElcXor>("xor_gate");
+    ElcXnor& xnor_gate = b.Add<ElcXnor>("xnor_gate");
+    ElcNot& not_gate = b.Add<ElcNot>("not_gate");
     
     try {
-        // Connect inputs to ground to satisfy connectivity requirements
+        // Connect inputs for each gate
+        // NAND gate: connect both inputs to ground initially
+        ground["0"] >> nand_gate["I0"];
+        ground["0"] >> nand_gate["I1"];
+        
+        // NOR gate: connect both inputs to ground initially
         ground["0"] >> nor_gate["I0"];
         ground["0"] >> nor_gate["I1"];
         
-        // Connect output to vcc to satisfy connectivity requirements
+        // XOR gate: connect both inputs to ground initially
+        ground["0"] >> xor_gate["I0"];
+        ground["0"] >> xor_gate["I1"];
+        
+        // XNOR gate: connect both inputs to ground initially
+        ground["0"] >> xnor_gate["I0"];
+        ground["0"] >> xnor_gate["I1"];
+        
+        // NOT gate: connect input to ground initially
+        ground["0"] >> not_gate["I"];
+        
+        // Connect outputs to vcc to satisfy connectivity requirements
+        nand_gate["O"] >> vcc["0"];
         nor_gate["O"] >> vcc["0"];
+        xor_gate["O"] >> vcc["0"];
+        xnor_gate["O"] >> vcc["0"];
+        not_gate["O"] >> vcc["0"];
     }
     catch (Exc e) {
         LOG("error: " << e);

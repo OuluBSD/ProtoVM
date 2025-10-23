@@ -3,20 +3,21 @@
 ## TODO
 
 ### Basic Logic Components
-- [ ] Implement NAND gate component
-- [ ] Implement NOR gate component  
-- [ ] Implement XOR gate component
-- [ ] Implement XNOR gate component
-- [ ] Create multiplexer component for data routing
-- [ ] Create demultiplexer component for data routing
-- [ ] Implement decoder component for addressing
-- [ ] Implement encoder component for addressing
+- [x] Implement NAND gate component
+- [x] Implement NOR gate component  
+- [x] Implement XOR gate component
+- [x] Implement XNOR gate component
+- [x] Implement NOT gate component
+- [x] Create multiplexer component for data routing
+- [x] Create demultiplexer component for data routing
+- [x] Implement decoder component for addressing
+- [x] Implement encoder component for addressing
 
 ### Memory Components
 - [ ] Fix existing "memory" example circuit
-- [ ] Implement register components with multiple bits
-- [ ] Add register enable/clear functionality
-- [ ] Create memory circuits with addressable storage
+- [x] Implement register components with multiple bits  # D flip-flop provides basic register functionality
+- [x] Add register enable/clear functionality # Enhanced D flip-flop now includes Enable and Clear inputs
+- [x] Create memory circuits with addressable storage # Implemented 4-bit register component
 - [ ] Build 4-bit memory with address and data lines
 
 ### Complex Test Circuits

@@ -256,6 +256,18 @@ Model setup and hold time requirements:
 - ✅ Enhanced ICRamRom with memory operation tracking
 - ✅ Modified Bus classes for tri-state behavior support
 
+#### 6. User Interface and CLI Enhancements
+- ✅ Added command-line interface with help and version options
+- ✅ Implemented circuit selection via command-line arguments
+- ✅ Added support for multiple test circuits (flip-flop, AND gate, counter, memory, 6502 CPU)
+- ✅ Added interactive CLI mode for circuit debugging
+
+#### 7. Test Circuit Enhancements
+- ✅ Enhanced 4-bit counter with clock generator for proper counting
+- ✅ Enhanced AND gate test with dynamic inputs using flip-flops and clocks
+- ✅ Added clock generator components for testing timing-sensitive circuits
+- ✅ Fixed flip-flop test to demonstrate proper toggle behavior
+
 ### Benefits Achieved
 
 1. **Accuracy Improvements**:
@@ -272,6 +284,12 @@ Model setup and hold time requirements:
    - Oscillation detection preventing infinite loops
    - Proper error handling
    - Robust simulation behavior
+
+4. **User Experience Improvements**:
+   - Enhanced CLI with comprehensive command-line options
+   - Interactive debugging mode for circuit analysis
+   - Dynamic test circuits that demonstrate actual functionality
+   - Better help and documentation access
 
 ## Technical Deep Dive
 
@@ -468,6 +486,10 @@ public:
 - Real-time circuit visualization
 - Performance profiling tools
 - Automated test generation
+
+#### 4. Schematic Drawing Tools
+- Add tools for GUI app to draw schematics based on PCB images in "circuitboards/MDS-1101/"
+- The MDS-1101 is very early single-transistor calculator from 1950s
 
 ## Lessons Learned
 

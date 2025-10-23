@@ -14,6 +14,9 @@ void SetupTest1_ANDGate(Machine& mach);
 void SetupTest2_Counter(Machine& mach);
 void SetupTest3_Memory(Machine& mach);
 void SetupTest4_6502(Machine& mach);
+void SetupTest3_BasicLogicGates(Machine& mach);
+void SetupTest4_MuxDemux(Machine& mach);
+void SetupTest5_DecoderEncoder(Machine& mach);
 void SetupUK101(Machine& mach);
 void SetupInterak(Machine& mach);
 void SetupMiniMax8085(Machine& mach);
@@ -39,14 +42,17 @@ CONSOLE_APP_MAIN {
 		Cout() << "  -t, --ticks N  Run simulation for N ticks (default: 100)\n";
 		Cout() << "  --cli          Start in interactive CLI mode\n";
 		Cout() << "Circuits:\n";
-		Cout() << "  flipflop  - Simple flip-flop test circuit\n";
-		Cout() << "  andgate   - Simple AND gate test circuit\n";
-		Cout() << "  counter   - 4-bit counter test circuit\n";
-		Cout() << "  memory    - Memory test circuit\n";
-		Cout() << "  6502      - 6502 CPU test circuit\n";
-		Cout() << "  uk101     - UK101 computer circuit\n";
-		Cout() << "  interak   - Interak computer circuit\n";
-		Cout() << "  minimax   - MiniMax 8085 computer circuit\n";
+		Cout() << "  flipflop    - Simple flip-flop test circuit\n";
+		Cout() << "  andgate     - Simple AND gate test circuit\n";
+		Cout() << "  counter     - 4-bit counter test circuit\n";
+		Cout() << "  memory      - Memory test circuit\n";
+		Cout() << "  6502        - 6502 CPU test circuit\n";
+		Cout() << "  basiclogic  - Basic logic gates test circuit\n";
+		Cout() << "  muxdemux    - Multiplexer/demultiplexer test circuit\n";
+		Cout() << "  decenc      - Decoder/encoder test circuit\n";
+		Cout() << "  uk101       - UK101 computer circuit\n";
+		Cout() << "  interak     - Interak computer circuit\n";
+		Cout() << "  minimax     - MiniMax 8085 computer circuit\n";
 		Cout() << "\nExamples:\n";
 		Cout() << "  " << GetExeTitle() << " 6502 -t 1000    # Run 6502 circuit for 1000 ticks\n";
 		Cout() << "  " << GetExeTitle() << " --cli           # Start interactive CLI mode\n";
@@ -76,7 +82,7 @@ CONSOLE_APP_MAIN {
 		else if (arg == "--cli") {
 			interactive_cli = true;
 		}
-		else if (arg == "flipflop" || arg == "andgate" || arg == "counter" || arg == "memory" || arg == "6502" || arg == "uk101" || arg == "interak" || arg == "minimax") {
+		else if (arg == "flipflop" || arg == "andgate" || arg == "counter" || arg == "memory" || arg == "6502" || arg == "basiclogic" || arg == "muxdemux" || arg == "decenc" || arg == "uk101" || arg == "interak" || arg == "minimax") {
 			circuit_name = arg;
 		}
 	}
@@ -104,6 +110,18 @@ CONSOLE_APP_MAIN {
 	else if (circuit_name == "6502") {
 		SetupTest4_6502(mach);
 		LOG("Loaded 6502 Test circuit");
+	}
+	else if (circuit_name == "basiclogic") {
+		SetupTest3_BasicLogicGates(mach);
+		LOG("Loaded Basic Logic Gates Test circuit");
+	}
+	else if (circuit_name == "muxdemux") {
+		SetupTest4_MuxDemux(mach);
+		LOG("Loaded Mux/Demux Test circuit");
+	}
+	else if (circuit_name == "decenc") {
+		SetupTest5_DecoderEncoder(mach);
+		LOG("Loaded Decoder/Encoder Test circuit");
 	}
 	else if (circuit_name == "uk101") {
 		SetupUK101(mach);

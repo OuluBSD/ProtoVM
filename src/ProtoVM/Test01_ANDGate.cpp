@@ -1,7 +1,7 @@
 #include "ProtoVM.h"
 
-// Clock generator for testing
-struct ClockGen : Chip {
+// Clock generator for testing - renamed to avoid conflicts
+struct ANDGateTestClockGen : Chip {
     int tick_count = 0;
     int clock_half_period = 2;  // Toggle every N ticks
     
@@ -9,7 +9,7 @@ struct ClockGen : Chip {
         clock_half_period = half_period;
     }
     
-    ClockGen() {
+    ANDGateTestClockGen() {
         AddSource("CLK_OUT").SetRequired(false);  // Clock output
     }
     
@@ -177,10 +177,10 @@ void SetupTest1_ANDGate(Machine& mach) {
     ANDGateTest& gate2 = b.Add<ANDGateTest>("andgate2");
     
     // Create clock generators with different periods
-    ClockGen& clk_gen1 = b.Add<ClockGen>("clk_gen1");
+    ANDGateTestClockGen& clk_gen1 = b.Add<ANDGateTestClockGen>("clk_gen1");
     clk_gen1.SetHalfPeriod(2);  // Fast clock (period 4)
     
-    ClockGen& clk_gen2 = b.Add<ClockGen>("clk_gen2");
+    ANDGateTestClockGen& clk_gen2 = b.Add<ANDGateTestClockGen>("clk_gen2");
     clk_gen2.SetHalfPeriod(3);  // Slower clock (period 6)
     
     try {

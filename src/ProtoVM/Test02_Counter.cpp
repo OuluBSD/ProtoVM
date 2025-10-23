@@ -91,7 +91,7 @@ struct Counter4Bit : Chip {
 };
 
 // Clock generator for testing
-struct ClockGen : Chip {
+struct CounterTestClockGen : Chip {
     int tick_count = 0;
     int clock_half_period = 2;  // Toggle every N ticks
     bool clock_state = false;
@@ -100,7 +100,7 @@ struct ClockGen : Chip {
         clock_half_period = half_period;
     }
     
-    ClockGen() {
+    CounterTestClockGen() {
         AddSource("CLK_OUT").SetRequired(false);  // Clock output
     }
     
@@ -135,7 +135,7 @@ void SetupTest2_Counter(Machine& mach) {
     Pin& ground = b.Add<Pin>("ground").SetReference(0);
     
     Counter4Bit& counter = b.Add<Counter4Bit>("counter");
-    ClockGen& clk_gen = b.Add<ClockGen>("clk_gen");  // Add without constructor parameter
+    CounterTestClockGen& clk_gen = b.Add<CounterTestClockGen>("clk_gen");  // Add without constructor parameter
     clk_gen.SetHalfPeriod(2);  // Set half period to 2 ticks (so full period is 4 ticks)
     
     try {

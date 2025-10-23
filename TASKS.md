@@ -14,7 +14,7 @@
 - [x] Implement encoder component for addressing
 
 ### Memory Components
-- [ ] Fix existing "memory" example circuit
+- [x] Fix existing "memory" example circuit
 - [x] Implement register components with multiple bits  # D flip-flop provides basic register functionality
 - [x] Add register enable/clear functionality # Enhanced D flip-flop now includes Enable and Clear inputs
 - [x] Create memory circuits with addressable storage # Implemented 4-bit register component

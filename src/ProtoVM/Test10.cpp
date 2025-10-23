@@ -15,7 +15,7 @@ Notes:
 	- https://github.com/vygr/C-PCB
 */
 
-void SetupTest2_6502(Machine& mach) {
+void SetupTest4_6502(Machine& mach) {
 	Pcb& b = mach.AddPcb();
 	
 	Pin& ground = b.Add<Pin>("ground").SetReference(0);

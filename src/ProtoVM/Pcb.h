@@ -16,6 +16,10 @@ protected:
 	String name;
 	
 public:
+	// Methods to access nodes for CLI and other purposes
+	int GetNodeCount() const { return nodes.GetCount(); }
+	ElectricNodeBase& GetNode(int index) { return nodes[index]; }
+	const ElectricNodeBase& GetNode(int index) const { return nodes[index]; }
 	
 	
 	template <class T>

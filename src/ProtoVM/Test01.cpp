@@ -2,7 +2,7 @@
 
 
 
-void SetupTest1_Memory(Machine& mach) {
+void SetupTest3_Memory(Machine& mach) {
 	struct MemTester : Chip {
 		Vector<byte> data;
 		int addr;

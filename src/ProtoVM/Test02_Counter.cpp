@@ -90,22 +90,63 @@ struct Counter4Bit : Chip {
     }
 };
 
+// Clock generator for testing
+struct ClockGen : Chip {
+    int tick_count = 0;
+    int clock_half_period = 2;  // Toggle every N ticks
+    bool clock_state = false;
+    
+    void SetHalfPeriod(int half_period) {
+        clock_half_period = half_period;
+    }
+    
+    ClockGen() {
+        AddSource("CLK_OUT").SetRequired(false);  // Clock output
+    }
+    
+    bool Tick() override {
+        // Toggle clock state every half_period ticks
+        if (tick_count % clock_half_period == 0) {
+            clock_state = !clock_state;
+        }
+        tick_count++;
+        
+        SetChanged(true);
+        return true;
+    }
+    
+    bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override {
+        if (type == WRITE && conn_id == 0) { // CLK_OUT
+            byte output_data = clock_state ? 1 : 0;
+            return dest.PutRaw(dest_conn_id, &output_data, 1, 0);
+        }
+        return false;
+    }
+    
+    bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override {
+        // ClockGen doesn't receive inputs, so just return true
+        return true;
+    }
+};
+
 void SetupTest2_Counter(Machine& mach) {
     Pcb& b = mach.AddPcb();
     
     Pin& ground = b.Add<Pin>("ground").SetReference(0);
-    Pin& vcc = b.Add<Pin>("vcc").SetReference(1);  // Supply voltage
     
     Counter4Bit& counter = b.Add<Counter4Bit>("counter");
+    ClockGen& clk_gen = b.Add<ClockGen>("clk_gen");  // Add without constructor parameter
+    clk_gen.SetHalfPeriod(2);  // Set half period to 2 ticks (so full period is 4 ticks)
     
     try {
         // Connect dummy pin to ground to satisfy connectivity requirements
         ground >> counter["dummy"];
         
-        // Connect clock and reset to VCC temporarily to test
-        // In a real setup, these would be controlled externally
-        vcc >> counter["CLK"];
-        ground >> counter["RST"];  // Active high reset, keep low to not reset
+        // Connect clock generator to counter's clock input
+        clk_gen["CLK_OUT"] >> counter["CLK"];
+        
+        // Keep reset low (not active) to allow counting
+        ground >> counter["RST"];
     }
     catch (Exc e) {
         LOG("error: " << e);

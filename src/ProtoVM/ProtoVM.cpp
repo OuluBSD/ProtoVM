@@ -19,6 +19,7 @@ void SetupTest4_MuxDemux(Machine& mach);
 void SetupTest5_DecoderEncoder(Machine& mach);
 void TestBasicLogicGates(Machine& mach);
 void Test4BitRegister(Machine& mach);
+void Test4BitMemory(Machine& mach);
 void SetupUK101(Machine& mach);
 void SetupInterak(Machine& mach);
 void SetupMiniMax8085(Machine& mach);
@@ -51,6 +52,7 @@ CONSOLE_APP_MAIN {
 		Cout() << "  6502        - 6502 CPU test circuit\n";
 		Cout() << "  basiclogic  - Basic logic gates test circuit\n";
 		Cout() << "  test4bit    - 4-bit register test circuit\n";
+		Cout() << "  test4bitmemory - 4-bit memory test circuit\n";
 		Cout() << "  muxdemux    - Multiplexer/demultiplexer test circuit\n";
 		Cout() << "  decenc      - Decoder/encoder test circuit\n";
 		Cout() << "  testgates   - Comprehensive logic gates test\n";
@@ -87,7 +89,7 @@ CONSOLE_APP_MAIN {
 		else if (arg == "--cli") {
 			interactive_cli = true;
 		}
-		else if (arg == "flipflop" || arg == "andgate" || arg == "counter" || arg == "memory" || arg == "6502" || arg == "basiclogic" || arg == "test4bit" || arg == "muxdemux" || arg == "decenc" || arg == "testgates" || arg == "uk101" || arg == "interak" || arg == "minimax") {
+		else if (arg == "flipflop" || arg == "andgate" || arg == "counter" || arg == "memory" || arg == "6502" || arg == "basiclogic" || arg == "test4bit" || arg == "test4bitmemory" || arg == "muxdemux" || arg == "decenc" || arg == "testgates" || arg == "uk101" || arg == "interak" || arg == "minimax") {
 			circuit_name = arg;
 		}
 	}
@@ -123,6 +125,10 @@ CONSOLE_APP_MAIN {
 	else if (circuit_name == "test4bit") {
 		Test4BitRegister(mach);
 		LOG("Loaded 4-bit Register Test circuit");
+	}
+	else if (circuit_name == "test4bitmemory") {
+		Test4BitMemory(mach);
+		LOG("Loaded 4-bit Memory Test circuit");
 	}
 	else if (circuit_name == "testgates") {
 		TestBasicLogicGates(mach);

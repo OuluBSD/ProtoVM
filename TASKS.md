@@ -18,7 +18,7 @@
 - [x] Implement register components with multiple bits  # D flip-flop provides basic register functionality
 - [x] Add register enable/clear functionality # Enhanced D flip-flop now includes Enable and Clear inputs
 - [x] Create memory circuits with addressable storage # Implemented 4-bit register component
-- [ ] Build 4-bit memory with address and data lines
+- [x] Build 4-bit memory with address and data lines # Implemented 4-bit memory with 16 locations × 4 bits
 
 ### Complex Test Circuits
 - [ ] Create 4-bit adder/subtractor using basic gates

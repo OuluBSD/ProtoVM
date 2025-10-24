@@ -13,7 +13,6 @@ file
 	Test02_Counter.cpp,
 	Test03_BasicLogicGates.cpp,
 	TestLogicGates.cpp,
-	Test4BitMemory.cpp,
 	Test4BitRegister.cpp,
 	Test10.cpp,
 	UK101.cpp,

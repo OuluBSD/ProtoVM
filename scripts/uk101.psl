@@ -1,0 +1,24 @@
+# UK101 computer schematic
+circuit uk101:
+    component cpu: cpu6502
+    component ram: ram(address_width=10, data_width=8)
+    component rom: rom(address_width=10, data_width=8)
+    component keyboard: keyboard_interface
+    component video: video_controller
+    
+    bus system_data: width=8
+    bus system_addr: width=16
+    
+    connect:
+        cpu.data_bus -- system_data
+        cpu.addr_bus -- system_addr
+        
+        ram.data_bus -- system_data
+        rom.data_bus -- system_data
+        keyboard.data_bus -- system_data
+        video.data_bus -- system_data
+        
+        ram.addr_bus -- system_addr
+        rom.addr_bus -- system_addr
+        keyboard.addr_bus -- system_addr
+        video.addr_bus -- system_addr

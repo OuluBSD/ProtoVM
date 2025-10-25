@@ -21,14 +21,14 @@
 - [x] Build 4-bit memory with address and data lines # Implemented 4-bit memory with 16 locations × 4 bits
 
 ### Complex Test Circuits
-- [ ] Create 4-bit adder/subtractor using basic gates
+- [x] Create 4-bit adder/subtractor using basic gates
 - [ ] Create ALU (Arithmetic Logic Unit) components
 - [ ] Implement state machine components for control logic
 - [ ] Build more complex CPU core examples
 
 ### CLI Enhancements
-- [ ] Add commands to inspect component states during simulation
-- [ ] Implement breakpoint functionality for debugging circuits
+- [x] Add commands to inspect component states during simulation
+- [x] Implement breakpoint functionality for debugging circuits
 - [ ] Add signal tracing to monitor specific signals during simulation
 - [ ] Create visualization commands to show circuit connections
 
@@ -51,7 +51,7 @@
 - [ ] Add parameterized components that can be configured by size or function
 
 ### Verification and Testing
-- [ ] Implement unit testing framework for individual components
+- [x] Implement unit testing framework for individual components
 - [ ] Create a test vector generator for comprehensive verification
 - [ ] Add formal verification tools for critical circuits
 - [ ] Build in fault injection capabilities to test robustness
@@ -65,6 +65,17 @@
 ### Schematic Drawing Tools
 - [ ] Add tools for GUI app to draw schematics based on PCB images in "circuitboards/MDS-1101/"
 - [ ] The MDS-1101 is very early single-transistor calculator from 1950s
+
+### Schematic Programming Language
+- [x] Design Pythonic schematic language with indentation-based blocks instead of C-like {}
+- [x] Create directory structure: "scripts/" for computer schematics (6502, uk101, interak, minimax) and "tests/" for unit tests
+- [x] Implement parser for the new schematic language
+- [x] Develop compiler/transpiler to convert schematic language to ProtoVM C++ components
+- [x] Create test framework to validate expected outputs for specific inputs
+- [x] Write initial schematic files for 6502, uk101, interak, and minimax computers
+- [x] Implement unit tests for basic components using the new language
+- [ ] Add documentation and examples for the schematic programming language
+- [x] Integrate schematic language execution into the main ProtoVM application
 
 ## IN PROGRESS
 

@@ -24,6 +24,8 @@ private:
 	void ProcessRunCommand(const Vector<String>& tokens);
 	void ProcessQuitCommand();
 	void ProcessListCommand();
+	void ProcessInspectCommand(const Vector<String>& tokens);
+	void ProcessStateCommand(const Vector<String>& tokens);
 };
 
 #endif

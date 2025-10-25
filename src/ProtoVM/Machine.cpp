@@ -253,6 +253,12 @@ bool Machine::Tick() {
 	if (iteration >= max_iterations) {
 		LOG("Warning: Machine::Tick() reached max iterations - possible oscillation detected");
 	}
+// Check if we've reached a breakpoint
+	if (HasBreakpointAt(current_tick)) {
+		LOG("Breakpoint hit at tick " << current_tick);
+		simulation_paused = true;
+	}
+
 	
 	return true;
 }
@@ -648,3 +654,34 @@ void Machine::CheckClockDomainCrossings() {
 
 
 
+
+void Machine::AddBreakpoint(int tick_number) {
+	if (tick_number >= 0) {
+		if (!HasBreakpointAt(tick_number)) {
+			breakpoints.Add(tick_number);
+			// Sort for efficient lookup
+		}
+	}
+}
+
+void Machine::RemoveBreakpoint(int tick_number) {
+	for (int i = 0; i < breakpoints.GetCount(); i++) {
+		if (breakpoints[i] == tick_number) {
+			breakpoints.Remove(i);
+			break;
+		}
+	}
+}
+
+void Machine::ClearBreakpoints() {
+	breakpoints.Clear();
+}
+
+bool Machine::HasBreakpointAt(int tick_number) const {
+	for (int i = 0; i < breakpoints.GetCount(); i++) {
+		if (breakpoints[i] == tick_number) {
+			return true;
+		}
+	}
+	return false;
+}

@@ -1,0 +1,8 @@
+# Simple NAND gate test
+circuit simple_nand:
+    component nand_gate: nand
+    component vcc: vcc
+    component ground: ground
+    
+    connect vcc -- nand_gate.input_a
+    connect ground -- nand_gate.input_b

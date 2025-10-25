@@ -2,6 +2,8 @@
 #define _ProtoVM_ICs_h_
 
 
+#include "Arithmetic.h"
+#include "ALU.h"
 
 // Resources:
 //  - https://github.com/floooh/chips
@@ -164,6 +166,7 @@ public:
 	ICGAL16V8();
 	
 };
+
 
 
 

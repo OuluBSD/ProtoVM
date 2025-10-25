@@ -1,0 +1,28 @@
+# NAND gate unit test
+test nand_gate_test:
+    circuit_under_test: simple_nand
+    
+    stimulus:
+        # Test case 1: Both inputs 1 -> output 0
+        input_a = 1
+        input_b = 1
+        wait 1
+        assert output == 0
+        
+        # Test case 2: Input A 0, B 1 -> output 1
+        input_a = 0
+        input_b = 1
+        wait 1
+        assert output == 1
+        
+        # Test case 3: Input A 1, B 0 -> output 1
+        input_a = 1
+        input_b = 0
+        wait 1
+        assert output == 1
+        
+        # Test case 4: Both inputs 0 -> output 1
+        input_a = 0
+        input_b = 0
+        wait 1
+        assert output == 1

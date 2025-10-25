@@ -1,0 +1,31 @@
+# 6502 CPU schematic
+circuit cpu6502:
+    component alu: alu6502
+    component pc: register(size=16)
+    component sp: register(size=16)
+    component ir: register(size=8)
+    component acc: register(size=8)
+    component x_reg: register(size=8)
+    component y_reg: register(size=8)
+    
+    component decoder: instruction_decoder
+    component sequencer: control_sequencer
+    
+    bus data_bus: width=8
+    bus addr_bus: width=16
+    
+    connect:
+        acc.connect_to -- data_bus
+        x_reg.connect_to -- data_bus
+        y_reg.connect_to -- data_bus
+        alu.data_out -- data_bus
+        
+        pc.connect_to -- addr_bus
+        sp.connect_to -- addr_bus
+        
+        ir.data_out -- decoder.instruction_input
+        decoder.control_outputs -- sequencer.control_inputs
+        
+        acc.out -- alu.input_a
+        x_reg.out -- alu.input_b
+        alu.out -- acc.in

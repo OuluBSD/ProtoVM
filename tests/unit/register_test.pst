@@ -1,0 +1,12 @@
+# Register unit test
+test register_test:
+    circuit_under_test: 8bit_register
+    
+    stimulus:
+        clock_toggle
+        data_in = 0b10101010
+        enable = 1
+        wait 1
+        clock_toggle
+        wait 1
+        assert q == 0b10101010

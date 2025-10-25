@@ -67,6 +67,17 @@ public:
 	
 	//Port& GetPower() {return power;}
 	
+	// Breakpoint functionality
+private:
+	Vector<int> breakpoints;  // List of tick numbers where simulation should pause
+	bool simulation_paused = false;  // Whether simulation is currently paused
+public:
+	void AddBreakpoint(int tick_number);  // Add a breakpoint at specified tick
+	void RemoveBreakpoint(int tick_number);  // Remove a breakpoint
+	void ClearBreakpoints();  // Clear all breakpoints
+	bool HasBreakpointAt(int tick_number) const;  // Check if there's a breakpoint at this tick
+	bool IsPaused() const { return simulation_paused; }  // Check if simulation is paused
+	void Resume() { simulation_paused = false; }  // Resume simulation
 };
 
 

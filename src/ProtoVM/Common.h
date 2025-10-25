@@ -135,6 +135,13 @@ public:
 	bool HasChanged() const { return has_changed; }
 	void SetChanged(bool changed = true) { has_changed = changed; }
 	
+	// Methods for CLI inspection
+	int GetConnectorCount() const { return conns.GetCount(); }
+	const Connector& GetConnector(int index) const { 
+		ASSERT(index >= 0 && index < conns.GetCount());
+		return conns[index]; 
+	}
+	
 	// Get/set propagation delay for this component
 	int GetDelayTicks() const { return delay_ticks; }
 	void SetDelayTicks(int delay) { delay_ticks = delay; }

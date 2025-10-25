@@ -241,3 +241,15 @@ The improvements were implemented systematically:
 The ProtoVM digital logic simulation system has been successfully transformed from a simple sequential processor to a robust digital logic simulator. The convergence-based approach with intelligent change detection provides both accuracy and performance, making it suitable for simulating moderately complex digital circuits.
 
 The enhancements ensure that ProtoVM now properly models the complexities of real hardware behavior while maintaining the flexibility and extensibility of the original design. This positions the project well for future development and expansion into more sophisticated digital simulation scenarios.
+
+## Recent Additions
+
+### Arithmetic Components
+- **FullAdder**: Basic building block implementing sum and carry logic
+- **Adder4Bit**: 4-bit ripple carry adder using full adders
+- **AdderSubtractor4Bit**: 4-bit adder/subtractor with control for operation selection
+
+### Unit Testing Framework
+- Created comprehensive unit tests for arithmetic components
+- Added test command line option (`./ProtoVM unittests`)
+- Verified functionality of basic components before integration

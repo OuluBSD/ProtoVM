@@ -20,11 +20,15 @@ void SetupTest5_DecoderEncoder(Machine& mach);
 void TestBasicLogicGates(Machine& mach);
 void Test4BitRegister(Machine& mach);
 void Test4BitMemory(Machine& mach);
+void Test4BitAdder(Machine& mach);
 void SetupUK101(Machine& mach);
 void SetupInterak(Machine& mach);
 void SetupMiniMax8085(Machine& mach);
+void RunArithmeticUnitTests(Machine& mach);
 
 
+
+void TestPslParserFunction();  // Forward declaration
 
 #ifdef flagMAIN
 
@@ -58,6 +62,7 @@ CONSOLE_APP_MAIN {
 		Cout() << "  testgates   - Comprehensive logic gates test\n";
 		Cout() << "  uk101       - UK101 computer circuit\n";
 		Cout() << "  interak     - Interak computer circuit\n";
+		Cout() << "  unittests   - Run unit tests for arithmetic components\n";
 		Cout() << "  minimax     - MiniMax 8085 computer circuit\n";
 		Cout() << "\nExamples:\n";
 		Cout() << "  " << GetExeTitle() << " 6502 -t 1000    # Run 6502 circuit for 1000 ticks\n";
@@ -76,6 +81,7 @@ CONSOLE_APP_MAIN {
 	String circuit_name = "6502"; // default
 	int max_ticks = 100;
 	bool interactive_cli = false;
+	bool run_psl_test = false;
 	
 	for (int i = 0; i < args.GetCount(); i++) {
 		String arg = args[i];
@@ -89,9 +95,19 @@ CONSOLE_APP_MAIN {
 		else if (arg == "--cli") {
 			interactive_cli = true;
 		}
-		else if (arg == "flipflop" || arg == "andgate" || arg == "counter" || arg == "memory" || arg == "6502" || arg == "basiclogic" || arg == "test4bit" || arg == "test4bitmemory" || arg == "muxdemux" || arg == "decenc" || arg == "testgates" || arg == "uk101" || arg == "interak" || arg == "minimax") {
+		else if (arg == "--psl-test") {
+			run_psl_test = true;
+		}
+		else if (arg == "flipflop" || arg == "andgate" || arg == "counter" || arg == "memory" || arg == "6502" || arg == "basiclogic" || arg == "test4bit" || arg == "test4bitmemory" || arg == "muxdemux" || arg == "decenc" || arg == "testgates" || arg == "uk101" || arg == "interak" || arg == "minimax" || arg == "unittests") {
 			circuit_name = arg;
 		}
+	}
+
+	// Check if running PSL parser test
+	if (run_psl_test) {
+		LOG("Running PSL Parser Test...");
+		TestPslParserFunction();
+		return;
 	}
 	
 	// Initialize machine
@@ -149,6 +165,10 @@ CONSOLE_APP_MAIN {
 	else if (circuit_name == "interak") {
 		SetupInterak(mach);
 		LOG("Loaded Interak circuit");
+	}
+	else if (circuit_name == "unittests") {
+		RunArithmeticUnitTests(mach);
+		LOG("Loaded Arithmetic Unit Tests");
 	}
 	else if (circuit_name == "minimax") {
 		SetupMiniMax8085(mach);

@@ -148,7 +148,7 @@ bool Machine::Init() {
 			return false;
 		}
 	}
-	LOG("Machine::Init: all pcbs fully connected!");
+	// LOG("Machine::Init: all pcbs fully connected!"); // Commented out to reduce verbosity
 	
 	for (Pcb& pcb : pcbs) {
 		pcb.GetLinkBases(l.links);

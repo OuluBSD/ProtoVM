@@ -51,7 +51,10 @@ CONSOLE_APP_MAIN {
 		Cout() << "Usage: " << GetExeTitle() << " [options] [circuit_name]\n";
 		Cout() << "Options:\n";
 		Cout() << "  -h, --help     Show this help message\n";
-		Cout() << "  -v, --version  Show version information\n";
+		Cout() << "  -V, --version  Show version information\n";
+		Cout() << "  -v              Show verbose output during simulation\n";
+		Cout() << "  -vv             Show more verbose output (very verbose)\n";
+		Cout() << "  --verbosity=N   Set verbosity level directly (0=minimal, 1=default, 2=verbose, 3=very verbose)\n";
 		Cout() << "  -t, --ticks N  Run simulation for N ticks (default: 100)\n";
 		Cout() << "  --cli          Start in interactive CLI mode\n";
 		Cout() << "Circuits:\n";
@@ -84,8 +87,8 @@ CONSOLE_APP_MAIN {
 		return;
 	}
 	
-	// Check for version flag
-	if (FindIndex(args, "-v") >= 0 || FindIndex(args, "--version") >= 0) {
+	// Check for version flag (now using -V or --version)
+	if (FindIndex(args, "-V") >= 0 || FindIndex(args, "--version") >= 0) {
 		Cout() << "ProtoVM Digital Logic Simulator v1.0\n";
 		return;
 	}
@@ -95,6 +98,7 @@ CONSOLE_APP_MAIN {
 	int max_ticks = 100;
 	bool interactive_cli = false;
 	bool run_psl_test = false;
+	int verbosity_level = 0;  // 0=minimal output, 1=default output, 2=verbose output, 3=very verbose
 	
 	for (int i = 0; i < args.GetCount(); i++) {
 		String arg = args[i];
@@ -110,6 +114,20 @@ CONSOLE_APP_MAIN {
 		}
 		else if (arg == "--psl-test") {
 			run_psl_test = true;
+		}
+		else if (arg == "-v") {
+			verbosity_level = 1;  // Default verbose
+		}
+		else if (arg == "-vv") {
+			verbosity_level = 2;  // More verbose
+		}
+		else if (arg == "-vvv") {
+			verbosity_level = 3;  // Very verbose
+		}
+		else if (arg.StartsWith("--verbosity=")) {
+			String level_str = arg.Mid(12); // Length of "--verbosity="
+			int parsed_level = StrInt(level_str);
+			verbosity_level = parsed_level > 0 ? parsed_level : 1; // Default to 1 if conversion fails
 		}
 		else if (arg == "flipflop" || arg == "andgate" || arg == "counter" || arg == "memory" || arg == "6502" || arg == "basiclogic" || arg == "test4bit" || arg == "test4bitmemory" || arg == "muxdemux" || arg == "decenc" || arg == "testgates" || arg == "uk101" || arg == "interak" || arg == "minimax" || arg == "unittests" || arg == "statemachine" || arg == "basiccpu" || arg == "clkdivider" || arg == "clkgate" || arg == "pll" || arg == "signaltrace") {
 			circuit_name = arg;

@@ -85,7 +85,11 @@ void Pcb::Attach(ElectricNodeBase& from, ElectricNodeBase& to) {
 	if (an.GetCount()) a += "(" + an + ")";
 	if (bn.GetCount()) b += "(" + bn + ")";
 	
-	LOG((String)"from " + a + "(" + an + ") to " + b + "(" + bn + ")");
+	// Only log if in verbose mode (could be controlled by global verbosity setting)
+	// For now, we'll comment out or make conditional
+	// LOG((String)"from " + a + "(" + an + ") to " + b + "(" + bn + ")");
+	// In a production system, we might want to use a global verbosity level setting
+	// that gets checked here as well.
 	ASSERT(!from.IsEmpty() && !to.IsEmpty());
 	ASSERT(&from != &to);
 	int aw = from.GetPinWidth();

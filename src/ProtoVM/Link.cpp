@@ -87,7 +87,8 @@ void LinkBaseMap::UpdateLinkBaseLayers() {
 		unit.unit = ptr;
 	}
 	
-	DUMPC(links);
+	// Comment out the DUMPC to reduce default verbosity
+	// DUMPC(links);
 	for (LinkBase& link : links) {
 		UnitOps& src_unit = units.Get((size_t)link.src->base);
 		UnitOps& sink_unit = units.Get((size_t)link.sink->base);
@@ -185,7 +186,7 @@ bool LinkBaseMap::UpdateProcess() {
 	*/
 	
 	bool very_verbose = false;
-	bool verbose = true;
+	bool verbose = false;  // Changed from true to false to reduce default output
 	int priority_step = 10;
 	int priority = priority_step;
 	
@@ -211,7 +212,7 @@ bool LinkBaseMap::UpdateProcess() {
 		
 		if (very_verbose) {
 			Sort(rt_ops, ProcessOp());
-			DUMPC(rt_ops);
+			// DUMPC(rt_ops); // Commented out to reduce verbosity
 		}
 			
 		int ticked_count = 0;
@@ -328,7 +329,7 @@ bool LinkBaseMap::UpdateProcess() {
 	
 	if (verbose) {
 		Sort(rt_ops, ProcessOp());
-		DUMPC(rt_ops);
+		// DUMPC(rt_ops); // Commented out to reduce verbosity
 	}
 	
 	return true;
@@ -353,7 +354,7 @@ void LinkBaseMap::UpdateLinkBaseLayers() {
 	}
 	
 	Sort(links, LinkBase());
-	DUMPC(links);
+	// DUMPC(links); // Commented out to reduce verbosity
 	
 	while (1) {
 		bool have_orphans = false;
@@ -390,7 +391,7 @@ void LinkBaseMap::UpdateLinkBaseLayers() {
 	
 	
 	Sort(links, LinkBase());
-	DUMPC(links);
+	// DUMPC(links); // Commented out to reduce verbosity
 }
 
 void LinkBaseMap::GetLayerRange(const ElectricNodeBase& n, int& min, int& max) {

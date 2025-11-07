@@ -213,6 +213,9 @@ bool Machine::Tick() {
 	// Increment the current tick counter
 	current_tick++;
 	
+	// Simulate clock domains to update their states
+	SimulateClockDomains();
+	
 	// Check for clock domain crossings if needed
 	// For now, we'll perform this check periodically, maybe every N ticks
 	// In a real implementation, this might be configurable
@@ -253,12 +256,33 @@ bool Machine::Tick() {
 	if (iteration >= max_iterations) {
 		LOG("Warning: Machine::Tick() reached max iterations - possible oscillation detected");
 	}
-// Check if we've reached a breakpoint
+	
+	// Check if we've reached a breakpoint
 	if (HasBreakpointAt(current_tick)) {
 		LOG("Breakpoint hit at tick " << current_tick);
 		simulation_paused = true;
 	}
-
+	
+	// Perform signal tracing if any signals are being traced
+	if (!signal_traces.IsEmpty()) {
+		LogSignalTraces();  // Log the current state of all traced signals
+	}
+	
+	// Log signal transitions summary for this tick
+	if (!signal_transitions.IsEmpty()) {
+		// Only log if there were transitions in this tick
+		bool hasCurrentTickTransitions = false;
+		for (int i = 0; i < signal_transitions.GetCount(); i++) {
+			if (signal_transitions[i].tick_number == current_tick) {
+				hasCurrentTickTransitions = true;
+				break;
+			}
+		}
+		
+		if (hasCurrentTickTransitions) {
+			LogAllSignalTransitions();  // Log all transitions from the current tick
+		}
+	}
 	
 	return true;
 }
@@ -580,25 +604,44 @@ Vector<ElectricNodeBase*> Machine::PerformTopologicalSort() {
 }
 
 int Machine::CreateClockDomain(int frequency_hz) {
-	// In a real implementation, we might want to track clock domains in a map
-	// For now, we'll just use integer IDs starting from 1
-	// In the real system, the Machine might track domains in a member variable
-	// but to avoid changing the class definition again, we'll just return an ID
-	// In practice, this would be more sophisticated
+	// Create and store a new clock domain with the given frequency
+	ClockDomain domain;
+	domain.id = clock_domains.GetCount();  // Use the count as the ID
+	domain.frequency_hz = frequency_hz;
 	
-	// Since we don't have a domain storage, we'll just return the next available ID
-	// We'll assume that domain IDs 0 is the default, so new ones start at 1
-	// This is a simplified implementation - in a real system, we would track domains
+	if (frequency_hz > 0) {
+		// Calculate period in simulation ticks (assuming 1 tick = 1 time unit)
+		// For example, if freq = 1000Hz, then period = 1/1000 seconds = 0.001 (normalized to ticks)
+		// In this simplified model: period_ticks = 1 / (frequency_hz * global_clock_multiplier)
+		double effective_freq = frequency_hz * global_clock_multiplier;
+		if (effective_freq > 0) {
+			domain.period_ticks = 1.0 / effective_freq;
+		} else {
+			domain.period_ticks = 1.0;  // Default to 1 if frequency is 0
+		}
+	} else {
+		domain.period_ticks = 1.0;  // Default for asynchronous domains
+	}
 	
-	// For simplicity, we'll just return a sequential ID
-	// In a real implementation, we'd store the frequency for the domain
-	static int next_domain_id = 1;
-	return next_domain_id++;
+	domain.last_edge_tick = -1;
+	domain.next_edge_tick = 0;
+	domain.clock_state = false;
+	
+	clock_domains.Add(domain);
+	
+	LOG("Created clock domain " << domain.id << " with frequency " << frequency_hz << " Hz");
+	return domain.id;
 }
 
 void Machine::AssignComponentToClockDomain(ElectricNodeBase* component, int domain_id) {
-	if (component) {
+	if (component && domain_id < clock_domains.GetCount()) {
 		component->SetClockDomain(domain_id);
+		
+		// Add component to the domain's component list (storing ID instead of pointer to avoid copy issues)
+		ClockDomain& domain = clock_domains[domain_id];
+		// For now just store an ID - in a real implementation we'd have a more sophisticated system
+		// to find the component by its ID when needed
+		domain.component_ids.Add(domain_id); // Using domain_id as component ID for this simple case
 	}
 }
 
@@ -684,4 +727,495 @@ bool Machine::HasBreakpointAt(int tick_number) const {
 		}
 	}
 	return false;
+}
+
+// Implementation for signal tracing methods
+void Machine::AddSignalToTrace(ElectricNodeBase* component, const String& pin_name) {
+    SignalTrace trace;
+    trace.component = component;
+    trace.pin_name = pin_name;
+    trace.last_value = 0;  // Initial value
+    trace.trace_enabled = true;
+    
+    signal_traces.Add(trace);
+    LOG("Added signal to trace: " << component->GetName() << "." << pin_name);
+}
+
+void Machine::RemoveSignalFromTrace(ElectricNodeBase* component, const String& pin_name) {
+    for (int i = 0; i < signal_traces.GetCount(); i++) {
+        if (signal_traces[i].component == component && signal_traces[i].pin_name == pin_name) {
+            signal_traces.Remove(i);
+            LOG("Removed signal from trace: " << component->GetName() << "." << pin_name);
+            return;
+        }
+    }
+    LOG("Warning: Signal not found in trace: " << component->GetName() << "." << pin_name);
+}
+
+void Machine::ClearSignalTraces() {
+    signal_traces.Clear();
+    LOG("Cleared all signal traces");
+}
+
+void Machine::EnableSignalTrace(int trace_id, bool enable) {
+    if (trace_id >= 0 && trace_id < signal_traces.GetCount()) {
+        signal_traces[trace_id].trace_enabled = enable;
+        LOG("Signal trace " << trace_id << " " << (enable ? "enabled" : "disabled"));
+    }
+}
+
+void Machine::DisableSignalTrace(int trace_id) {
+    if (trace_id >= 0 && trace_id < signal_traces.GetCount()) {
+        signal_traces[trace_id].trace_enabled = false;
+        LOG("Signal trace " << trace_id << " disabled");
+    }
+}
+
+void Machine::LogSignalTraces() {
+    LOG("Signal Trace Report (Tick " << current_tick << "):");
+    for (int i = 0; i < signal_traces.GetCount(); i++) {
+        const SignalTrace& trace = signal_traces[i];
+        if (trace.trace_enabled) {
+            LOG("  " << trace.component->GetName() << "." << trace.pin_name 
+                 << " = " << (int)trace.last_value);
+        }
+    }
+}
+
+// Implementation for timing analysis methods
+void Machine::PerformTimingAnalysis() {
+    LOG("Starting timing analysis...");
+    
+    // Perform timing analysis across all PCBs and components
+    for (int pcb_idx = 0; pcb_idx < pcbs.GetCount(); pcb_idx++) {
+        Pcb& pcb = pcbs[pcb_idx];
+        
+        LOG("Analyzing PCB " << pcb_idx << ": " << pcb.GetName());
+        
+        // Analyze each component in the PCB
+        for (int comp_idx = 0; comp_idx < pcb.GetNodeCount(); comp_idx++) {
+            ElectricNodeBase& comp = pcb.GetNode(comp_idx);
+            
+            // Check timing constraints based on component's setup/hold time requirements
+            if (comp.GetSetupTimeTicks() > 0 || comp.GetHoldTimeTicks() > 0) {
+                LOG("  Component: " << comp.GetName() 
+                     << " (Setup: " << comp.GetSetupTimeTicks() 
+                     << ", Hold: " << comp.GetHoldTimeTicks() << ")");
+            }
+        }
+    }
+    
+    LOG("Timing analysis completed.");
+}
+
+void Machine::ReportTimingAnalysis() {
+    LOG("Timing Analysis Report:");
+    LOG("========================");
+    
+    int totalComponents = 0;
+    int timingCriticalComponents = 0;
+    int totalTimingViolations = GetTimingViolationCount();
+    
+    for (int pcb_idx = 0; pcb_idx < pcbs.GetCount(); pcb_idx++) {
+        Pcb& pcb = pcbs[pcb_idx];
+        
+        LOG("PCB " << pcb_idx << ": " << pcb.GetName());
+        LOG("  Components: " << pcb.GetNodeCount());
+        
+        int pcbTimingCritical = 0;
+        for (int comp_idx = 0; comp_idx < pcb.GetNodeCount(); comp_idx++) {
+            ElectricNodeBase& comp = pcb.GetNode(comp_idx);
+            totalComponents++;
+            
+            if (comp.GetSetupTimeTicks() > 0 || comp.GetHoldTimeTicks() > 0) {
+                pcbTimingCritical++;
+                timingCriticalComponents++;
+                LOG("    [TIMING-CRITICAL] " << comp.GetName() 
+                     << " (Setup: " << comp.GetSetupTimeTicks() 
+                     << "t, Hold: " << comp.GetHoldTimeTicks() << "t)");
+            }
+        }
+        
+        LOG("  Timing-critical components: " << pcbTimingCritical);
+    }
+    
+    LOG("Summary:");
+    LOG("  Total components analyzed: " << totalComponents);
+    LOG("  Timing-critical components: " << timingCriticalComponents);
+    LOG("  Timing violations detected: " << totalTimingViolations);
+    
+    if (timingCriticalComponents > 0) {
+        LOG("Recommendation: Review timing-critical components for proper clock domain placement");
+        LOG("  and ensure setup/hold time requirements are met in your design.");
+    }
+    
+    LOG("========================");
+}
+
+// Implementation for signal transition logging methods
+void Machine::LogSignalTransition(ElectricNodeBase* component, const String& pin_name, byte old_val, byte new_val) {
+    // Create a new signal transition record
+    SignalTransition trans;
+    trans.component_name = component->GetName();
+    trans.pin_name = pin_name;
+    trans.old_value = old_val;
+    trans.new_value = new_val;
+    trans.tick_number = current_tick;
+    trans.timestamp = String().Cat() << current_tick;  // Simple tick-based timestamp
+    
+    // Add to the transitions log
+    signal_transitions.Add(trans);
+    
+    // If we exceed the maximum log size, remove the oldest entries
+    if (signal_transitions.GetCount() > max_transitions_to_store) {
+        signal_transitions.Remove(0, signal_transitions.GetCount() - max_transitions_to_store);
+    }
+    
+    // Optionally log to output immediately
+    LOG("Signal Transition: " << component->GetName() << "." << pin_name 
+         << " [" << (int)old_val << " -> " << (int)new_val << "] at tick " << current_tick);
+}
+
+void Machine::LogAllSignalTransitions() {
+    LOG("Signal Transition Log (Tick " << current_tick << "):");
+    for (int i = 0; i < signal_transitions.GetCount(); i++) {
+        const SignalTransition& trans = signal_transitions[i];
+        if (trans.tick_number == current_tick) {  // Only transitions from the current tick
+            LOG("  " << trans.component_name << "." << trans.pin_name 
+                 << " [" << (int)trans.old_value << " -> " << (int)trans.new_value 
+                 << "] at tick " << trans.tick_number);
+        }
+    }
+}
+
+void Machine::ClearSignalTransitionLog() {
+    signal_transitions.Clear();
+    LOG("Cleared signal transition log");
+}
+
+// Implementation for waveform generation methods
+void Machine::GenerateWaveformData() {
+    LOG("Generating waveform data for all traced signals...");
+    
+    // This would generate waveform data based on the signal trace history
+    for (int i = 0; i < signal_traces.GetCount(); i++) {
+        const SignalTrace& trace = signal_traces[i];
+        if (trace.trace_enabled) {
+            LOG("Waveform data for: " << trace.component->GetName() << "." << trace.pin_name);
+            LOG("  Total value changes: " << trace.value_history.GetCount());
+            
+            // Print out the value changes with their tick numbers
+            for (int j = 0; j < min(20, trace.value_history.GetCount()); j++) {  // Limit output
+                LOG("    Tick " << trace.tick_history[j] << ": Value = " << (int)trace.value_history[j]);
+            }
+            
+            if (trace.value_history.GetCount() > 20) {
+                LOG("    ... (" << (trace.value_history.GetCount() - 20) << " more transitions)");
+            }
+        }
+    }
+}
+
+void Machine::ExportWaveformData(const String& filename) {
+    // Create a simple text-based representation of the waveform data
+    String content = "Waveform Data Export\\n";
+    content += "==================\\n\\n";
+    
+    for (int i = 0; i < signal_traces.GetCount(); i++) {
+        const SignalTrace& trace = signal_traces[i];
+        if (trace.trace_enabled) {
+            content += "Signal: " + trace.component->GetName() + "." + trace.pin_name + "\\n";
+            content += "Time\\tValue\\n";
+            content += "----\\t-----\\n";
+            
+            for (int j = 0; j < trace.value_history.GetCount(); j++) {
+                content += IntStr(trace.tick_history[j]) + "\\t" + IntStr(trace.value_history[j]) + "\\n";
+            }
+            
+            content += "\\n";
+        }
+    }
+    
+    // Write to file
+    FileOut file;
+    if (file.Open(AsString(filename), FileOut::CREATE)) {
+        file.Put(content);
+        LOG("Waveform data exported to: " << filename);
+    } else {
+        LOG("Error: Could not open file for writing: " << filename);
+    }
+}
+
+String Machine::GenerateVCDFormat() {
+    String vcd = "$version ProtoVM Digital Logic Simulator $end\\n";
+    vcd += "$date " + Upp::AsString(GetSysDate()) + " $end\\n";
+    vcd += "$timescale 1ns $end\\n\\n";
+    
+    
+    // Add variable definitions
+    vcd += "$scope module ProtoVM $end\\n";
+    
+    for (int i = 0; i < signal_traces.GetCount(); i++) {
+        const SignalTrace& trace = signal_traces[i];
+        if (trace.trace_enabled) {
+            // For simplicity, we'll model all signals as 8-bit values
+            vcd += "$var reg 8 " + Upp::AsString(char(65 + i)) + " " + trace.component->GetName() + "_" + trace.pin_name + " $end\\n";
+        }
+    }
+    vcd += "$upscope $end\\n\\n";
+    
+    // Add end definitions
+    vcd += "$enddefinitions $end\\n\\n";
+    
+    // Add value changes
+    vcd += "$dumpvars\\n";
+    for (int i = 0; i < signal_traces.GetCount(); i++) {
+        const SignalTrace& trace = signal_traces[i];
+        if (trace.trace_enabled && !trace.value_history.IsEmpty()) {
+            // Set initial value
+            vcd += "b" + Upp::IntStr(trace.value_history[0], 2) + " " + Upp::AsString(char(65 + i)) + "\\n";
+        }
+    }
+    vcd += "$end\\n\\n";
+    
+    // Add time-ordered value changes
+    // This is a simplified approach - in practice, you'd want all changes sorted by timestamp
+    for (int tick = 0; tick <= current_tick; tick++) {
+        bool hasChange = false;
+        
+        for (int i = 0; i < signal_traces.GetCount(); i++) {
+            const SignalTrace& trace = signal_traces[i];
+            if (trace.trace_enabled) {
+                // Look for changes at this tick
+                for (int j = 0; j < trace.tick_history.GetCount(); j++) {
+                    if (trace.tick_history[j] == tick) {
+                        hasChange = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (hasChange) {
+            vcd += "#" + Upp::IntStr(tick) + "\\n";
+            
+            for (int i = 0; i < signal_traces.GetCount(); i++) {
+                const SignalTrace& trace = signal_traces[i];
+                if (trace.trace_enabled) {
+                    // Look for changes at this tick
+                    for (int j = 0; j < trace.tick_history.GetCount(); j++) {
+                        if (trace.tick_history[j] == tick) {
+                            vcd += "b" + Upp::IntStr(trace.value_history[j], 2) + " " + Upp::AsString(char(65 + i)) + "\\n";
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    return vcd;
+}
+
+void Machine::CreateWaveformForSignal(const String& component_name, const String& pin_name) {
+    // Find the specified signal in the signal traces
+    for (int i = 0; i < signal_traces.GetCount(); i++) {
+        SignalTrace& trace = signal_traces[i];
+        if (trace.component->GetName() == component_name && trace.pin_name == pin_name) {
+            LOG("Creating waveform for signal: " << component_name << "." << pin_name);
+            LOG("Total recorded transitions: " << trace.value_history.GetCount());
+            
+            // Print waveform-style representation
+            LOG("Waveform (Time -> Value):\\n");
+            for (int j = 0; j < trace.value_history.GetCount(); j++) {
+                String bar = ""; 
+                byte val = trace.value_history[j];
+                
+                // Create a simple ASCII representation
+                for (int k = 0; k < val; k++) {
+                    bar += "*";
+                }
+                
+                LOG("  " << trace.tick_history[j] << " -> " << (int)val << " " << bar);
+            }
+            return;
+        }
+    }
+    
+    LOG("Signal not found in traces: " << component_name << "." << pin_name);
+}
+
+// Implementation for performance profiling methods
+void Machine::StartProfiling() {
+    profiling_enabled = true;
+    profiling_start_time = GetTickCount();  // Get current time in milliseconds
+    LOG("Performance profiling started");
+}
+
+void Machine::StopProfiling() {
+    if (profiling_enabled) {
+        int64 elapsed = GetTickCount() - profiling_start_time;
+        total_simulation_time += elapsed;
+        profiling_enabled = false;
+        LOG("Performance profiling stopped. Total elapsed time: " << elapsed << " ms");
+    }
+}
+
+void Machine::ReportProfilingResults() {
+    LOG("PERFORMANCE PROFILING REPORT");
+    LOG("=============================");
+    LOG("Total simulation time: " << total_simulation_time << " ms");
+    LOG("Number of components profiled: " << component_profiles.GetCount());
+    
+    // Sort components by time spent (descending)
+    // For simplicity in this implementation, we'll just display all profiles
+    for (int i = 0; i < component_profiles.GetCount(); i++) {
+        const ComponentProfile& profile = component_profiles[i];
+        LOG("Component: " << profile.component_name);
+        LOG("  Total time: " << profile.total_time_spent << " μs");
+        LOG("  Call count: " << profile.call_count);
+        if (profile.call_count > 0) {
+            LOG("  Avg time per call: " << (double)profile.total_time_spent / profile.call_count << " μs");
+        }
+        LOG("  Min time for call: " << profile.min_time << " μs");
+        LOG("  Max time for call: " << profile.max_time << " μs");
+    }
+    
+    if (component_profiles.IsEmpty()) {
+        LOG("No component profiling data collected");
+    }
+    
+    LOG("=============================");
+}
+
+void Machine::ResetProfilingData() {
+    profiling_enabled = false;
+    total_simulation_time = 0;
+    component_profiles.Clear();
+    LOG("Performance profiling data reset");
+}
+
+void Machine::AddProfilingSample(const String& component_name, int64 duration) {
+    // Find existing profile for this component or add a new one
+    int idx = -1;
+    for (int i = 0; i < component_profiles.GetCount(); i++) {
+        if (component_profiles[i].component_name == component_name) {
+            idx = i;
+            break;
+        }
+    }
+    
+    if (idx == -1) {
+        // Check if we've reached the maximum number of components to profile
+        if (component_profiles.GetCount() >= max_components_to_profile) {
+            // For simplicity, we'll just return without adding if we're at the limit
+            // In a real implementation, you might want to track only the most time-consuming components
+            return;
+        }
+        
+        // Add a new profile entry
+        ComponentProfile profile;
+        profile.component_name = component_name;
+        profile.total_time_spent = duration;
+        profile.call_count = 1;
+        profile.min_time = duration;
+        profile.max_time = duration;
+        component_profiles.Add(profile);
+    } else {
+        // Update existing profile
+        ComponentProfile& profile = component_profiles[idx];
+        profile.total_time_spent += duration;
+        profile.call_count++;
+        
+        if (duration < profile.min_time) {
+            profile.min_time = duration;
+        }
+        if (duration > profile.max_time) {
+            profile.max_time = duration;
+        }
+    }
+}
+
+void Machine::SimulateClockDomains() {
+    // Update the clock domains based on the current simulation tick
+    for (int i = 0; i < clock_domains.GetCount(); i++) {
+        ClockDomain& domain = clock_domains[i];
+        
+        // For a frequency-based domain, we need to calculate when the next clock edge should occur
+        if (domain.frequency_hz > 0) {
+            // Calculate the expected next edge based on the frequency
+            // In this simplified model, we toggle the clock state periodically
+            int expected_next_edge = domain.last_edge_tick + (int)(domain.period_ticks);
+            
+            // If we've reached the expected next edge time
+            if (current_tick >= expected_next_edge) {
+                // Toggle the clock state to create an edge
+                domain.clock_state = !domain.clock_state;
+                domain.last_edge_tick = current_tick;
+                
+                LOG("Clock domain " << domain.id << " toggled to " 
+                     << (domain.clock_state ? "HIGH" : "LOW") << " at tick " << current_tick);
+            }
+        }
+    }
+}
+
+void Machine::ReportClockDomainInfo() {
+    LOG("CLOCK DOMAIN REPORT");
+    LOG("==================");
+    LOG("Global clock multiplier: " << global_clock_multiplier);
+    LOG("Total clock domains: " << clock_domains.GetCount());
+    
+    for (int i = 0; i < clock_domains.GetCount(); i++) {
+        const ClockDomain& domain = clock_domains[i];
+        LOG("Domain ID: " << domain.id);
+        LOG("  Frequency: " << domain.frequency_hz << " Hz");
+        LOG("  Period (ticks): " << domain.period_ticks);
+        LOG("  Current state: " << (domain.clock_state ? "HIGH" : "LOW"));
+        LOG("  Last edge tick: " << domain.last_edge_tick);
+        
+        // Count components in this domain by traversing all PCBs
+        int componentCount = 0;
+        for (Pcb& pcb : pcbs) {
+            for (int j = 0; j < pcb.nodes.GetCount(); j++) {
+                if (pcb.nodes[j].GetClockDomainId() == domain.id) {
+                    componentCount++;
+                }
+            }
+        }
+        LOG("  Components in domain: " << componentCount);
+        
+        // List a few components in this domain
+        int listed = 0;
+        for (Pcb& pcb : pcbs) {
+            for (int j = 0; j < pcb.nodes.GetCount(); j++) {
+                if (pcb.nodes[j].GetClockDomainId() == domain.id && listed < 5) {
+                    LOG("    - " << pcb.nodes[j].GetDynamicName());
+                    listed++;
+                }
+            }
+        }
+        
+        if (componentCount > 5) {
+            LOG("    ... and " << (componentCount - 5) << " more");
+        }
+    }
+    
+    LOG("==================");
+}
+
+void Machine::SetGlobalClockMultiplier(double multiplier) {
+    global_clock_multiplier = multiplier;
+    LOG("Global clock multiplier set to: " << multiplier);
+    
+    // Update periods for all clock domains based on the new multiplier
+    for (int i = 0; i < clock_domains.GetCount(); i++) {
+        ClockDomain& domain = clock_domains[i];
+        if (domain.frequency_hz > 0) {
+            double effective_freq = domain.frequency_hz * global_clock_multiplier;
+            if (effective_freq > 0) {
+                domain.period_ticks = 1.0 / effective_freq;
+            }
+        }
+    }
 }

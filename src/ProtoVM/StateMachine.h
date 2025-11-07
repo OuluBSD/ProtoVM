@@ -17,6 +17,10 @@ protected:
     // In a real implementation, this would use more complex condition structures
     Vector<Vector<byte>> transition_table;  // [from_state][to_state] -> condition/inputs
     Vector<byte> output_table;              // Output for each state
+    
+    // Input state (to track what the input is currently)
+    byte input_state = 0;
+    byte input_mask = 0;  // To know which inputs are used
 
 public:
     StateMachine(int states_count = 2, bool mealy = false);

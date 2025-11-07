@@ -89,7 +89,7 @@ void ALU::ComputeResult() {
             // For subtraction: A - B, we compute A + (~B + 1) which is two's complement
             unsigned int sub = temp_a - temp_b - !carry_in;
             temp_result = sub & ((1 << WIDTH) - 1);
-            carry_out = !(sub >> WIDTH) & 1;  // Borrow is inverted carry
+            carry_out = (!((sub) >> WIDTH)) & 1;  // Borrow is inverted carry
             // Overflow detection for subtraction
             if (WIDTH > 1) {
                 bool a_sign = (temp_a >> (WIDTH-1)) & 1;
@@ -105,7 +105,7 @@ void ALU::ComputeResult() {
             break;
         case OP_DEC_A:
             temp_result = (temp_a - 1) & ((1 << WIDTH) - 1);
-            carry_out = !((temp_a - 1) >> WIDTH) & 1;  // Borrow inverted
+            carry_out = !(((temp_a - 1) >> WIDTH)) & 1;  // Borrow inverted
             break;
         case OP_PASS_A:
             temp_result = temp_a;

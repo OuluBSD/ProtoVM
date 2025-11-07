@@ -13,11 +13,12 @@ void Cli::SetMachine(Machine* mach) {
 void Cli::Start() {
 	running = true;
 	Cout() << "ProtoVM CLI started. Type 'help' for available commands.\n";
-	Cout() << "Available commands: help, write, read, run, list, inspect, state, quit\n";
+	Cout() << "Available commands: help, write, read, run, list, inspect, state, visualize, quit\n";
 	Cout() << "Example: write RAM 0x100 0xFF\n";
 	Cout() << "         run 100 (run 100 ticks)\n";
 	Cout() << "         inspect <component_name> - Show detailed state of a component\n";
-	Cout() << "         state <pcb_name> - Show current state of all components on a PCB\n\n";
+	Cout() << "         state <pcb_name> - Show current state of all components on a PCB\n";
+	Cout() << "         visualize [pcb_id] - Show connections between components on a PCB\n\n";
 	
 	// For this implementation, we'll provide a simple command loop
 	// Since direct console input may not be available in this build context,
@@ -62,6 +63,9 @@ void Cli::ProcessCommand(const String& command) {
 	else if (cmd == "state" || cmd == "s") {
 		ProcessStateCommand(tokens);
 	}
+	else if (cmd == "visualize" || cmd == "v") {
+		ProcessVisualizeCommand(tokens);
+	}
 	else {
 		Cout() << "Unknown command: " << cmd << ". Type 'help' for available commands.\n";
 	}
@@ -76,15 +80,19 @@ void Cli::ShowHelp() {
 	Cout() << "  list, ls         - List available components\n";
 	Cout() << "  inspect, i <comp> [pcb_id] - Show detailed state of a component\n";
 	Cout() << "  state, s [pcb_id] - Show current state of all components on a PCB\n";
+	Cout() << "  visualize, v [pcb_id] - Show connections between components on a PCB\n";
 	Cout() << "  quit, q, exit    - Quit CLI\n";
 	Cout() << "\nComponent Inspection Commands:\n";
 	Cout() << "  inspect <component_name> [pcb_id] - Show detailed information about a specific component\n";
 	Cout() << "    Displays component class, name, change status, delay info, etc.\n";
 	Cout() << "  state [pcb_id] - Show state of all components on a PCB\n";
 	Cout() << "    Displays a list of all components with their current state information\n";
+	Cout() << "  visualize [pcb_id] - Show a visual representation of connections between components\n";
+	Cout() << "    Displays a connection map showing how components are interconnected\n";
 	Cout() << "\nExamples:\n";
 	Cout() << "  inspect ALU 0     - Inspect ALU component on PCB 0\n";
 	Cout() << "  state 0           - Show state of all components on PCB 0\n";
+	Cout() << "  visualize 0       - Show connections on PCB 0\n";
 	Cout() << "  run 100           - Run simulation for 100 ticks\n";
 }
 
@@ -325,4 +333,68 @@ void Cli::ProcessStateCommand(const Vector<String>& tokens) {
 	} else {
 		Cout() << "No machine available or invalid PCB ID.\n";
 	}
+}
+void Cli::ProcessVisualizeCommand(const Vector<String>& tokens) {
+    int pcbId = 0; // Default to first PCB
+    
+    if (tokens.GetCount() > 1) {
+        pcbId = StrInt(tokens[1]);
+    }
+    
+    if (machine && pcbId < machine->pcbs.GetCount()) {
+        Pcb& pcb = machine->pcbs[pcbId];
+        
+        Cout() << "\\nCircuit Visualization for PCB " << pcbId << " (" << pcb.GetName() << "):\\n";
+        Cout() << "================================================\\n";
+        
+        // Show connections between components
+        for (int i = 0; i < pcb.GetNodeCount(); i++) {
+            ElectricNodeBase& srcComponent = pcb.GetNode(i);
+            Cout() << "\\n" << srcComponent.GetClassName() << " [" << srcComponent.GetName() << "]\\n";
+            
+            // For each connector on this component, check its connections
+            for (int j = 0; j < srcComponent.GetConnectorCount(); j++) {
+                const ElectricNodeBase::Connector& conn = srcComponent.GetConnector(j);
+                
+                if (conn.IsConnected()) {
+                    Cout() << "  -> " << conn.name << " (" 
+                           << (conn.is_src ? "OUT" : (conn.is_sink ? "IN" : "BIDIR")) << ") connects to:\\n";
+                           
+                    // List all connections from this connector
+                    for (int k = 0; k < conn.links.GetCount(); k++) {
+                        if (conn.links[k].link) {
+                            // Get the destination component and connection
+                            ElectricNodeBase::Connector* dest_conn = conn.links[k].link->dest_conn;
+                            if (dest_conn && dest_conn->base) {
+                                Cout() << "    [" << dest_conn->base->GetClassName() << ":" << dest_conn->base->GetName() 
+                                       << "." << dest_conn->name << "]\\n";
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        Cout() << "\\nConnection Summary:\\n";
+        Cout() << "===================\\n";
+        
+        // Show a summary of all connections
+        int totalConnections = 0;
+        for (int i = 0; i < pcb.GetNodeCount(); i++) {
+            ElectricNodeBase& comp = pcb.GetNode(i);
+            for (int j = 0; j < comp.GetConnectorCount(); j++) {
+                const ElectricNodeBase::Connector& conn = comp.GetConnector(j);
+                if (conn.IsConnected()) {
+                    totalConnections += conn.links.GetCount();
+                }
+            }
+        }
+        Cout() << "Total components: " << pcb.GetNodeCount() << "\\n";
+        Cout() << "Total connections: " << totalConnections << "\\n";
+    } else {
+        Cout() << "No machine available or invalid PCB ID: " << pcbId << "\\n";
+        if (machine) {
+            Cout() << "Available PCBs: " << machine->pcbs.GetCount() << "\\n";
+        }
+    }
 }

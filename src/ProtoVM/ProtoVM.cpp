@@ -25,6 +25,11 @@ void SetupUK101(Machine& mach);
 void SetupInterak(Machine& mach);
 void SetupMiniMax8085(Machine& mach);
 void RunArithmeticUnitTests(Machine& mach);
+void Test60_StateMachine();
+void Test70_Basic8BitCPU();
+void Test80_ClockDivider();
+void Test81_ClockGate();
+void Test82_PLL();
 
 
 
@@ -64,6 +69,11 @@ CONSOLE_APP_MAIN {
 		Cout() << "  interak     - Interak computer circuit\n";
 		Cout() << "  unittests   - Run unit tests for arithmetic components\n";
 		Cout() << "  minimax     - MiniMax 8085 computer circuit\n";
+		Cout() << "  statemachine - State machine test circuit\n";
+		Cout() << "  basiccpu     - Basic 8-bit CPU test circuit\n";
+		Cout() << "  clkdivider   - Clock divider test circuit\n";
+		Cout() << "  clkgate      - Clock gating test circuit\n";
+		Cout() << "  pll          - Phase-locked loop test circuit\n";
 		Cout() << "\nExamples:\n";
 		Cout() << "  " << GetExeTitle() << " 6502 -t 1000    # Run 6502 circuit for 1000 ticks\n";
 		Cout() << "  " << GetExeTitle() << " --cli           # Start interactive CLI mode\n";
@@ -98,7 +108,7 @@ CONSOLE_APP_MAIN {
 		else if (arg == "--psl-test") {
 			run_psl_test = true;
 		}
-		else if (arg == "flipflop" || arg == "andgate" || arg == "counter" || arg == "memory" || arg == "6502" || arg == "basiclogic" || arg == "test4bit" || arg == "test4bitmemory" || arg == "muxdemux" || arg == "decenc" || arg == "testgates" || arg == "uk101" || arg == "interak" || arg == "minimax" || arg == "unittests") {
+		else if (arg == "flipflop" || arg == "andgate" || arg == "counter" || arg == "memory" || arg == "6502" || arg == "basiclogic" || arg == "test4bit" || arg == "test4bitmemory" || arg == "muxdemux" || arg == "decenc" || arg == "testgates" || arg == "uk101" || arg == "interak" || arg == "minimax" || arg == "unittests" || arg == "statemachine" || arg == "basiccpu" || arg == "clkdivider" || arg == "clkgate" || arg == "pll") {
 			circuit_name = arg;
 		}
 	}
@@ -173,6 +183,26 @@ CONSOLE_APP_MAIN {
 	else if (circuit_name == "minimax") {
 		SetupMiniMax8085(mach);
 		LOG("Loaded MiniMax8085 circuit");
+	}
+	else if (circuit_name == "statemachine") {
+		Test60_StateMachine();
+		LOG("Loaded State Machine Test circuit");
+	}
+	else if (circuit_name == "basiccpu") {
+		Test70_Basic8BitCPU();
+		LOG("Loaded Basic 8-bit CPU Test circuit");
+	}
+	else if (circuit_name == "clkdivider") {
+		Test80_ClockDivider();
+		LOG("Loaded Clock Divider Test circuit");
+	}
+	else if (circuit_name == "clkgate") {
+		Test81_ClockGate();
+		LOG("Loaded Clock Gate Test circuit");
+	}
+	else if (circuit_name == "pll") {
+		Test82_PLL();
+		LOG("Loaded Phase-Locked Loop Test circuit");
 	}
 	else {
 		LOG("Unknown circuit: " << circuit_name << ", defaulting to 6502");

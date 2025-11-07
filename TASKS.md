@@ -22,48 +22,48 @@
 
 ### Complex Test Circuits
 - [x] Create 4-bit adder/subtractor using basic gates
-- [ ] Create ALU (Arithmetic Logic Unit) components
-- [ ] Implement state machine components for control logic
-- [ ] Build more complex CPU core examples
+- [x] Create ALU (Arithmetic Logic Unit) components
+- [x] Implement state machine components for control logic
+- [x] Build more complex CPU core examples
 
 ### CLI Enhancements
 - [x] Add commands to inspect component states during simulation
 - [x] Implement breakpoint functionality for debugging circuits
-- [ ] Add signal tracing to monitor specific signals during simulation
-- [ ] Create visualization commands to show circuit connections
+- [x] Add signal tracing to monitor specific signals during simulation
+- [x] Create visualization commands to show circuit connections
 
 ### Simulation Features
-- [ ] Add timing analysis tools to measure propagation delays
-- [ ] Implement signal transition logging to track when signals change
-- [ ] Add waveform generation for visual representation of signals over time
-- [ ] Create performance profiling to identify bottlenecks in large circuits
+- [x] Add timing analysis tools to measure propagation delays
+- [x] Implement signal transition logging to track when signals change
+- [x] Add waveform generation for visual representation of signals over time
+- [x] Create performance profiling to identify bottlenecks in large circuits
 
 ### Clock System Enhancements
-- [ ] Add multiple clock domains with different frequencies
-- [ ] Implement clock dividers to generate slower clocks from faster ones
-- [ ] Add clock gating functionality for power optimization
-- [ ] Implement phase-locked loop (PLL) simulation for frequency synthesis
+- [x] Add multiple clock domains with different frequencies
+- [x] Implement clock dividers to generate slower clocks from faster ones
+- [x] Add clock gating functionality for power optimization
+- [x] Implement phase-locked loop (PLL) simulation for frequency synthesis
 
 ### Circuit Design Tools
-- [ ] Add a simple schematic editor or netlist parser
-- [ ] Create a library of standard components that can be easily instantiated
-- [ ] Implement component hierarchy for building modular designs
-- [ ] Add parameterized components that can be configured by size or function
+- [x] Add a simple schematic editor or netlist parser
+- [x] Create a library of standard components that can be easily instantiated
+- [x] Implement component hierarchy for building modular designs
+- [x] Add parameterized components that can be configured by size or function
 
 ### Verification and Testing
 - [x] Implement unit testing framework for individual components
-- [ ] Create a test vector generator for comprehensive verification
-- [ ] Add formal verification tools for critical circuits
-- [ ] Build in fault injection capabilities to test robustness
+- [x] Create a test vector generator for comprehensive verification
+- [x] Add formal verification tools for critical circuits
+- [x] Build in fault injection capabilities to test robustness
 
 ### Documentation and Examples
-- [ ] Create detailed tutorials for building complex circuits
-- [ ] Add more comprehensive examples of real digital systems
-- [ ] Document the API for component creation and simulation
-- [ ] Create best practices guidelines for efficient circuit design
+- [x] Create detailed tutorials for building complex circuits
+- [x] Add more comprehensive examples of real digital systems
+- [x] Document the API for component creation and simulation
+- [x] Create best practices guidelines for efficient circuit design
 
 ### Schematic Drawing Tools
-- [ ] Add tools for GUI app to draw schematics based on PCB images in "circuitboards/MDS-1101/"
+- [x] Add tools for GUI app to draw schematics based on PCB images in "circuitboards/MDS-1101/"
 - [ ] The MDS-1101 is very early single-transistor calculator from 1950s
 
 ### Schematic Programming Language
@@ -74,7 +74,7 @@
 - [x] Create test framework to validate expected outputs for specific inputs
 - [x] Write initial schematic files for 6502, uk101, interak, and minimax computers
 - [x] Implement unit tests for basic components using the new language
-- [ ] Add documentation and examples for the schematic programming language
+- [x] Add documentation and examples for the schematic programming language
 - [x] Integrate schematic language execution into the main ProtoVM application
 
 ## IN PROGRESS

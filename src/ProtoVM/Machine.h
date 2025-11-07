@@ -165,6 +165,7 @@ private:
 	};
 	Vector<SignalTrace> signal_traces;  // List of signals to trace
 
+public:
 	// Signal transition logging
 	struct SignalTransition : Moveable<SignalTransition> {
 		String component_name;
@@ -188,7 +189,6 @@ private:
 	Vector<SignalTransition> signal_transitions;  // Log of all signal transitions
 	int max_transitions_to_store = 1000;  // Maximum transitions to keep in memory
 
-public:
 	// Methods for signal tracing
 	void AddSignalToTrace(ElectricNodeBase* component, const String& pin_name);
 	void RemoveSignalFromTrace(ElectricNodeBase* component, const String& pin_name);
@@ -211,6 +211,9 @@ public:
 	void ExportWaveformData(const String& filename); // Export waveform data to file
 	String GenerateVCDFormat();       // Generate data in VCD (Value Change Dump) format
 	void CreateWaveformForSignal(const String& component_name, const String& pin_name); // Create waveform for specific signal
+
+	// Methods for circuit visualization and netlist generation
+	String GenerateNetlist(int pcb_id);  // Generate netlist representation of the circuit
 
 	// Methods for performance profiling
 	void StartProfiling();           // Start performance profiling

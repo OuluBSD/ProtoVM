@@ -782,6 +782,49 @@ void Machine::LogSignalTraces() {
     }
 }
 
+// Method to generate a netlist representation of the circuit
+String Machine::GenerateNetlist(int pcb_id) {
+    String netlist = "Netlist for PCB " + IntStr(pcb_id) + "\\n";
+    netlist += "========================\\n\\n";
+    
+    if (pcb_id >= pcbs.GetCount()) {
+        return "Error: Invalid PCB ID\\n";
+    }
+    
+    Pcb& pcb = pcbs[pcb_id];
+    
+    // Create a map of connections
+    for (int i = 0; i < pcb.GetNodeCount(); i++) {
+        ElectricNodeBase& srcNode = pcb.GetNode(i);
+        
+        netlist += "Component: " + srcNode.GetClassName() + " (" + srcNode.GetName() + ")\\n";
+        netlist += "  Connections:\\n";
+        
+        for (int j = 0; j < srcNode.GetConnectorCount(); j++) {
+            const ElectricNodeBase::Connector& conn = srcNode.GetConnector(j);
+            
+            if (conn.IsConnected()) {
+                netlist += "    " + conn.name + " (" 
+                          + (conn.is_src ? "OUT" : (conn.is_sink ? "IN" : "BIDIR")) + "):\\n";
+                          
+                for (int k = 0; k < conn.links.GetCount(); k++) {
+                    if (conn.links[k].link) {
+                        ElectricNodeBase::Connector* dest_conn = conn.links[k].link->sink;
+                        if (dest_conn && dest_conn->base) {
+                            netlist += "      -> " + dest_conn->base->GetClassName() 
+                                     + " (" + dest_conn->base->GetName() + ")." 
+                                     + dest_conn->name + "\\n";
+                        }
+                    }
+                }
+            }
+        }
+        netlist += "\\n";
+    }
+    
+    return netlist;
+}
+
 // Implementation for timing analysis methods
 void Machine::PerformTimingAnalysis() {
     LOG("Starting timing analysis...");

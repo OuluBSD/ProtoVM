@@ -30,6 +30,7 @@ void Test70_Basic8BitCPU();
 void Test80_ClockDivider();
 void Test81_ClockGate();
 void Test82_PLL();
+void Test90_SignalTracing();
 
 
 
@@ -74,10 +75,12 @@ CONSOLE_APP_MAIN {
 		Cout() << "  clkdivider   - Clock divider test circuit\n";
 		Cout() << "  clkgate      - Clock gating test circuit\n";
 		Cout() << "  pll          - Phase-locked loop test circuit\n";
+		Cout() << "  signaltrace  - Signal tracing functionality test circuit\n";
 		Cout() << "\nExamples:\n";
 		Cout() << "  " << GetExeTitle() << " 6502 -t 1000    # Run 6502 circuit for 1000 ticks\n";
 		Cout() << "  " << GetExeTitle() << " --cli           # Start interactive CLI mode\n";
 		Cout() << "  " << GetExeTitle() << " testgates       # Run comprehensive logic gate test\n";
+		Cout() << "  " << GetExeTitle() << " signaltrace     # Run signal tracing test\n";
 		return;
 	}
 	
@@ -108,7 +111,7 @@ CONSOLE_APP_MAIN {
 		else if (arg == "--psl-test") {
 			run_psl_test = true;
 		}
-		else if (arg == "flipflop" || arg == "andgate" || arg == "counter" || arg == "memory" || arg == "6502" || arg == "basiclogic" || arg == "test4bit" || arg == "test4bitmemory" || arg == "muxdemux" || arg == "decenc" || arg == "testgates" || arg == "uk101" || arg == "interak" || arg == "minimax" || arg == "unittests" || arg == "statemachine" || arg == "basiccpu" || arg == "clkdivider" || arg == "clkgate" || arg == "pll") {
+		else if (arg == "flipflop" || arg == "andgate" || arg == "counter" || arg == "memory" || arg == "6502" || arg == "basiclogic" || arg == "test4bit" || arg == "test4bitmemory" || arg == "muxdemux" || arg == "decenc" || arg == "testgates" || arg == "uk101" || arg == "interak" || arg == "minimax" || arg == "unittests" || arg == "statemachine" || arg == "basiccpu" || arg == "clkdivider" || arg == "clkgate" || arg == "pll" || arg == "signaltrace") {
 			circuit_name = arg;
 		}
 	}
@@ -203,6 +206,10 @@ CONSOLE_APP_MAIN {
 	else if (circuit_name == "pll") {
 		Test82_PLL();
 		LOG("Loaded Phase-Locked Loop Test circuit");
+	}
+	else if (circuit_name == "signaltrace") {
+		Test90_SignalTracing();
+		LOG("Loaded Signal Tracing Test circuit");
 	}
 	else {
 		LOG("Unknown circuit: " << circuit_name << ", defaulting to 6502");

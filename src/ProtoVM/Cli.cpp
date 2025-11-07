@@ -13,12 +13,15 @@ void Cli::SetMachine(Machine* mach) {
 void Cli::Start() {
 	running = true;
 	Cout() << "ProtoVM CLI started. Type 'help' for available commands.\n";
-	Cout() << "Available commands: help, write, read, run, list, inspect, state, visualize, quit\n";
+	Cout() << "Available commands: help, write, read, run, list, inspect, state, visualize, netlist, trace, tracelog, quit\n";
 	Cout() << "Example: write RAM 0x100 0xFF\n";
 	Cout() << "         run 100 (run 100 ticks)\n";
 	Cout() << "         inspect <component_name> - Show detailed state of a component\n";
 	Cout() << "         state <pcb_name> - Show current state of all components on a PCB\n";
-	Cout() << "         visualize [pcb_id] - Show connections between components on a PCB\n\n";
+	Cout() << "         visualize [pcb_id] - Show connections between components on a PCB\n";
+	Cout() << "         netlist [pcb_id] - Generate netlist for a PCB\n";
+	Cout() << "         trace <comp> <pin> [pcb_id] - Add a signal to trace\n";
+	Cout() << "         tracelog - Show the signal transition log\n\n";
 	
 	// For this implementation, we'll provide a simple command loop
 	// Since direct console input may not be available in this build context,
@@ -66,6 +69,15 @@ void Cli::ProcessCommand(const String& command) {
 	else if (cmd == "visualize" || cmd == "v") {
 		ProcessVisualizeCommand(tokens);
 	}
+	else if (cmd == "netlist" || cmd == "n") {
+		ProcessNetlistCommand(tokens);
+	}
+	else if (cmd == "trace" || cmd == "t") {
+		ProcessTraceCommand(tokens);
+	}
+	else if (cmd == "tracelog" || cmd == "tl") {
+		ProcessTraceLogCommand(tokens);
+	}
 	else {
 		Cout() << "Unknown command: " << cmd << ". Type 'help' for available commands.\n";
 	}
@@ -81,6 +93,9 @@ void Cli::ShowHelp() {
 	Cout() << "  inspect, i <comp> [pcb_id] - Show detailed state of a component\n";
 	Cout() << "  state, s [pcb_id] - Show current state of all components on a PCB\n";
 	Cout() << "  visualize, v [pcb_id] - Show connections between components on a PCB\n";
+	Cout() << "  netlist, n [pcb_id] - Generate netlist for a PCB\n";
+	Cout() << "  trace, t <comp> <pin> [pcb_id] - Add a signal to trace\n";
+	Cout() << "  tracelog, tl     - Show the signal transition log\n";
 	Cout() << "  quit, q, exit    - Quit CLI\n";
 	Cout() << "\nComponent Inspection Commands:\n";
 	Cout() << "  inspect <component_name> [pcb_id] - Show detailed information about a specific component\n";
@@ -89,10 +104,19 @@ void Cli::ShowHelp() {
 	Cout() << "    Displays a list of all components with their current state information\n";
 	Cout() << "  visualize [pcb_id] - Show a visual representation of connections between components\n";
 	Cout() << "    Displays a connection map showing how components are interconnected\n";
+	Cout() << "  netlist [pcb_id] - Generate a netlist showing component connections\n";
+	Cout() << "    Displays a textual representation of all connections in the circuit\n";
+	Cout() << "  trace <component_name> <pin_name> [pcb_id] - Add a signal trace for monitoring\n";
+	Cout() << "    Adds the specified component pin to the signal tracing system\n";
+	Cout() << "  tracelog - Show the signal transition log with changes over time\n";
+	Cout() << "    Displays all signal transitions that have occurred during simulation\n";
 	Cout() << "\nExamples:\n";
 	Cout() << "  inspect ALU 0     - Inspect ALU component on PCB 0\n";
 	Cout() << "  state 0           - Show state of all components on PCB 0\n";
 	Cout() << "  visualize 0       - Show connections on PCB 0\n";
+	Cout() << "  trace ALU R0 0    - Add signal trace for ALU output R0 on PCB 0\n";
+	Cout() << "  tracelog          - Show signal transitions\n";
+	Cout() << "  netlist 0         - Generate netlist for PCB 0\n";
 	Cout() << "  run 100           - Run simulation for 100 ticks\n";
 }
 
@@ -396,5 +420,185 @@ void Cli::ProcessVisualizeCommand(const Vector<String>& tokens) {
         if (machine) {
             Cout() << "Available PCBs: " << machine->pcbs.GetCount() << "\\n";
         }
+    }
+}
+
+void Cli::ProcessTraceCommand(const Vector<String>& tokens) {
+    if (tokens.GetCount() < 3) {
+        Cout() << "Usage: trace <component> <pin> [pcb_id]\\n";
+        return;
+    }
+
+    String componentName = tokens[1];
+    String pinName = tokens[2];
+    int pcbId = 0; // Default to first PCB
+
+    if (tokens.GetCount() > 3) {
+        pcbId = StrInt(tokens[3]);
+    }
+
+    if (machine && pcbId < machine->pcbs.GetCount()) {
+        Pcb& pcb = machine->pcbs[pcbId];
+
+        // Look for the component by name
+        ElectricNodeBase* comp = nullptr;
+        for (int i = 0; i < pcb.GetNodeCount(); i++) {
+            ElectricNodeBase& node = pcb.GetNode(i);
+            if (node.GetName() == componentName) {
+                comp = &node;
+                break;
+            }
+        }
+
+        if (comp) {
+            // Verify that the pin exists on the component
+            bool pinFound = false;
+            for (int i = 0; i < comp->GetConnectorCount(); i++) {
+                const ElectricNodeBase::Connector& conn = comp->GetConnector(i);
+                if (conn.name == pinName) {
+                    pinFound = true;
+                    break;
+                }
+            }
+
+            if (pinFound) {
+                // Add the signal to the trace
+                machine->AddSignalToTrace(comp, pinName);
+                Cout() << "Added signal trace: " << componentName << "." << pinName << " on PCB " << pcbId << "\\n";
+            } else {
+                Cout() << "Pin '" << pinName << "' not found on component '" << componentName << "'\\n";
+                // Show available pins
+                Cout() << "Available pins:\\n";
+                for (int i = 0; i < comp->GetConnectorCount(); i++) {
+                    const ElectricNodeBase::Connector& conn = comp->GetConnector(i);
+                    Cout() << "  - " << conn.name << "\\n";
+                }
+            }
+        } else {
+            Cout() << "Component '" << componentName << "' not found on PCB " << pcbId << "\\n";
+            // Show available components
+            Cout() << "Available components:\\n";
+            for (int j = 0; j < min(20, pcb.GetNodeCount()); j++) {
+                ElectricNodeBase& node = pcb.GetNode(j);
+                Cout() << "  - " << node.GetClassName() << ": " << node.GetName() << "\\n";
+            }
+
+            if (pcb.GetNodeCount() > 20) {
+                Cout() << "  ... and " << (pcb.GetNodeCount() - 20) << " more\\n";
+            }
+        }
+    } else {
+        Cout() << "No machine available or invalid PCB ID.\\n";
+    }
+}
+
+void Cli::ProcessTraceLogCommand(const Vector<String>& tokens) {
+    if (machine) {
+        Cout() << "\\nSignal Transition Log:\\n";
+        Cout() << "=====================\\n";
+        const Vector<Machine::SignalTransition>& transitions = machine->GetSignalTransitions();
+        
+        if (transitions.IsEmpty()) {
+            Cout() << "No signal transitions logged yet.\\n";
+        } else {
+            // Show up to the last 50 transitions
+            int start = max(0, transitions.GetCount() - 50);
+            for (int i = start; i < transitions.GetCount(); i++) {
+                const Machine::SignalTransition& trans = transitions[i];
+                Cout() << "Tick " << trans.tick_number << ": " << trans.component_name 
+                       << "." << trans.pin_name << " [" << (int)trans.old_value 
+                       << " -> " << (int)trans.new_value << "]\\n";
+            }
+            
+            if (start > 0) {
+                Cout() << "  ... (showing last 50 of " << transitions.GetCount() << " total)\\n";
+            }
+        }
+        Cout() << "\\nTotal transitions logged: " << machine->GetSignalTransitionCount() << "\\n";
+    } else {
+        Cout() << "No machine available.\\n";
+    }
+}
+
+void Cli::ProcessNetlistCommand(const Vector<String>& tokens) {
+    int pcbId = 0; // Default to first PCB
+
+    if (tokens.GetCount() > 1) {
+        pcbId = StrInt(tokens[1]);
+    }
+
+    if (machine) {
+        Cout() << "\\nGenerating netlist for PCB " << pcbId << ":\\n";
+        Cout() << "================================\\n";
+        
+        String netlist = machine->GenerateNetlist(pcbId);
+        Cout() << netlist;
+    } else {
+        Cout() << "No machine available.\\n";
+    }
+}
+void Cli::AddSignalTrace(const String& componentName, const String& pinName, int pcbId) {
+    if (machine && pcbId < machine->pcbs.GetCount()) {
+        Pcb& pcb = machine->pcbs[pcbId];
+
+        // Look for the component by name
+        ElectricNodeBase* comp = nullptr;
+        for (int i = 0; i < pcb.GetNodeCount(); i++) {
+            ElectricNodeBase& node = pcb.GetNode(i);
+            if (node.GetName() == componentName) {
+                comp = &node;
+                break;
+            }
+        }
+
+        if (comp) {
+            // Verify that the pin exists on the component
+            bool pinFound = false;
+            for (int i = 0; i < comp->GetConnectorCount(); i++) {
+                const ElectricNodeBase::Connector& conn = comp->GetConnector(i);
+                if (conn.name == pinName) {
+                    pinFound = true;
+                    break;
+                }
+            }
+
+            if (pinFound) {
+                // Add the signal to the trace
+                machine->AddSignalToTrace(comp, pinName);
+                LOG("Added signal trace: " << componentName << "." << pinName << " on PCB " << pcbId);
+            } else {
+                LOG("Error: Pin  << pinName <<  not found on component  << componentName << ");
+            }
+        } else {
+            LOG("Error: Component  << componentName <<  not found on PCB " << pcbId);
+        }
+    } else {
+        LOG("Error: No machine available or invalid PCB ID");
+    }
+}
+
+void Cli::ShowSignalTraceLog() {
+    if (machine) {
+        const Vector<Machine::SignalTransition>& transitions = machine->GetSignalTransitions();
+        
+        if (transitions.IsEmpty()) {
+            LOG("No signal transitions logged yet.");
+        } else {
+            // Show up to the last 50 transitions
+            int start = max(0, transitions.GetCount() - 50);
+            for (int i = start; i < transitions.GetCount(); i++) {
+                const Machine::SignalTransition& trans = transitions[i];
+                LOG("Tick " << trans.tick_number << ": " << trans.component_name 
+                     << "." << trans.pin_name << " [" << (int)trans.old_value 
+                     << " -> " << (int)trans.new_value << "]");
+            }
+            
+            if (start > 0) {
+                LOG("  ... (showing last 50 of " << transitions.GetCount() << " total)");
+            }
+        }
+        LOG("Total transitions logged: " << machine->GetSignalTransitionCount());
+    } else {
+        LOG("Error: No machine available.");
     }
 }

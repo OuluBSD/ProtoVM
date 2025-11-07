@@ -54,6 +54,7 @@ file
 	StateMachine.cpp,
 	TestALU.cpp,
 	TestStateMachine.cpp,
+	TestSignalTracing.cpp,
 	Basic8BitCPU.h,
 	Basic8BitCPU.cpp,
 	TestBasic8BitCPU.cpp,

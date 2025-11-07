@@ -27,6 +27,14 @@ private:
 	void ProcessInspectCommand(const Vector<String>& tokens);
 	void ProcessStateCommand(const Vector<String>& tokens);
 	void ProcessVisualizeCommand(const Vector<String>& tokens);
+	void ProcessNetlistCommand(const Vector<String>& tokens);
+	void ProcessTraceCommand(const Vector<String>& tokens);
+	void ProcessTraceLogCommand(const Vector<String>& tokens);
+
+public:
+	// Public API for programmatic access to CLI functionality
+	void AddSignalTrace(const String& componentName, const String& pinName, int pcbId = 0);
+	void ShowSignalTraceLog();
 };
 
 #endif

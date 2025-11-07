@@ -95,7 +95,7 @@ private:
 	int64 total_simulation_time = 0;  // Total time spent in simulation
 	
 	// Structure to track component performance
-	struct ComponentProfile {
+	struct ComponentProfile : Moveable<ComponentProfile> {
 		String component_name;
 		int64 total_time_spent;    // Total time spent in this component (in microseconds)
 		int64 call_count;          // Number of times this component was processed
@@ -107,7 +107,7 @@ private:
 	int max_components_to_profile = 50;  // Maximum number of components to profile individually
 
 	// Clock domain management
-	struct ClockDomain {
+	struct ClockDomain : Moveable<ClockDomain> {
 		int id;
 		int frequency_hz;           // Frequency in Hertz
 		double period_ticks;        // Period in simulation ticks (computed from frequency)
@@ -118,24 +118,19 @@ private:
 		Vector<int> component_ids;  // IDs of components in this domain
 		
 		ClockDomain() : id(0), frequency_hz(0), period_ticks(1.0), last_edge_tick(-1), next_edge_tick(0), clock_state(false) {}
-		ClockDomain(const ClockDomain& other) : id(other.id), frequency_hz(other.frequency_hz), period_ticks(other.period_ticks), 
+		ClockDomain(const ClockDomain& other) : id(other.id), frequency_hz(other.frequency_hz), period_ticks(other.period_ticks),
 			last_edge_tick(other.last_edge_tick), next_edge_tick(other.next_edge_tick), clock_state(other.clock_state),
-			component_ids(other.component_ids) {}
-		ClockDomain(ClockDomain&& other) : id(other.id), frequency_hz(other.frequency_hz), period_ticks(other.period_ticks),
-			last_edge_tick(other.last_edge_tick), next_edge_tick(other.next_edge_tick), clock_state(other.clock_state),
-			component_ids(pick(other.component_ids)) {}
+			component_ids() {
+			component_ids <<= other.component_ids;  // Use U++ deep copy operator
+		}
+		ClockDomain(ClockDomain&& other) = default;
 		ClockDomain& operator=(const ClockDomain& other) {
 			id = other.id; frequency_hz = other.frequency_hz; period_ticks = other.period_ticks;
 			last_edge_tick = other.last_edge_tick; next_edge_tick = other.next_edge_tick; clock_state = other.clock_state;
-			component_ids = other.component_ids;
+			component_ids <<= other.component_ids;  // Use U++ deep copy operator
 			return *this;
 		}
-		ClockDomain& operator=(ClockDomain&& other) {
-			id = other.id; frequency_hz = other.frequency_hz; period_ticks = other.period_ticks;
-			last_edge_tick = other.last_edge_tick; next_edge_tick = other.next_edge_tick; clock_state = other.clock_state;
-			component_ids = pick(other.component_ids);
-			return *this;
-		}
+		ClockDomain& operator=(ClockDomain&& other) = default;
 	};
 	
 	Vector<ClockDomain> clock_domains;  // List of all clock domains
@@ -146,7 +141,7 @@ public:
 	// Signal tracing functionality
 private:
 	// Structure to track signal changes
-	struct SignalTrace {
+	struct SignalTrace : Moveable<SignalTrace> {
 		ElectricNodeBase* component;
 		String pin_name;
 		byte last_value;
@@ -156,24 +151,22 @@ private:
 		
 		SignalTrace() : component(nullptr), last_value(0), trace_enabled(true) {}
 		SignalTrace(const SignalTrace& other) : component(other.component), pin_name(other.pin_name), last_value(other.last_value),
-			value_history(other.value_history), tick_history(other.tick_history), trace_enabled(other.trace_enabled) {}
-		SignalTrace(SignalTrace&& other) : component(other.component), pin_name(pick(other.pin_name)), last_value(other.last_value),
-			value_history(pick(other.value_history)), tick_history(pick(other.tick_history)), trace_enabled(other.trace_enabled) {}
+			value_history(), tick_history(), trace_enabled(other.trace_enabled) {
+			value_history <<= other.value_history;
+			tick_history <<= other.tick_history;
+		}
+		SignalTrace(SignalTrace&& other) = default;
 		SignalTrace& operator=(const SignalTrace& other) {
 			component = other.component; pin_name = other.pin_name; last_value = other.last_value;
-			value_history = other.value_history; tick_history = other.tick_history; trace_enabled = other.trace_enabled;
+			value_history <<= other.value_history; tick_history <<= other.tick_history; trace_enabled = other.trace_enabled;
 			return *this;
 		}
-		SignalTrace& operator=(SignalTrace&& other) {
-			component = other.component; pin_name = pick(other.pin_name); last_value = other.last_value;
-			value_history = pick(other.value_history); tick_history = pick(other.tick_history); trace_enabled = other.trace_enabled;
-			return *this;
-		}
+		SignalTrace& operator=(SignalTrace&& other) = default;
 	};
 	Vector<SignalTrace> signal_traces;  // List of signals to trace
 
 	// Signal transition logging
-	struct SignalTransition {
+	struct SignalTransition : Moveable<SignalTransition> {
 		String component_name;
 		String pin_name;
 		byte old_value;
@@ -182,20 +175,15 @@ private:
 		String timestamp;  // Optional timestamp info
 		
 		SignalTransition() : old_value(0), new_value(0), tick_number(0) {}
-		SignalTransition(const SignalTransition& other) : component_name(other.component_name), pin_name(other.pin_name), 
+		SignalTransition(const SignalTransition& other) : component_name(other.component_name), pin_name(other.pin_name),
 			old_value(other.old_value), new_value(other.new_value), tick_number(other.tick_number), timestamp(other.timestamp) {}
-		SignalTransition(SignalTransition&& other) : component_name(pick(other.component_name)), pin_name(pick(other.pin_name)),
-			old_value(other.old_value), new_value(other.new_value), tick_number(other.tick_number), timestamp(pick(other.timestamp)) {}
+		SignalTransition(SignalTransition&& other) = default;
 		SignalTransition& operator=(const SignalTransition& other) {
 			component_name = other.component_name; pin_name = other.pin_name; old_value = other.old_value;
 			new_value = other.new_value; tick_number = other.tick_number; timestamp = other.timestamp;
 			return *this;
 		}
-		SignalTransition& operator=(SignalTransition&& other) {
-			component_name = pick(other.component_name); pin_name = pick(other.pin_name); old_value = other.old_value;
-			new_value = other.new_value; tick_number = other.tick_number; timestamp = pick(other.timestamp);
-			return *this;
-		}
+		SignalTransition& operator=(SignalTransition&& other) = default;
 	};
 	Vector<SignalTransition> signal_transitions;  // Log of all signal transitions
 	int max_transitions_to_store = 1000;  // Maximum transitions to keep in memory

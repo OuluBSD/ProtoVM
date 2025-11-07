@@ -973,7 +973,7 @@ String Machine::GenerateVCDFormat() {
         const SignalTrace& trace = signal_traces[i];
         if (trace.trace_enabled && !trace.value_history.IsEmpty()) {
             // Set initial value
-            vcd += "b" + Upp::IntStr(trace.value_history[0], 2) + " " + Upp::AsString(char(65 + i)) + "\\n";
+            vcd += "b" + FormatIntBase(trace.value_history[0], 2) + " " + Upp::AsString(char(65 + i)) + "\\n";
         }
     }
     vcd += "$end\\n\\n";
@@ -1005,7 +1005,7 @@ String Machine::GenerateVCDFormat() {
                     // Look for changes at this tick
                     for (int j = 0; j < trace.tick_history.GetCount(); j++) {
                         if (trace.tick_history[j] == tick) {
-                            vcd += "b" + Upp::IntStr(trace.value_history[j], 2) + " " + Upp::AsString(char(65 + i)) + "\\n";
+                            vcd += "b" + FormatIntBase(trace.value_history[j], 2) + " " + Upp::AsString(char(65 + i)) + "\\n";
                             break;
                         }
                     }

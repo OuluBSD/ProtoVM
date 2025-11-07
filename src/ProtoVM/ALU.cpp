@@ -105,7 +105,7 @@ void ALU::ComputeResult() {
             break;
         case OP_DEC_A:
             temp_result = (temp_a - 1) & ((1 << WIDTH) - 1);
-            carry_out = !(((temp_a - 1) >> WIDTH)) & 1;  // Borrow inverted
+            carry_out = (!((temp_a - 1) >> WIDTH)) & 1;  // Borrow inverted
             break;
         case OP_PASS_A:
             temp_result = temp_a;

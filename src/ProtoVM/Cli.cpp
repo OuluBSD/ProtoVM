@@ -364,7 +364,7 @@ void Cli::ProcessVisualizeCommand(const Vector<String>& tokens) {
                     for (int k = 0; k < conn.links.GetCount(); k++) {
                         if (conn.links[k].link) {
                             // Get the destination component and connection
-                            ElectricNodeBase::Connector* dest_conn = conn.links[k].link->dest_conn;
+                            ElectricNodeBase::Connector* dest_conn = conn.links[k].link->sink;
                             if (dest_conn && dest_conn->base) {
                                 Cout() << "    [" << dest_conn->base->GetClassName() << ":" << dest_conn->base->GetName() 
                                        << "." << dest_conn->name << "]\\n";

@@ -97,6 +97,12 @@ private:
     uint32 in_pins;
     uint32 in_pins_mask;
     
+    // Timing and clock management
+    int current_cycle;          // Current cycle within instruction
+    int total_cycles;           // Total cycles for current instruction
+    int clock_divider;          // To simulate different clock speeds
+    int clock_count;            // Internal clock counter
+
     void SetPin(int i, bool b);
     void FetchInstruction();
     void DecodeInstruction();
@@ -107,6 +113,14 @@ private:
     void UpdateControlLines();
     void SetDataBus(byte value, bool output_enable = true);
     byte GetDataBus();
+    
+    // Timing-related methods
+    void UpdateTiming(int current_tick);
+    bool CheckTimingRequirements();
+    void SetClockDivider(int divider);
+    int GetClockDivider() const { return clock_divider; }
+    void UpdateClockCount();
+    bool IsClockRisingEdge();
 };
 
 #endif

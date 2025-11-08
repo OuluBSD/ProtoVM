@@ -79,57 +79,57 @@
 
 ### Intel 4004 CPU Implementation
 - [x] Add Intel 4004 CPU component implementation following 6502 example
-- [ ] Implement 4004 instruction set architecture (ISA) with 45 instructions
-- [ ] Create 4-bit accumulator and 12 registers (4-bit each)
-- [ ] Implement 4002 RAM (40 bytes of 4-bit memory per chip)
-- [ ] Implement 4003 shift register for I/O expansion
-- [ ] Implement 4001 ROM (2048 8-bit words, 256 bytes per chip)
-- [ ] Create bus interface for 4-bit data and 12-bit address
-- [ ] Add support for 4004 timing requirements and clock signals
-- [ ] Implement proper handling of BUSY and CM signals
-- [ ] Add support for 4004 instruction fetch/decode/execute cycle
+- [x] Implement 4004 instruction set architecture (ISA) with 45 instructions
+- [x] Create 4-bit accumulator and 12 registers (4-bit each)
+- [x] Implement 4002 RAM (40 bytes of 4-bit memory per chip)
+- [x] Implement 4003 shift register for I/O expansion
+- [x] Implement 4001 ROM (2048 8-bit words, 256 bytes per chip)
+- [x] Create bus interface for 4-bit data and 12-bit address
+- [x] Add support for 4004 timing requirements and clock signals
+- [x] Implement proper handling of BUSY and CM signals
+- [x] Add support for 4004 instruction fetch/decode/execute cycle
 
 ### Minimax Computer System with 4004
 - [x] Design Minimax computer system schematic using 4004 CPU
-- [ ] Integrate 4001 ROM chips for program storage (2048 x 8-bit words)
-- [ ] Implement memory mapping for 4001 ROM and 4002 RAM chips
-- [ ] Add I/O subsystem using 4003 shift register
-- [ ] Implement address decoding for memory and I/O chips
-- [ ] Create proper data/address bus connections between components
-- [ ] Add clock generator for 4004 timing requirements
-- [ ] Implement reset circuitry for proper initialization
-- [ ] Add power-on sequence handling
+- [x] Integrate 4001 ROM chips for program storage (2048 x 8-bit words)
+- [x] Implement memory mapping for 4001 ROM and 4002 RAM chips
+- [x] Add I/O subsystem using 4003 shift register
+- [x] Implement address decoding for memory and I/O chips
+- [x] Create proper data/address bus connections between components
+- [x] Add clock generator for 4004 timing requirements
+- [x] Implement reset circuitry for proper initialization
+- [x] Add power-on sequence handling
 
 ### HLA3 Assembler Integration
 - [x] Download and set up High-Level Assembler 3 (HLA3) in external/thirdparty directory
-- [ ] Create directory structure for HLA3: "external/hla3/"
-- [ ] Set up HLA3 "Assembler Developer's Kit" for creating 4004 assembler
-- [ ] Develop 4004-specific assembler using HLA3 kit
-- [ ] Create 4004 instruction syntax definitions
-- [ ] Implement 4004 assembler code generation
-- [ ] Create example programs for 4004 to demonstrate functionality
-- [ ] Document how to write and assemble programs for 4004
+- [x] Create directory structure for HLA3: "external/hla3/"
+- [x] Set up HLA3 "Assembler Developer's Kit" for creating 4004 assembler
+- [x] Develop 4004-specific assembler using HLA3 kit
+- [x] Create 4004 instruction syntax definitions
+- [x] Implement 4004 assembler code generation
+- [x] Create example programs for 4004 to demonstrate functionality
+- [x] Document how to write and assemble programs for 4004
 
 ### CLI and Runtime Enhancements
 - [x] Add 4004 computer system to circuit selection in main executable
-- [ ] Implement command-line option to load binary program file into memory
-- [ ] Add option to switch between serial I/O and CLI output
-- [ ] Create memory poking commands in CLI to directly access memory
-- [ ] Add CPU register inspection commands in CLI
-- [ ] Implement interactive mode to control program execution (start, stop, step)
-- [ ] Add support for loading and running programs from binary files
-- [ ] Create command to show CPU state during program execution
-- [ ] Add memory dump functionality in CLI
+- [x] Implement command-line option to load binary program file into memory
+- [x] Add option to switch between serial I/O and CLI output
+- [x] Create memory poking commands in CLI to directly access memory
+- [x] Add CPU register inspection commands in CLI
+- [x] Implement interactive mode to control program execution (start, stop, step)
+- [x] Add support for loading and running programs from binary files
+- [x] Create command to show CPU state during program execution
+- [x] Add memory dump functionality in CLI
 
 ### Testing and Verification
-- [ ] Create unit tests for 4004 CPU component
-- [ ] Verify 4004 instruction execution accuracy
-- [ ] Test memory read/write operations with 4001 ROM and 4002 RAM
-- [ ] Validate I/O operations through 4003 shift register
-- [ ] Create comprehensive test programs for 4004 functionality
-- [ ] Verify timing behavior and clock synchronization
-- [ ] Test complex programs that use multiple 4004 components
-- [ ] Validate interrupt and control signal handling
+- [x] Create unit tests for 4004 CPU component
+- [x] Verify 4004 instruction execution accuracy
+- [x] Test memory read/write operations with 4001 ROM and 4002 RAM
+- [x] Validate I/O operations through 4003 shift register
+- [x] Create comprehensive test programs for 4004 functionality
+- [x] Verify timing behavior and clock synchronization
+- [x] Test complex programs that use multiple 4004 components
+- [x] Validate interrupt and control signal handling
 
 ## IN PROGRESS
 

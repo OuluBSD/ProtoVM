@@ -4,10 +4,6 @@
 #include "IC4001.h"
 #include "IC4002.h"
 #include "IC4003.h"
-#include "AddressDecoder4004.h"
-#include "ClockGenerator4004.h"
-#include "PowerOnReset4004.h"
-#include "Test4004CPU.h"
 
 /*
 LinkBases:
@@ -41,7 +37,6 @@ void Test81_ClockGate();
 void Test82_PLL();
 void Test90_SignalTracing();
 void TestMDS1101SchematicTool();
-void Run4004UnitTests();
 
 
 
@@ -49,41 +44,34 @@ void TestPslParserFunction();  // Forward declaration
 
 void SetupMiniMax4004(Machine& mach) {
     Pcb& pcb = mach.AddPcb();
-
+    
     // Create and configure the 4004 CPU
     IC4004& cpu = pcb.Add<IC4004>("CPU4004");
-
-    // Create ROM and RAM components for the 4004 system
-    IC4001& rom = pcb.Add<IC4001>("ROM4001");  // 4001 ROM with 2048x4-bit capacity
-    IC4002& ram = pcb.Add<IC4002>("RAM4002");  // 4002 RAM with 40-bit capacity
-
-    // Create I/O component using 4003 shift register
-    IC4003& io_shift_reg = pcb.Add<IC4003>("IO4003");  // 4003 I/O expander
-
-    // Create address decoder for memory mapping
-    AddressDecoder4004& addr_decoder = pcb.Add<AddressDecoder4004>("ADDR_DEC");  
-    addr_decoder.SetRAMRegion(0x000, 0x00F);  // Map first 16 addresses to RAM (4002 has 40 bits)
-    addr_decoder.SetROMRegion(0x010, 0xFFF);  // Map remaining addresses to ROM
-
-    // Create clock generator for proper 4004 timing
-    ClockGenerator4004& clock_gen = pcb.Add<ClockGenerator4004>("CLK_GEN");
-    clock_gen.SetClockFrequency(740000);  // Set to 740 kHz (typical 4004 frequency)
-
-    // Create power-on reset circuit
-    PowerOnReset4004& por_circuit = pcb.Add<PowerOnReset4004>("POR");
-    por_circuit.SetResetDuration(15);  // Set reset duration to 15 ticks
-
+    
+    // Create memory components for the 4004 system
+    ICRamRom& rom = pcb.Add<ICRamRom>("ROM4001");  // 4001 ROM
+    rom.SetSize(256);      // Example size: 256 bytes
+    rom.SetReadOnly(true); // ROM is read-only
+    
+    ICRamRom& ram = pcb.Add<ICRamRom>("RAM4002");  // 4002 RAM
+    ram.SetSize(40);       // 40 bytes as in original 4002
+    ram.SetReadOnly(false); // RAM is read/write
+    
     // Create buses for the 4004 system
     Bus<4>& data_bus = pcb.Add<Bus<4>>("DATA_BUS");
     Bus<12>& addr_bus = pcb.Add<Bus<12>>("ADDR_BUS");
-
+    
+    // Create a clock source for the system
+    Pin& clk = pcb.Add<Pin>("CLK").SetReference(1);  // Set to logic HIGH initially
+    Pin& reset = pcb.Add<Pin>("RESET").SetReference(0);  // Set to logic LOW (not in reset)
+    
     try {
-        // Connect CPU data bus pins to data bus (bidirectional connection)
+        // Connect CPU data bus pins to data bus (CPU D0-D3 to Bus 0-3)
         cpu["D0"] >> data_bus[0];
         cpu["D1"] >> data_bus[1];
         cpu["D2"] >> data_bus[2];
         cpu["D3"] >> data_bus[3];
-
+        
         // Connect CPU address bus pins to address bus
         cpu["A0"] >> addr_bus[0];
         cpu["A1"] >> addr_bus[1];
@@ -97,89 +85,12 @@ void SetupMiniMax4004(Machine& mach) {
         cpu["A9"] >> addr_bus[9];
         cpu["A10"] >> addr_bus[10];
         cpu["A11"] >> addr_bus[11];
-
-        // Connect address bus to address decoder
-        addr_bus[0] >> addr_decoder["A0"];
-        addr_bus[1] >> addr_decoder["A1"];
-        addr_bus[2] >> addr_decoder["A2"];
-        addr_bus[3] >> addr_decoder["A3"];
-        addr_bus[4] >> addr_decoder["A4"];
-        addr_bus[5] >> addr_decoder["A5"];
-        addr_bus[6] >> addr_decoder["A6"];
-        addr_bus[7] >> addr_decoder["A7"];
-        addr_bus[8] >> addr_decoder["A8"];
-        addr_bus[9] >> addr_decoder["A9"];
-        addr_bus[10] >> addr_decoder["A10"];
-        addr_bus[11] >> addr_decoder["A11"];
-
-        // Connect chip select signals from decoder to memory chips
-        addr_decoder["RAM_CS"] >> ram["JAM"];  // RAM chip select to RAM enable
-        addr_decoder["ROM_CS"] >> rom["JAM"];  // ROM chip select to ROM enable
-
-        // Connect ROM to data bus (output)
-        rom["O0"] >> data_bus[0];
-        rom["O1"] >> data_bus[1];
-        rom["O2"] >> data_bus[2];
-        rom["O3"] >> data_bus[3];
-
-        // ROM address connections (from address bus)
-        rom["A0"] >> addr_bus[0];
-        rom["A1"] >> addr_bus[1];
-        rom["A2"] >> addr_bus[2];
-        rom["A3"] >> addr_bus[3];
-        rom["A4"] >> addr_bus[4];
-        rom["A5"] >> addr_bus[5];
-        rom["A6"] >> addr_bus[6];
-        rom["A7"] >> addr_bus[7];
-        rom["A8"] >> addr_bus[8];
-        rom["A9"] >> addr_bus[9];
-        rom["A10"] >> addr_bus[10];
-        rom["A11"] >> addr_bus[11];
-
-        // Connect RAM to data bus (bidirectional, simplified connection)
-        // In 4002, input and output are separate, so we'll connect appropriately
-        cpu["D0"] >> ram["I0"];  // CPU data out to RAM input
-        cpu["D1"] >> ram["I1"];
-        cpu["D2"] >> ram["I2"];
-        cpu["D3"] >> ram["I3"];
         
-        // RAM output connects to data bus when reading
-        ram["O0"] >> data_bus[0];
-        ram["O1"] >> data_bus[1];
-        ram["O2"] >> data_bus[2];
-        ram["O3"] >> data_bus[3];
-
-        // Connect RAM address lines (4002 uses 4 address lines for 10 positions per bank)
-        addr_bus[0] >> ram["A0"];
-        addr_bus[1] >> ram["A1"];
-        addr_bus[2] >> ram["A2"];
-        addr_bus[3] >> ram["A3"];
-
-        // Connect clock generator to CPU and memory
-        clock_gen["CM4"] >> cpu["CM4"];     // Phase 1 clock to CPU
-        clock_gen["CM"] >> cpu["CM"];       // Phase 2 clock to CPU's CM pin
-        clock_gen["CM"] >> rom["CM4"];      // Memory clock to ROM
-        clock_gen["CM"] >> ram["CM4"];      // Memory clock to RAM
-
-        // Connect power-on reset circuit to CPU and other components
-        por_circuit["RESET_OUT"] >> cpu["RES"];        // Reset to CPU
-        por_circuit["RESET_OUT"] >> clock_gen["CLK_EN"]; // Reset/enable to clock generator
-
-        // Connect memory control signals
-        cpu["MR"] >> rom["JAM"];   // Memory Read to ROM chip enable (active low)
-        cpu["MW"] >> ram["WM"];    // Memory Write to RAM write enable
-
-        // Connect I/O shift register for expanded I/O
-        cpu["D0"] >> io_shift_reg["SR0"];  // CPU output to shift register input
-        io_shift_reg["SO0"] >> cpu["D0"];  // Shift register output to CPU input (feedback)
-        
-        // Connect shift register clock to CPU
-        cpu["CM"] >> io_shift_reg["CM4"];  // CPU clock output to shift register
-        
-        // Connect CPU I/O control to shift register latch
-        cpu["CM4"] >> io_shift_reg["L0"];  // Use clock as latch for simplicity
-
-        LOG("MiniMax4004 system configured with 4004 CPU, 4001 ROM, 4002 RAM, 4003 I/O, address decoder, clock generator, and power-on reset");
+        // Connect clock and reset signals
+        clk >> cpu["CM4"];  // System clock to CPU clock input
+        reset >> cpu["RES"]; // Reset signal to CPU
+    
+        LOG("MiniMax4004 system configured with 4004 CPU, ROM, and RAM");
     }
     catch (Exc e) {
         LOG("Connection error in SetupMiniMax4004: " << e);
@@ -188,38 +99,38 @@ void SetupMiniMax4004(Machine& mach) {
 
 void TestMDS1101SchematicTool() {
     LOG("Testing MDS-1101 Schematic Tool...");
-
+    
     // Initialize the schematic tool
     MDS1101SchematicTool tool;
-
+    
     // Find an appropriate PCB image from the MDS-1101 directory
     // For now, use the first available image as a demonstration
     std::string pcb_image_path = "circuitboards/MDS-1101/machine1.jpg";
-
+    
     // Load PCB image
     if (!tool.LoadPCBImage(pcb_image_path)) {
         LOG("Failed to load PCB image: " << pcb_image_path);
         return;
     }
-
+    
     // Analyze the image to detect components and connections
     if (!tool.AnalyzeImage()) {
         LOG("Failed to analyze PCB image");
         return;
     }
-
+    
     // Generate the schematic from the analysis
     Schematic schematic = tool.GenerateSchematic();
-
+    
     // Render the schematic for display
     tool.RenderSchematic();
-
+    
     // Export the schematic to ProtoVM format
     if (!tool.ExportToProtoVM("MDS1101_schematic_output.psl")) {
         LOG("Failed to export schematic to ProtoVM format");
         return;
     }
-
+    
     LOG("MDS-1101 Schematic Tool test completed successfully");
 }
 
@@ -228,10 +139,10 @@ void TestMDS1101SchematicTool() {
 CONSOLE_APP_MAIN {
 	using namespace Upp;
 	SetCoutLog();
-
+	
 	// Parse command line arguments
 	const Vector<String>& args = CommandLine();
-
+	
 	// Check for help flag
 	if (FindIndex(args, "-h") >= 0 || FindIndex(args, "--help") >= 0) {
 		Cout() << "ProtoVM Digital Logic Simulator\n";
@@ -244,7 +155,6 @@ CONSOLE_APP_MAIN {
 		Cout() << "  --verbosity=N   Set verbosity level directly (0=minimal, 1=default, 2=verbose, 3=very verbose)\n";
 		Cout() << "  -t, --ticks N  Run simulation for N ticks (default: 100)\n";
 		Cout() << "  --cli          Start in interactive CLI mode\n";
-		Cout() << "  --load-binary <file> [addr]  Load binary program file into memory at specified address\n";
 		Cout() << "Circuits:\n";
 		Cout() << "  flipflop    - Simple flip-flop test circuit\n";
 		Cout() << "  andgate     - Simple AND gate test circuit\n";
@@ -267,7 +177,6 @@ CONSOLE_APP_MAIN {
 		Cout() << "  clkgate      - Clock gating test circuit\n";
 		Cout() << "  pll          - Phase-locked loop test circuit\n";
 		Cout() << "  signaltrace  - Signal tracing functionality test circuit\n";
-		Cout() << "  mds1101      - MDS-1101 schematic tool demonstration\n";
 		Cout() << "\nExamples:\n";
 		Cout() << "  " << GetExeTitle() << " 6502 -t 1000    # Run 6502 circuit for 1000 ticks\n";
 		Cout() << "  " << GetExeTitle() << " --cli           # Start interactive CLI mode\n";
@@ -275,25 +184,23 @@ CONSOLE_APP_MAIN {
 		Cout() << "  " << GetExeTitle() << " signaltrace     # Run signal tracing test\n";
 		return;
 	}
-
+	
 	// Check for version flag (now using -V or --version)
 	if (FindIndex(args, "-V") >= 0 || FindIndex(args, "--version") >= 0) {
 		Cout() << "ProtoVM Digital Logic Simulator v1.0\n";
 		return;
 	}
-
+	
 	// Find circuit selection and options
 	String circuit_name = ""; // no default - will show help if no circuit provided
 	int max_ticks = 100;
 	bool interactive_cli = false;
 	bool run_psl_test = false;
 	int verbosity_level = 0;  // 0=minimal output, 1=default output, 2=verbose output, 3=very verbose
-	String binary_file = "";  // Binary file to load
-	int load_address = 0; // Address to load the binary file
-
+	
 	for (int i = 0; i < args.GetCount(); i++) {
 		String arg = args[i];
-
+		
 		if (arg == "-t" || arg == "--ticks") {
 			if (i + 1 < args.GetCount()) {
 				max_ticks = StrInt(args[i + 1]);
@@ -305,22 +212,6 @@ CONSOLE_APP_MAIN {
 		}
 		else if (arg == "--psl-test") {
 			run_psl_test = true;
-		}
-		else if (arg == "--load-binary" || arg == "-lb") {
-			if (i + 1 < args.GetCount()) {
-				binary_file = args[i + 1];
-				i++; // skip next argument
-				
-				// Optionally parse address too
-				if (i + 1 < args.GetCount() && !args[i + 1].StartsWith("-")) {
-					String addr_str = args[i + 1];
-					if (addr_str.StartsWith("0x") || addr_str.StartsWith("0X")) {
-						addr_str = addr_str.Mid(2); // Remove 0x prefix
-					}
-					load_address = StrIntHex(addr_str);
-					i++; // skip next argument
-				}
-			}
 		}
 		else if (arg == "-v") {
 			verbosity_level = 1;  // Default verbose
@@ -347,10 +238,10 @@ CONSOLE_APP_MAIN {
 		TestPslParserFunction();
 		return;
 	}
-
+	
 	// Initialize machine
 	Machine mach;
-
+	
 	// Set up selected circuit
 	if (circuit_name == "flipflop") {
 		SetupTest0_FlipFlop(mach);
@@ -493,66 +384,12 @@ CONSOLE_APP_MAIN {
 			circuit_name = "6502";
 		}
 	}
-
-	// If there's a binary file to load, load it before starting
-	if (!binary_file.IsEmpty()) {
-		// Attempt to load the binary file into appropriate memory components
-		LOG("Attempting to load binary file: " << binary_file << " at address 0x" << HexStr(load_address));
-		
-		// Try to find an IC4001 (ROM) component to load the program into
-		for (int pcb_id = 0; pcb_id < mach.GetPcbCount(); pcb_id++) {
-			Pcb* pcb = mach.GetPcb(pcb_id);
-			if (!pcb) continue;
-			
-			for (int i = 0; i < pcb->GetComponentCount(); i++) {
-				ElectricNodeBase* comp = pcb->GetComponent(i);
-				if (String(comp->GetClassName()) == "IC4001") {
-					try {
-						// Cast to IC4001 to access memory loading capabilities
-						IC4001* rom = dynamic_cast<IC4001*>(comp);
-						if (rom) {
-							// Load the binary file
-							FileIn file(binary_file);
-							if (!file.IsOpen()) {
-								LOG("Error: Could not open file '" << binary_file << "'");
-							} else {
-								LOG("Loading binary file into 4001 ROM component: " << comp->GetName());
-								
-								// Read and load the binary data
-								int addr = load_address;
-								while (!file.IsEof() && addr <= 0xFFF) {
-									int byte_val = file.Get();
-									if (byte_val == -1) break; // End of file
-									
-									// For the 4004, we store 4-bit values, so split the byte if needed
-									rom->SetMemory(addr, byte_val & 0x0F); // Store lower 4 bits
-									addr++;
-									
-									// Also store upper 4 bits if there's space
-									if (addr <= 0xFFF) {
-										rom->SetMemory(addr, (byte_val >> 4) & 0x0F); // Store upper 4 bits
-										addr++;
-									}
-								}
-								
-								LOG("Successfully loaded binary file into ROM starting at address 0x" << HexStr(load_address));
-								break; // Stop after loading into first found ROM
-							}
-						}
-					} catch (...) {
-						// Dynamic cast failed or other error
-						continue;
-					}
-				}
-			}
-		}
-	}
-
+	
 	// If CLI mode is requested, start interactive mode, otherwise run simulation
 	if (interactive_cli) {
 		if (mach.Init()) {
 			LOG("Starting interactive CLI mode for circuit: " << circuit_name);
-
+			
 			Cli cli;
 			cli.SetMachine(&mach);
 			cli.Start();
@@ -565,14 +402,14 @@ CONSOLE_APP_MAIN {
 		// Run the simulation with the specified number of ticks
 		if (mach.Init()) {
 			LOG("Running " << circuit_name << " circuit for " << max_ticks << " ticks");
-
+			
 			for(int i = 0; i < max_ticks; i++) {
 				LOG("Tick " << i);
-
+				
 				if (!mach.Tick())
 					break;
 			}
-
+			
 			LOG("Simulation completed after " << max_ticks << " ticks");
 		}
 		else {

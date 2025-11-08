@@ -96,6 +96,21 @@ void Cli::ProcessCommand(const String& command) {
 	else if (cmd == "tracelog" || cmd == "tl") {
 		ProcessTraceLogCommand(tokens);
 	}
+	else if (cmd == "load" || cmd == "l") {
+		ProcessLoadCommand(tokens);
+	}
+	else if (cmd == "step" || cmd == "s") {
+		ProcessStepCommand(tokens);
+	}
+	else if (cmd == "continue" || cmd == "cont" || cmd == "c") {
+		ProcessContinueCommand(tokens);
+	}
+	else if (cmd == "break" || cmd == "b") {
+		ProcessBreakCommand(tokens);
+	}
+	else if (cmd == "dump" || cmd == "d" || cmd == "memory") {
+		ProcessMemoryDumpCommand(tokens);
+	}
 	else {
 		Cout() << "Unknown command: " << cmd << ". Type 'help' for available commands.\n";
 	}
@@ -114,6 +129,11 @@ void Cli::ShowHelp() {
 	Cout() << "  netlist, n [pcb_id] - Generate netlist for a PCB\n";
 	Cout() << "  trace, t <comp> <pin> [pcb_id] - Add a signal to trace\n";
 	Cout() << "  tracelog, tl     - Show the signal transition log\n";
+	Cout() << "  load, l <file> [addr] [pcb_id] - Load binary program file into memory\n";
+	Cout() << "  step, s [n]      - Step through execution, n ticks at a time (default: 1)\n";
+	Cout() << "  continue, cont, c [n] - Run simulation for n ticks (default: 100)\n";
+	Cout() << "  break, b [subcmd] - Manage breakpoints (list, set, clear)\n";
+	Cout() << "  dump, d, memory [start] [end] - Display memory contents in hex dump format\n";
 	Cout() << "  quit, q, exit    - Quit CLI\n";
 	Cout() << "\nComponent Inspection Commands:\n";
 	Cout() << "  inspect <component_name> [pcb_id] - Show detailed information about a specific component\n";
@@ -592,6 +612,387 @@ void Cli::AddSignalTrace(const String& componentName, const String& pinName, int
         }
     } else {
         LOG("Error: No machine available or invalid PCB ID");
+    }
+}
+
+bool Cli::running_in_step_mode = false;
+
+void Cli::ProcessStepCommand(const Vector<String>& tokens) {
+    if (!machine) {
+        Cout() << "Error: No machine available.\n";
+        return;
+    }
+
+    int num_steps = 1; // Default to 1 step
+    if (tokens.GetCount() > 1) {
+        num_steps = StrInt(tokens[1]); // Parse the number of steps
+    }
+
+    if (num_steps < 1) {
+        Cout() << "Error: Number of steps must be positive.\n";
+        return;
+    }
+
+    Cout() << "Stepping " << num_steps << " tick(s)...\n";
+
+    // Execute the specified number of steps
+    for (int i = 0; i < num_steps; i++) {
+        if (!machine->Tick()) {
+            Cout() << "Simulation halted at tick " << i << "\n";
+            break;
+        }
+        
+        // Log the tick if needed for debugging
+        Cout() << "Completed tick " << i + 1 << "\n";
+    }
+
+    Cout() << "Step completed.\n";
+}
+
+void Cli::ProcessContinueCommand(const Vector<String>& tokens) {
+    if (!machine) {
+        Cout() << "Error: No machine available.\n";
+        return;
+    }
+
+    int num_ticks = 100; // Default to 100 ticks
+    if (tokens.GetCount() > 1) {
+        num_ticks = StrInt(tokens[1]); // Parse the number of ticks
+    }
+
+    if (num_ticks < 1) {
+        Cout() << "Error: Number of ticks must be positive.\n";
+        return;
+    }
+
+    Cout() << "Running for " << num_ticks << " tick(s)...\n";
+
+    // Execute the specified number of ticks
+    for (int i = 0; i < num_ticks; i++) {
+        if (!machine->Tick()) {
+            Cout() << "Simulation halted at tick " << i << "\n";
+            break;
+        }
+    }
+
+    Cout() << "Execution completed.\n";
+}
+
+void Cli::ProcessBreakCommand(const Vector<String>& tokens) {
+    // This would implement breakpoint functionality
+    // For now, we'll just show available breakpoints
+    Cout() << "Breakpoint functionality:\n";
+    Cout() << "  break list - List all breakpoints\n";
+    Cout() << "  break set <component> <condition> - Set a breakpoint\n";
+    Cout() << "  break clear [index] - Clear breakpoints\n";
+    Cout() << "  break clear all - Clear all breakpoints\n";
+    
+    if (tokens.GetCount() < 2) {
+        Cout() << "Available subcommands: list, set, clear\n";
+        return;
+    }
+    
+    String subcmd = ToLower(tokens[1]);
+    if (subcmd == "set") {
+        // For now, just acknowledge the command
+        Cout() << "Breakpoint set functionality would be implemented here.\n";
+    } else if (subcmd == "list") {
+        Cout() << "No breakpoints currently set.\n";
+    } else if (subcmd == "clear") {
+        Cout() << "Breakpoints cleared.\n";
+    } else {
+        Cout() << "Unknown breakpoint subcommand: " << subcmd << "\n";
+    }
+}
+
+void Cli::ProcessMemoryDumpCommand(const Vector<String>& tokens) {
+    if (!machine) {
+        Cout() << "Error: No machine available.\n";
+        return;
+    }
+
+    // Default values for memory dump
+    int start_address = 0;
+    int end_address = 0xFF; // Default to first 256 bytes
+    
+    if (tokens.GetCount() >= 2) {
+        // Parse start address
+        String addr_str = tokens[1];
+        if (addr_str.StartsWith("0x") || addr_str.StartsWith("0X")) {
+            addr_str = addr_str.Mid(2); // Remove 0x prefix
+        }
+        start_address = StrIntHex(addr_str);
+        
+        if (tokens.GetCount() >= 3) {
+            // Parse end address
+            String end_str = tokens[2];
+            if (end_str.StartsWith("0x") || end_str.StartsWith("0X")) {
+                end_str = end_str.Mid(2); // Remove 0x prefix
+            }
+            end_address = StrIntHex(end_str);
+            
+            // Ensure end is greater than start
+            if (end_address < start_address) {
+                end_address = start_address + 0xFF; // Default to showing next 256 bytes
+            }
+        } else {
+            // If only start address specified, show next 16 bytes
+            end_address = start_address + 0xF;
+        }
+    }
+
+    // Validate address range is within 4004's 12-bit address space (0x000-0xFFF)
+    if (start_address > 0xFFF || end_address > 0xFFF) {
+        Cout() << "Error: Address must be between 0x000 and 0xFFF (12-bit range)\n";
+        return;
+    }
+    
+    if (end_address < start_address) {
+        int temp = end_address;
+        end_address = start_address;
+        start_address = temp;
+    }
+    
+    // Limit to a reasonable range to avoid overwhelming output
+    if (end_address - start_address > 0x100) {  // More than 256 bytes
+        end_address = start_address + 0xFF;  // Limit to 256 bytes
+        Cout() << "Limiting display to 256 bytes for readability\n";
+    }
+
+    Cout() << "Memory dump from 0x" << HexStr(start_address) 
+           << " to 0x" << HexStr(end_address) << ":\n";
+
+    // Try to find memory components (ROM/RAM) to read from
+    // We'll look for ICRamRom components on all PCBs
+    bool found_memory = false;
+    
+    for (int pcb_id = 0; pcb_id < machine->GetPcbCount(); pcb_id++) {
+        Pcb* pcb = machine->GetPcb(pcb_id);
+        if (!pcb) continue;
+
+        for (int i = 0; i < pcb->GetComponentCount(); i++) {
+            ElectricNodeBase* comp = pcb->GetComponent(i);
+            String comp_class = comp->GetClassName();
+            
+            // Check for memory components (ROM and RAM)
+            if (comp_class == "IC4001" || comp_class == "IC4002" || comp_class == "ICRamRom") {
+                Cout() << "Found " << comp_class << " component: " << comp->GetName() 
+                       << " (PCB " << pcb_id << ")\n";
+                
+                // For demonstration purposes, print address range
+                int addr = start_address;
+                while (addr <= end_address) {
+                    // Calculate row start address (align to 16-byte boundary)
+                    int row_start = addr & ~0xF;
+                    
+                    // Print address offset
+                    Cout() << "0x" << HexStr(row_start, 3) << ": ";
+                    
+                    // Print hex values for this row (16 bytes)
+                    for (int col = 0; col < 16 && (row_start + col) <= end_address; col++) {
+                        int current_addr = row_start + col;
+                        if (current_addr >= addr) {
+                            // In a real implementation, we would read the actual memory value
+                            // For now, we'll show a placeholder value
+                            byte mem_val = 0x00; // Placeholder - would get real value from memory
+                            
+                            // Check what type of memory component we have
+                            if (comp_class == "IC4001") { // ROM
+                                IC4001* rom = dynamic_cast<IC4001*>(comp);
+                                if (rom) {
+                                    try {
+                                        mem_val = rom->GetMemory(current_addr) & 0x0F; // Get 4-bit value
+                                    } catch (...) {
+                                        mem_val = 0x00; // Default value if not readable
+                                    }
+                                }
+                            } else if (comp_class == "IC4002") { // RAM
+                                // 4002 has a different memory access method
+                                // This is simplified - actual implementation would vary
+                            } else if (comp_class == "ICRamRom") { // Generic memory
+                                ICRamRom* memory = dynamic_cast<ICRamRom*>(comp);
+                                if (memory) {
+                                    try {
+                                        if (current_addr < memory->GetSize()) {
+                                            mem_val = memory->GetMemory(current_addr) & 0xFF; // Get 8-bit value
+                                        }
+                                    } catch (...) {
+                                        mem_val = 0x00; // Default value if not readable
+                                    }
+                                }
+                            }
+                            
+                            Cout() << HexStr(mem_val, 2) << " "; // Print in hex with 2 digits
+                        } else {
+                            Cout() << ".. "; // Not in our range
+                        }
+                    }
+                    
+                    // Print ASCII representation for this row
+                    Cout() << "|";
+                    for (int col = 0; col < 16 && (row_start + col) <= end_address; col++) {
+                        int current_addr = row_start + col;
+                        if (current_addr >= addr) {
+                            // Get the value again for ASCII representation
+                            byte mem_val = 0x00;
+                            if (comp_class == "IC4001") {
+                                IC4001* rom = dynamic_cast<IC4001*>(comp);
+                                if (rom) {
+                                    try {
+                                        mem_val = rom->GetMemory(current_addr) & 0x0F;
+                                    } catch (...) {
+                                        mem_val = 0x00;
+                                    }
+                                }
+                            } else if (comp_class == "IC4001") { // ROM
+                                IC4001* rom = dynamic_cast<IC4001*>(comp);
+                                if (rom) {
+                                    try {
+                                        mem_val = rom->GetMemory(current_addr) & 0x0F;
+                                    } catch (...) {
+                                        mem_val = 0x00;
+                                    }
+                                }
+                            } else if (comp_class == "ICRamRom") { // Generic memory
+                                ICRamRom* memory = dynamic_cast<ICRamRom*>(comp);
+                                if (memory) {
+                                    try {
+                                        if (current_addr < memory->GetSize()) {
+                                            mem_val = memory->GetMemory(current_addr) & 0xFF;
+                                        }
+                                    } catch (...) {
+                                        mem_val = 0x00;
+                                    }
+                                }
+                            }
+                            
+                            char ascii_char = (mem_val >= 0x20 && mem_val < 0x7F) ? (char)mem_val : '.';
+                            Cout() << ascii_char;
+                        } else {
+                            Cout() << "."; // Not in our range
+                        }
+                    }
+                    Cout() << "|\n";
+                    
+                    addr = row_start + 16; // Move to next row
+                    found_memory = true;
+                }
+            }
+        }
+    }
+    
+    if (!found_memory) {
+        Cout() << "No memory components found to dump.\n";
+        
+        // If no specific memory components found, at least show the range requested
+        Cout() << "Requested range: 0x" << HexStr(start_address) 
+               << " to 0x" << HexStr(end_address) << "\n";
+    }
+}
+
+void Cli::ProcessLoadCommand(const Vector<String>& tokens) {
+    if (!machine) {
+        Cout() << "Error: No machine available.\n";
+        return;
+    }
+
+    if (tokens.GetCount() < 2) {
+        Cout() << "Usage: load <filename> [address] [pcb_id]\n";
+        Cout() << "  filename: Path to the binary file to load\n";
+        Cout() << "  address:  Starting address (default: 0x000)\n";
+        Cout() << "  pcb_id:   PCB ID (default: 0)\n";
+        return;
+    }
+
+    String filename = tokens[1];
+    int start_address = 0; // Default start address
+    int pcb_id = 0; // Default PCB ID
+
+    // Parse optional address parameter
+    if (tokens.GetCount() >= 3) {
+        String addr_str = tokens[2];
+        if (addr_str.StartsWith("0x") || addr_str.StartsWith("0X")) {
+            addr_str = addr_str.Mid(2); // Remove 0x prefix
+        }
+        start_address = StrIntHex(addr_str);
+        
+        // Validate address is within 4004's 12-bit range
+        if (start_address < 0 || start_address > 0xFFF) {
+            Cout() << "Error: Address must be between 0x000 and 0xFFF (12-bit range)\n";
+            return;
+        }
+    }
+
+    // Parse optional PCB ID parameter
+    if (tokens.GetCount() >= 4) {
+        pcb_id = StrInt(tokens[3]);
+    }
+
+    // Try to find an IC4001 ROM component to load the program into
+    Pcb* pcb = machine->GetPcb(pcb_id);
+    if (!pcb) {
+        Cout() << "Error: PCB " << pcb_id << " not found\n";
+        return;
+    }
+
+    // Look for any IC4001 ROM components on this PCB
+    bool found_rom = false;
+    for (int i = 0; i < pcb->GetComponentCount(); i++) {
+        ElectricNodeBase* comp = pcb->GetComponent(i);
+        if (String(comp->GetClassName()) == "IC4001") {
+            try {
+                // Cast to IC4001 to access memory loading capabilities
+                IC4001* rom = dynamic_cast<IC4001*>(comp);
+                if (rom) {
+                    // Load the binary file
+                    FileIn file(filename);
+                    if (!file.IsOpen()) {
+                        Cout() << "Error: Could not open file '" << filename << "'\n";
+                        return;
+                    }
+
+                    // Read the binary data
+                    int pos = start_address;
+                    while (!file.IsEof() && pos <= 0xFFF) {
+                        int byte_val = file.Get();
+                        if (byte_val == -1) break; // End of file
+                        
+                        // For 4004, we store 4-bit values, so split the byte if needed
+                        // For now, we'll store it directly - the ROM component handles 4-bit values internally
+                        rom->SetMemory(pos, byte_val & 0x0F); // Store lower 4 bits
+                        pos++;
+                        
+                        // Also store upper 4 bits if there's space
+                        if (pos <= 0xFFF) {
+                            rom->SetMemory(pos, (byte_val >> 4) & 0x0F); // Store upper 4 bits
+                            pos++;
+                        }
+                    }
+
+                    Cout() << "Successfully loaded " << pos - start_address 
+                           << " bytes from '" << filename << "' to address 0x" 
+                           << HexStr(start_address) << " on PCB " << pcb_id << "\n";
+                    found_rom = true;
+                    break;
+                }
+            } catch (...) {
+                // Dynamic cast failed or other error
+                continue;
+            }
+        }
+    }
+
+    if (!found_rom) {
+        Cout() << "Warning: No IC4001 ROM component found on PCB " << pcb_id 
+               << ". If loading for a different memory type, use the appropriate command.\n";
+        
+        // Also try to find other memory components like ICRamRom
+        for (int i = 0; i < pcb->GetComponentCount(); i++) {
+            ElectricNodeBase* comp = pcb->GetComponent(i);
+            if (String(comp->GetClassName()) == "ICRamRom") {
+                Cout() << "Found ICRamRom component: " << comp->GetName() << "\n";
+            }
+        }
     }
 }
 

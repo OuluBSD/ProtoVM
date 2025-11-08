@@ -30,11 +30,20 @@ private:
 	void ProcessNetlistCommand(const Vector<String>& tokens);
 	void ProcessTraceCommand(const Vector<String>& tokens);
 	void ProcessTraceLogCommand(const Vector<String>& tokens);
+	void ProcessLoadCommand(const Vector<String>& tokens);
+	void ProcessStepCommand(const Vector<String>& tokens);
+	void ProcessContinueCommand(const Vector<String>& tokens);
+	void ProcessBreakCommand(const Vector<String>& tokens);
+	void ProcessMemoryDumpCommand(const Vector<String>& tokens);
 
 public:
 	// Public API for programmatic access to CLI functionality
 	void AddSignalTrace(const String& componentName, const String& pinName, int pcbId = 0);
 	void ShowSignalTraceLog();
+	
+private:
+	// Additional members
+	bool running_in_step_mode; // Track if in step mode
 };
 
 #endif

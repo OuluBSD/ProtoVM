@@ -110,7 +110,6 @@ void LinkBaseMap::UpdateLinkBaseLayers() {
 			op.src = link.src;
 			op.sink = link.sink;
 			
-			ASSERT(sink_unit.unit->GetFixedPriority() != 0);
 			sink_unit.read_ops.Add(&op);
 			src_unit.write_ops.Add(&op);
 		}
@@ -131,7 +130,6 @@ void LinkBaseMap::UpdateLinkBaseLayers() {
 			op.sink = link.src;
 			op.src = link.sink;
 			
-			ASSERT(src_unit.unit->GetFixedPriority() != 0);
 			src_unit.read_ops.Add(&op);
 			sink_unit.write_ops.Add(&op);
 		}

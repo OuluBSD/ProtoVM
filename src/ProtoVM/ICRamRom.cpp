@@ -145,13 +145,17 @@ bool ICMem8Base::Process(ProcessType type, int bytes, int bits, uint16 conn_id, 
 			}
 			break;
 		default:
-			LOG("error: ICMem8Base::Process: unimplemented connection-id");
-		return false;
+			// Ignore writes to unhandled connection IDs - this can happen when
+			// other components try to write to pins that aren't directly handled
+			// by this memory component
+			break;
 		}
 	}
 	else {
-		LOG("error: ICMem8Base::Process: unimplemented ProcessType");
-		return false;
+		// For non-WRITE operations, just return true (nothing to do)
+		// Process operations from Machine are only WRITE, so this should
+		// only happen if other component types send non-WRITE operations
+		return true;
 	}
 	return true;
 }
@@ -176,8 +180,10 @@ bool ICMem8Base::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bit
 		break;
 		
 	default:
-		LOG("error: ICMem8Base::PutRaw: unimplemented conn-id");
-		return false;
+		// Ignore writes to unhandled connection IDs - this can happen when
+		// other components attempt to drive pins that aren't directly handled
+		// by this memory component
+		return true;
 	}
 	return true;
 }

@@ -2,9 +2,46 @@
 
 ## TODO
 
+### Schematic Drawing Tools
+- [ ] The MDS-1104 is very early single-transistor calculator from 1950s
+
+### 4004 Circuit Connection Fixes
+- [ ] Fix missing connections in MiniMax4004 circuit setup for proper CPU operation
+- [ ] Connect CPU control signals (CM, BUSY, R/W, MR, MW, SBY, CM4, RES) properly
+- [ ] Connect ROM address, data, and control lines (A0-A11, O0-O3, CM4, JAM)
+- [ ] Connect RAM address, data, and control lines (A0-A3, I0-I3, O0-O3, CM4, WM)
+- [ ] Connect I/O shift register data and control lines (SR0, SO0, O0-O3, L0-L3, CM4)
+- [ ] Connect address decoder to proper address lines and chip select outputs
+- [ ] Connect clock generator to CPU and memory components
+- [ ] Connect power-on reset circuit to CPU and other components
+- [ ] Verify all pin connections are properly established in SetupMiniMax4004 function
+
+### Binary Loading and Execution
+- [ ] Implement proper binary loader for 4004 programs into ROM
+- [ ] Create helper functions for memory initialization and debugging
+- [ ] Add CLI commands for loading and managing 4004 binaries
+- [ ] Implement memory initialization functions to load programs at specific addresses
+- [ ] Create debugging functions to inspect CPU state during execution
+- [ ] Add support for different binary formats (raw, Intel HEX, etc.)
+- [ ] Implement error handling for binary loading operations
+
+### 4004 Program Execution
+- [ ] Fix circuit initialization to allow proper program execution
+- [ ] Configure clock signals for proper 4004 timing
+- [ ] Implement I/O port handling for character output
+- [ ] Test 4004_putchar.bin program execution
+- [ ] Verify that the 'A' character is properly output from the program
+- [ ] Create additional test programs to validate functionality
+- [ ] Document the execution process and troubleshooting steps
+
+## IN PROGRESS
+
+
+## DONE
+
 ### Basic Logic Components
 - [x] Implement NAND gate component
-- [x] Implement NOR gate component  
+- [x] Implement NOR gate component
 - [x] Implement XOR gate component
 - [x] Implement XNOR gate component
 - [x] Implement NOT gate component
@@ -64,7 +101,6 @@
 
 ### Schematic Drawing Tools
 - [x] Add tools for GUI app to draw schematics based on PCB images in "circuitboards/MDS-1101/"
-- [ ] The MDS-1101 is very early single-transistor calculator from 1950s
 
 ### Schematic Programming Language
 - [x] Design Pythonic schematic language with indentation-based blocks instead of C-like {}
@@ -131,11 +167,6 @@
 - [x] Test complex programs that use multiple 4004 components
 - [x] Validate interrupt and control signal handling
 
-## IN PROGRESS
-
-
-## DONE
-
 - [x] Implement multi-tick convergence algorithm in Machine::Tick()
 - [x] Add proper bus arbitration with tri-state buffer support
 - [x] Modify Bus classes to support tri-state logic
@@ -149,14 +180,14 @@
 - [x] Add topological ordering for component evaluation
 - [x] Add timing simulation for different clock domains
 - [x] Enhanced ProtoVM digital logic simulation with convergence algorithm
-- [x] Added proper tri-state bus support with driver arbitration  
+- [x] Added proper tri-state bus support with driver arbitration
 - [x] Enhanced component change detection to optimize processing
 - [x] Added feedback loop resolution within each tick
 - [x] Implemented oscillation detection to prevent infinite loops
 - [x] Improved state tracking for more accurate simulation
 - [x] Added command-line interface with help and version options
 - [x] Implemented circuit selection via command-line arguments
-- [x] Added support for multiple test circuits  
+- [x] Added support for multiple test circuits
 - [x] Added interactive CLI mode for circuit debugging
 - [x] Updated project documentation and task tracking
 - [x] Enhanced 4-bit counter implementation with clock generator

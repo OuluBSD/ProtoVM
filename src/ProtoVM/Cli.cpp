@@ -1,4 +1,7 @@
 #include "Cli.h"
+#include "IC4001.h"
+#include "IC4002.h"
+#include "ICRamRom.h"
 
 Cli::Cli() : machine(nullptr), running(false) {
 }
@@ -615,7 +618,6 @@ void Cli::AddSignalTrace(const String& componentName, const String& pinName, int
     }
 }
 
-bool Cli::running_in_step_mode = false;
 
 void Cli::ProcessStepCommand(const Vector<String>& tokens) {
     if (!machine) {
@@ -718,18 +720,18 @@ void Cli::ProcessMemoryDumpCommand(const Vector<String>& tokens) {
     if (tokens.GetCount() >= 2) {
         // Parse start address
         String addr_str = tokens[1];
-        if (addr_str.StartsWith("0x") || addr_str.StartsWith("0X")) {
-            addr_str = addr_str.Mid(2); // Remove 0x prefix
+        if (!addr_str.StartsWith("0x") && !addr_str.StartsWith("0X")) {
+            addr_str = "0x" + addr_str; // Add 0x prefix for hex parsing
         }
-        start_address = StrIntHex(addr_str);
+        start_address = StrInt(addr_str);
         
         if (tokens.GetCount() >= 3) {
             // Parse end address
             String end_str = tokens[2];
-            if (end_str.StartsWith("0x") || end_str.StartsWith("0X")) {
-                end_str = end_str.Mid(2); // Remove 0x prefix
+            if (!end_str.StartsWith("0x") && !end_str.StartsWith("0X")) {
+                end_str = "0x" + end_str; // Add 0x prefix for hex parsing
             }
-            end_address = StrIntHex(end_str);
+            end_address = StrInt(end_str);
             
             // Ensure end is greater than start
             if (end_address < start_address) {
@@ -766,12 +768,12 @@ void Cli::ProcessMemoryDumpCommand(const Vector<String>& tokens) {
     // We'll look for ICRamRom components on all PCBs
     bool found_memory = false;
     
-    for (int pcb_id = 0; pcb_id < machine->GetPcbCount(); pcb_id++) {
-        Pcb* pcb = machine->GetPcb(pcb_id);
+    for (int pcb_id = 0; pcb_id < machine->pcbs.GetCount(); pcb_id++) {
+        Pcb* pcb = &machine->pcbs[pcb_id];
         if (!pcb) continue;
 
-        for (int i = 0; i < pcb->GetComponentCount(); i++) {
-            ElectricNodeBase* comp = pcb->GetComponent(i);
+        for (int i = 0; i < pcb->GetNodeCount(); i++) {
+            ElectricNodeBase* comp = &pcb->GetNode(i);
             String comp_class = comp->GetClassName();
             
             // Check for memory components (ROM and RAM)
@@ -786,7 +788,7 @@ void Cli::ProcessMemoryDumpCommand(const Vector<String>& tokens) {
                     int row_start = addr & ~0xF;
                     
                     // Print address offset
-                    Cout() << "0x" << HexStr(row_start, 3) << ": ";
+                    Cout() << "0x" << Format("%03X", row_start) << ": ";
                     
                     // Print hex values for this row (16 bytes)
                     for (int col = 0; col < 16 && (row_start + col) <= end_address; col++) {
@@ -814,7 +816,7 @@ void Cli::ProcessMemoryDumpCommand(const Vector<String>& tokens) {
                                 if (memory) {
                                     try {
                                         if (current_addr < memory->GetSize()) {
-                                            mem_val = memory->GetMemory(current_addr) & 0xFF; // Get 8-bit value
+                                            mem_val = memory->ReadByte(current_addr) & 0xFF; // Get 8-bit value
                                         }
                                     } catch (...) {
                                         mem_val = 0x00; // Default value if not readable
@@ -822,7 +824,7 @@ void Cli::ProcessMemoryDumpCommand(const Vector<String>& tokens) {
                                 }
                             }
                             
-                            Cout() << HexStr(mem_val, 2) << " "; // Print in hex with 2 digits
+                            Cout() << Format("%02X", mem_val) << " "; // Print in hex with 2 digits
                         } else {
                             Cout() << ".. "; // Not in our range
                         }
@@ -858,7 +860,7 @@ void Cli::ProcessMemoryDumpCommand(const Vector<String>& tokens) {
                                 if (memory) {
                                     try {
                                         if (current_addr < memory->GetSize()) {
-                                            mem_val = memory->GetMemory(current_addr) & 0xFF;
+                                            mem_val = memory->ReadByte(current_addr) & 0xFF;
                                         }
                                     } catch (...) {
                                         mem_val = 0x00;
@@ -911,10 +913,10 @@ void Cli::ProcessLoadCommand(const Vector<String>& tokens) {
     // Parse optional address parameter
     if (tokens.GetCount() >= 3) {
         String addr_str = tokens[2];
-        if (addr_str.StartsWith("0x") || addr_str.StartsWith("0X")) {
-            addr_str = addr_str.Mid(2); // Remove 0x prefix
+        if (!addr_str.StartsWith("0x") && !addr_str.StartsWith("0X")) {
+            addr_str = "0x" + addr_str; // Add 0x prefix for hex parsing
         }
-        start_address = StrIntHex(addr_str);
+        start_address = StrInt(addr_str);
         
         // Validate address is within 4004's 12-bit range
         if (start_address < 0 || start_address > 0xFFF) {
@@ -929,7 +931,7 @@ void Cli::ProcessLoadCommand(const Vector<String>& tokens) {
     }
 
     // Try to find an IC4001 ROM component to load the program into
-    Pcb* pcb = machine->GetPcb(pcb_id);
+    Pcb* pcb = &machine->pcbs[pcb_id];
     if (!pcb) {
         Cout() << "Error: PCB " << pcb_id << " not found\n";
         return;
@@ -937,8 +939,8 @@ void Cli::ProcessLoadCommand(const Vector<String>& tokens) {
 
     // Look for any IC4001 ROM components on this PCB
     bool found_rom = false;
-    for (int i = 0; i < pcb->GetComponentCount(); i++) {
-        ElectricNodeBase* comp = pcb->GetComponent(i);
+    for (int i = 0; i < pcb->GetNodeCount(); i++) {
+        ElectricNodeBase* comp = &pcb->GetNode(i);
         if (String(comp->GetClassName()) == "IC4001") {
             try {
                 // Cast to IC4001 to access memory loading capabilities
@@ -987,8 +989,8 @@ void Cli::ProcessLoadCommand(const Vector<String>& tokens) {
                << ". If loading for a different memory type, use the appropriate command.\n";
         
         // Also try to find other memory components like ICRamRom
-        for (int i = 0; i < pcb->GetComponentCount(); i++) {
-            ElectricNodeBase* comp = pcb->GetComponent(i);
+        for (int i = 0; i < pcb->GetNodeCount(); i++) {
+            ElectricNodeBase* comp = &pcb->GetNode(i);
             if (String(comp->GetClassName()) == "ICRamRom") {
                 Cout() << "Found ICRamRom component: " << comp->GetName() << "\n";
             }

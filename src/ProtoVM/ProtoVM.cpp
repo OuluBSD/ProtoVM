@@ -314,10 +314,10 @@ CONSOLE_APP_MAIN {
 				// Optionally parse address too
 				if (i + 1 < args.GetCount() && !args[i + 1].StartsWith("-")) {
 					String addr_str = args[i + 1];
-					if (addr_str.StartsWith("0x") || addr_str.StartsWith("0X")) {
-						addr_str = addr_str.Mid(2); // Remove 0x prefix
+					if (!addr_str.StartsWith("0x") && !addr_str.StartsWith("0X")) {
+						addr_str = "0x" + addr_str; // Add 0x prefix for hex parsing
 					}
-					load_address = StrIntHex(addr_str);
+					load_address = StrInt(addr_str);
 					i++; // skip next argument
 				}
 			}
@@ -500,12 +500,12 @@ CONSOLE_APP_MAIN {
 		LOG("Attempting to load binary file: " << binary_file << " at address 0x" << HexStr(load_address));
 		
 		// Try to find an IC4001 (ROM) component to load the program into
-		for (int pcb_id = 0; pcb_id < mach.GetPcbCount(); pcb_id++) {
-			Pcb* pcb = mach.GetPcb(pcb_id);
+		for (int pcb_id = 0; pcb_id < mach.pcbs.GetCount(); pcb_id++) {
+			Pcb* pcb = &mach.pcbs[pcb_id];
 			if (!pcb) continue;
 			
-			for (int i = 0; i < pcb->GetComponentCount(); i++) {
-				ElectricNodeBase* comp = pcb->GetComponent(i);
+			for (int i = 0; i < pcb->GetNodeCount(); i++) {
+				ElectricNodeBase* comp = &pcb->GetNode(i);
 				if (String(comp->GetClassName()) == "IC4001") {
 					try {
 						// Cast to IC4001 to access memory loading capabilities

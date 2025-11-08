@@ -1,12 +1,15 @@
 #ifndef MDS1101SCHEMATICTOOL_H
 #define MDS1101SCHEMATICTOOL_H
 
-#include "Common.h"
-#include "Component.h"
 #include <vector>
 #include <string>
 #include <fstream>
 #include <iostream>
+
+// Forward declarations for U++ types used in this file
+namespace Upp {
+    class String;
+}
 
 // Full definitions of helper classes needed for the schematic tool
 class Image {

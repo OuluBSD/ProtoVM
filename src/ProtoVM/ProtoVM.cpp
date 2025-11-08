@@ -24,6 +24,7 @@ void Test4BitAdder(Machine& mach);
 void SetupUK101(Machine& mach);
 void SetupInterak(Machine& mach);
 void SetupMiniMax8085(Machine& mach);
+void SetupMiniMax4004(Machine& mach);
 void RunArithmeticUnitTests(Machine& mach);
 void Test60_StateMachine();
 void Test70_Basic8BitCPU();
@@ -35,6 +36,61 @@ void Test90_SignalTracing();
 
 
 void TestPslParserFunction();  // Forward declaration
+
+void SetupMiniMax4004(Machine& mach) {
+    Pcb& pcb = mach.AddPcb();
+    
+    // Create and configure the 4004 CPU
+    IC4004& cpu = pcb.Add<IC4004>("CPU4004");
+    
+    // Create memory components for the 4004 system
+    ICRamRom& rom = pcb.Add<ICRamRom>("ROM4001");  // 4001 ROM
+    rom.SetSize(256);      // Example size: 256 bytes
+    rom.SetReadOnly(true); // ROM is read-only
+    
+    ICRamRom& ram = pcb.Add<ICRamRom>("RAM4002");  // 4002 RAM
+    ram.SetSize(40);       // 40 bytes as in original 4002
+    ram.SetReadOnly(false); // RAM is read/write
+    
+    // Create buses for the 4004 system
+    Bus<4>& data_bus = pcb.Add<Bus<4>>("DATA_BUS");
+    Bus<12>& addr_bus = pcb.Add<Bus<12>>("ADDR_BUS");
+    
+    // Create a clock source for the system
+    Pin& clk = pcb.Add<Pin>("CLK").SetReference(1);  // Set to logic HIGH initially
+    Pin& reset = pcb.Add<Pin>("RESET").SetReference(0);  // Set to logic LOW (not in reset)
+    
+    try {
+        // Connect CPU data bus pins to data bus (CPU D0-D3 to Bus 0-3)
+        cpu["D0"] >> data_bus[0];
+        cpu["D1"] >> data_bus[1];
+        cpu["D2"] >> data_bus[2];
+        cpu["D3"] >> data_bus[3];
+        
+        // Connect CPU address bus pins to address bus
+        cpu["A0"] >> addr_bus[0];
+        cpu["A1"] >> addr_bus[1];
+        cpu["A2"] >> addr_bus[2];
+        cpu["A3"] >> addr_bus[3];
+        cpu["A4"] >> addr_bus[4];
+        cpu["A5"] >> addr_bus[5];
+        cpu["A6"] >> addr_bus[6];
+        cpu["A7"] >> addr_bus[7];
+        cpu["A8"] >> addr_bus[8];
+        cpu["A9"] >> addr_bus[9];
+        cpu["A10"] >> addr_bus[10];
+        cpu["A11"] >> addr_bus[11];
+        
+        // Connect clock and reset signals
+        clk >> cpu["CM4"];  // System clock to CPU clock input
+        reset >> cpu["RES"]; // Reset signal to CPU
+    
+        LOG("MiniMax4004 system configured with 4004 CPU, ROM, and RAM");
+    }
+    catch (Exc e) {
+        LOG("Connection error in SetupMiniMax4004: " << e);
+    }
+}
 
 #ifdef flagMAIN
 
@@ -129,7 +185,7 @@ CONSOLE_APP_MAIN {
 			int parsed_level = StrInt(level_str);
 			verbosity_level = parsed_level > 0 ? parsed_level : 1; // Default to 1 if conversion fails
 		}
-		else if (arg == "flipflop" || arg == "andgate" || arg == "counter" || arg == "memory" || arg == "6502" || arg == "basiclogic" || arg == "test4bit" || arg == "test4bitmemory" || arg == "muxdemux" || arg == "decenc" || arg == "testgates" || arg == "uk101" || arg == "interak" || arg == "minimax" || arg == "unittests" || arg == "statemachine" || arg == "basiccpu" || arg == "clkdivider" || arg == "clkgate" || arg == "pll" || arg == "signaltrace") {
+		else if (arg == "flipflop" || arg == "andgate" || arg == "counter" || arg == "memory" || arg == "6502" || arg == "basiclogic" || arg == "test4bit" || arg == "test4bitmemory" || arg == "muxdemux" || arg == "decenc" || arg == "testgates" || arg == "uk101" || arg == "interak" || arg == "minimax" || arg == "minimax4004" || arg == "unittests" || arg == "statemachine" || arg == "basiccpu" || arg == "clkdivider" || arg == "clkgate" || arg == "pll" || arg == "signaltrace") {
 			circuit_name = arg;
 		}
 	}
@@ -205,6 +261,10 @@ CONSOLE_APP_MAIN {
 		SetupMiniMax8085(mach);
 		LOG("Loaded MiniMax8085 circuit");
 	}
+	else if (circuit_name == "minimax4004") {
+		SetupMiniMax4004(mach);
+		LOG("Loaded MiniMax4004 circuit");
+	}
 	else if (circuit_name == "statemachine") {
 		Test60_StateMachine();
 		LOG("Loaded State Machine Test circuit");
@@ -258,6 +318,7 @@ CONSOLE_APP_MAIN {
 			Cout() << "  interak     - Interak computer circuit\n";
 			Cout() << "  unittests   - Run unit tests for arithmetic components\n";
 			Cout() << "  minimax     - MiniMax 8085 computer circuit\n";
+			Cout() << "  minimax4004 - MiniMax 4004 computer circuit\n";
 			Cout() << "  statemachine - State machine test circuit\n";
 			Cout() << "  basiccpu     - Basic 8-bit CPU test circuit\n";
 			Cout() << "  clkdivider   - Clock divider test circuit\n";

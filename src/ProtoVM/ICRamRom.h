@@ -1,7 +1,7 @@
 #ifndef _ProtoVM_ICRamRom_h_
 #define _ProtoVM_ICRamRom_h_
 
-
+#include <algorithm> // for std::min
 
 
 class ICMem8Base : public Chip {
@@ -14,6 +14,7 @@ class ICMem8Base : public Chip {
 	static constexpr int WR = 26;
 	
 	byte* data = 0;
+protected:
 	int size = 0;
 	
 	uint16 addr = 0;
@@ -79,6 +80,65 @@ public:
 	IC27128() {}
 };
 
+// Generic RAM/ROM component with configurable size and read-only property
+// Used in various computer systems like SimpleComputerSystem, UK101, etc.
+class ICRamRom : public ICMem8Base {
+private:
+    static constexpr int MAX_SIZE = 65536; // 64KB max
+    byte memory[MAX_SIZE];  // configurable memory array
+    bool read_only;         // flag to indicate if memory is read-only
+
+public:
+    ICRamRom(int size = 256, bool readonly = false) : 
+        ICMem8Base(memory, std::min(size, MAX_SIZE), !readonly),
+        read_only(readonly) {
+        // Initialize memory to 0
+        memset(memory, 0, sizeof(memory));
+    }
+
+    bool SetReadOnly(bool readonly) {
+        read_only = readonly;
+        // Update the writable flag in the base class
+        // writable = !readonly (in the ICMem8Base)
+        return true;
+    }
+
+    bool IsReadOnly() const { return read_only; }
+
+    bool SetSize(int new_size) {
+        // In a real implementation, we might need to handle size changes differently
+        // For now, we'll just ensure it doesn't exceed our max size
+        return (new_size <= MAX_SIZE);
+    }
+
+    int GetSize() const { 
+        // Access size through the protected member in base class
+        return size; 
+    }
+
+    // Helper to write to memory (respecting read-only flag)
+    bool WriteByte(int addr, byte value) {
+        if (read_only) {
+            LOG("ICRamRom::WriteByte: Attempt to write to read-only memory at 0x" << HexStr(addr));
+            return false;
+        }
+        if (addr >= 0 && addr < size) {
+            memory[addr] = value;
+            return true;
+        }
+        LOG("ICRamRom::WriteByte: Address out of bounds: 0x" << HexStr(addr));
+        return false;
+    }
+
+    // Helper to read from memory
+    byte ReadByte(int addr) const {
+        if (addr >= 0 && addr < size) {
+            return memory[addr];
+        }
+        LOG("ICRamRom::ReadByte: Address out of bounds: 0x" << HexStr(addr));
+        return 0xFF; // Return undefined value
+    }
+};
 
 
 

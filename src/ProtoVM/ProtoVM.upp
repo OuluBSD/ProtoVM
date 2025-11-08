@@ -34,6 +34,8 @@ file
 	Mechanical.cpp,
 	ICs.h,
 	ICs.cpp,
+	IC4004.h,
+	IC4004.cpp,
 	IC6502.cpp,
 	ICRamRom.h,
 	ICRamRom.cpp,

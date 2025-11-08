@@ -1,0 +1,18 @@
+# Minimax Computer System with Intel 4004 CPU
+# This is a placeholder for the 4004-based Minimax computer schematic
+
+computer Minimax4004:
+    cpu: IC4004("CPU4004")
+    rom: ICRamRom("ROM4001", size=256, read_only=True)  # 4001 ROM with 256 bytes
+    ram: ICRamRom("RAM4002", size=40, read_only=False)   # 4002 RAM with 40 bytes
+    io: IC4003("IO4003")  # 4003 shift register for I/O
+
+    # Bus connections
+    cpu.data_bus.connect(rom.data_bus, ram.data_bus, io.data_bus)
+    cpu.addr_bus.connect(rom.addr_bus, ram.addr_bus, io.addr_bus)
+    cpu.control_bus.connect(rom.control, ram.control, io.control)
+
+# Memory mapping
+# 4001 ROM: 0x000-0x0FF
+# 4002 RAM: 0x100-0x127
+# 4003 I/O: 0x128-0x12F

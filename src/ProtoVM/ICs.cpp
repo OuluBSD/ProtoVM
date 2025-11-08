@@ -43,7 +43,7 @@ Z80::Z80() {
 	AddBidirectional("BD5");
 	AddBidirectional("BD6");
 	AddBidirectional("BD7");
-	
+
 }
 
 IC6850::IC6850() {
@@ -67,7 +67,7 @@ IC6850::IC6850() {
 	AddBidirectional("D7");
 	AddSource("CS1");
 	AddSource("Tx");
-	
+
 }
 
 
@@ -87,7 +87,7 @@ IC74LS138::IC74LS138() {
 	AddSource("~5");
 	AddSource("~6");
 	AddSource("~7");
-	
+
 }
 
 
@@ -103,7 +103,7 @@ IC74LS163::IC74LS163() {
 	AddSource("Qd");
 	AddSource("Qc");
 	AddSink("~Clr");
-	
+
 }
 
 
@@ -120,35 +120,30 @@ ICMAX232::ICMAX232() {
 	AddSource("-C2");
 	AddSource("R20");
 	AddSource("R1I");
-	
+
 }
 
 
 IC74LS245::IC74LS245() {
-	
+
 }
 
 IC8085::IC8085() {
-	
+
 }
 
 IC74F573::IC74F573() {
-	
+
 }
 
 ICDS1210::ICDS1210() {
-	
+
 }
 
 IC8251A::IC8251A() {
-	
+
 }
 
 ICGAL16V8::ICGAL16V8() {
-	
+
 }
-
-
-
-
-

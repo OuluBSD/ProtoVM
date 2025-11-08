@@ -94,7 +94,7 @@ CONSOLE_APP_MAIN {
 	}
 	
 	// Find circuit selection and options
-	String circuit_name = "6502"; // default
+	String circuit_name = ""; // no default - will show help if no circuit provided
 	int max_ticks = 100;
 	bool interactive_cli = false;
 	bool run_psl_test = false;
@@ -230,9 +230,51 @@ CONSOLE_APP_MAIN {
 		LOG("Loaded Signal Tracing Test circuit");
 	}
 	else {
-		LOG("Unknown circuit: " << circuit_name << ", defaulting to 6502");
-		SetupTest4_6502(mach);
-		circuit_name = "6502";
+		if (circuit_name.IsEmpty()) {
+			// Show help when no circuit is specified
+			Cout() << "ProtoVM Digital Logic Simulator\n";
+			Cout() << "Usage: " << GetExeTitle() << " [options] [circuit_name]\n";
+			Cout() << "Options:\n";
+			Cout() << "  -h, --help     Show this help message\n";
+			Cout() << "  -V, --version  Show version information\n";
+			Cout() << "  -v              Show verbose output during simulation\n";
+			Cout() << "  -vv             Show more verbose output (very verbose)\n";
+			Cout() << "  --verbosity=N   Set verbosity level directly (0=minimal, 1=default, 2=verbose, 3=very verbose)\n";
+			Cout() << "  -t, --ticks N  Run simulation for N ticks (default: 100)\n";
+			Cout() << "  --cli          Start in interactive CLI mode\n";
+			Cout() << "Circuits:\n";
+			Cout() << "  flipflop    - Simple flip-flop test circuit\n";
+			Cout() << "  andgate     - Simple AND gate test circuit\n";
+			Cout() << "  counter     - 4-bit counter test circuit\n";
+			Cout() << "  memory      - Memory test circuit\n";
+			Cout() << "  6502        - 6502 CPU test circuit\n";
+			Cout() << "  basiclogic  - Basic logic gates test circuit\n";
+			Cout() << "  test4bit    - 4-bit register test circuit\n";
+			Cout() << "  test4bitmemory - 4-bit memory test circuit\n";
+			Cout() << "  muxdemux    - Multiplexer/demultiplexer test circuit\n";
+			Cout() << "  decenc      - Decoder/encoder test circuit\n";
+			Cout() << "  testgates   - Comprehensive logic gates test\n";
+			Cout() << "  uk101       - UK101 computer circuit\n";
+			Cout() << "  interak     - Interak computer circuit\n";
+			Cout() << "  unittests   - Run unit tests for arithmetic components\n";
+			Cout() << "  minimax     - MiniMax 8085 computer circuit\n";
+			Cout() << "  statemachine - State machine test circuit\n";
+			Cout() << "  basiccpu     - Basic 8-bit CPU test circuit\n";
+			Cout() << "  clkdivider   - Clock divider test circuit\n";
+			Cout() << "  clkgate      - Clock gating test circuit\n";
+			Cout() << "  pll          - Phase-locked loop test circuit\n";
+			Cout() << "  signaltrace  - Signal tracing functionality test circuit\n";
+			Cout() << "\nExamples:\n";
+			Cout() << "  " << GetExeTitle() << " 6502 -t 1000    # Run 6502 circuit for 1000 ticks\n";
+			Cout() << "  " << GetExeTitle() << " --cli           # Start interactive CLI mode\n";
+			Cout() << "  " << GetExeTitle() << " testgates       # Run comprehensive logic gate test\n";
+			Cout() << "  " << GetExeTitle() << " signaltrace     # Run signal tracing test\n";
+			return;
+		} else {
+			LOG("Unknown circuit: " << circuit_name << ", defaulting to 6502");
+			SetupTest4_6502(mach);
+			circuit_name = "6502";
+		}
 	}
 	
 	// If CLI mode is requested, start interactive mode, otherwise run simulation

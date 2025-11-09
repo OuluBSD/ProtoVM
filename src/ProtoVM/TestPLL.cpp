@@ -1,6 +1,9 @@
 #include "ProtoVM.h"
 #include "PLL.h"
 
+#include <Core/Core.h>
+using namespace UPP;
+
 // Test for the PLL component
 void TestPLL() {
     LOG("Starting PLL Test...");

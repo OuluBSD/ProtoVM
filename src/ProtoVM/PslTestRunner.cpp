@@ -1,6 +1,9 @@
 #include "PslTestRunner.h"
 #include <fstream>
 
+#include <Core/Core.h>
+using namespace UPP;
+
 bool PslTestRunner::RunTest(TestNode* test_node) {
     if (!test_node) {
         LOG("Error: null test node");

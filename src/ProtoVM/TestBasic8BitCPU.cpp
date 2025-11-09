@@ -1,6 +1,9 @@
 #include "ProtoVM.h"
 #include "Basic8BitCPU.h"
 
+#include <Core/Core.h>
+using namespace UPP;
+
 // Test for the Basic8BitCPU component
 void TestBasic8BitCPU() {
     LOG("Starting Basic8BitCPU Test...");

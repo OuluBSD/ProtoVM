@@ -1,6 +1,9 @@
 #include "ProtoVM.h"
 #include "ClockGate.h"
 
+#include <Core/Core.h>
+using namespace UPP;
+
 // Test for the ClockGate component
 void TestClockGate() {
     LOG("Starting ClockGate Test...");

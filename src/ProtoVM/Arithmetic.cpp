@@ -1,6 +1,9 @@
 #include "ProtoVM.h"
 #include "Arithmetic.h"
 
+#include <Core/Core.h>
+using namespace UPP;
+
 FullAdder::FullAdder() {
     AddSink("A");       // First input bit
     AddSink("B");       // Second input bit

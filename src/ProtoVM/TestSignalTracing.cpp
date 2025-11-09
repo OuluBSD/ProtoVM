@@ -2,6 +2,9 @@
 #include "Machine.h"
 #include "Cli.h"
 
+#include <Core/Core.h>
+using namespace UPP;
+
 // Test for signal tracing functionality
 void TestSignalTracing() {
     LOG("Starting Signal Tracing Test...");

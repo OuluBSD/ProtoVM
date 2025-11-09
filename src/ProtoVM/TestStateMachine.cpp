@@ -1,6 +1,9 @@
 #include "ProtoVM.h"
 #include "StateMachine.h"
 
+#include <Core/Core.h>
+using namespace UPP;
+
 // Entry point for the test that works with Machine
 void Test60_StateMachine() {
     LOG("Starting FSM Test...");

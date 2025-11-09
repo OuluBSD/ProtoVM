@@ -1,7 +1,11 @@
 #include "Helper4004.h"
 #include "IC4001.h"
 #include "IC4002.h"
-#include "File.h"
+#include <stdio.h>
+#include <fstream>
+
+#include <Core/Core.h>
+using namespace UPP;
 
 // Load a program into 4004 ROM from a binary file (supporting different formats)
 bool LoadProgramTo4004ROM(Machine& mach, const String& filename, int start_addr) {
@@ -224,19 +228,15 @@ void Debug4004CPUState(Machine& mach) {
                     LOG("  Instruction Cycle: " << cpu->GetInstructionCycle());
 
                     // Show register values
-                    LOG("  Registers:");
+                    String reg_line = "  Registers: ";
                     for (int reg = 0; reg < 16; reg++) {
-                        if (reg % 4 == 0) {
-                            LOG("    ", false);  // Continue on same line
+                        if (reg % 4 == 0 && reg != 0) {
+                            LOG(reg_line);  // Print the line so far
+                            reg_line = "    ";  // Start new line with indentation
                         }
-                        LOG("R" << reg << "=0x" << HexStr(cpu->GetRegister(reg)) << " ", false);
-                        if (reg % 4 == 3) {
-                            LOG("");  // New line after every 4 registers
-                        }
+                        reg_line += "R" + AsString(reg) + "=0x" + HexStr(cpu->GetRegister(reg)) + " ";
                     }
-                    if (15 % 4 != 3) {
-                        LOG("");  // New line if last row wasn't full
-                    }
+                    LOG(reg_line);  // Print the final line
                 } else {
                     LOG("Found 4004 CPU: " << comp->GetName() << " (could not cast to IC4004*)");
                 }

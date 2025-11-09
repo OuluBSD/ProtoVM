@@ -1,6 +1,9 @@
 #include "ProtoVM.h"
 #include "ALU.h"
 
+#include <Core/Core.h>
+using namespace UPP;
+
 ALU::ALU(int width) {
     // Ensure width is valid (between 1 and 8 bits for this implementation)
     ASSERT(width > 0 && width <= 8);

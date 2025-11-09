@@ -1,6 +1,9 @@
 #include "ProtoVM.h"
 #include "ALU.h"
 
+#include <Core/Core.h>
+using namespace UPP;
+
 // Test for the ALU component
 void TestALU() {
     Pcb pcb;

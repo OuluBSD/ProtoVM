@@ -61,6 +61,8 @@ file
 	Common.cpp,
 	Cli.h,
 	Cli.cpp,
+	Helper4004.h,
+	Helper4004.cpp,
 	Arithmetic.h,
 	Arithmetic.cpp,
 	ArithmeticTests.cpp,

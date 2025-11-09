@@ -5,7 +5,7 @@
 #include <cmath>
 
 // Define a simple logging macro to avoid dependencies on ProtoVM's Common.h
-#define LOG(msg) std::cout << "[MDS1101] " << msg << std::endl
+#define MDS1101_LOG(msg) std::cout << "[MDS1101] " << msg << std::endl
 
 // Dummy implementations to allow compilation
 // In a real implementation, these would be replaced with actual image processing algorithms
@@ -21,10 +21,10 @@ MDS1101SchematicTool::~MDS1101SchematicTool() {
 
 bool MDS1101SchematicTool::LoadPCBImage(const std::string& image_path) {
     // In a real implementation, this would load and process the actual image
-    LOG("Loading PCB image: " << image_path);
+    MDS1101_LOG("Loading PCB image: " << image_path);
     
     if (!pcb_image.Load(image_path)) {
-        LOG("Failed to load image: " << image_path);
+        MDS1101_LOG("Failed to load image: " << image_path);
         return false;
     }
     
@@ -32,7 +32,7 @@ bool MDS1101SchematicTool::LoadPCBImage(const std::string& image_path) {
 }
 
 bool MDS1101SchematicTool::AnalyzeImage() {
-    LOG("Analyzing PCB image to detect components and connections");
+    MDS1101_LOG("Analyzing PCB image to detect components and connections");
     
     // In a real implementation:
     // 1. Process the loaded image to identify component locations
@@ -44,7 +44,7 @@ bool MDS1101SchematicTool::AnalyzeImage() {
 }
 
 Schematic MDS1101SchematicTool::GenerateSchematic() {
-    LOG("Generating schematic from detected components and connections");
+    MDS1101_LOG("Generating schematic from detected components and connections");
     
     // Create schematic from detected elements
     schematic.components = detected_comps;
@@ -54,13 +54,13 @@ Schematic MDS1101SchematicTool::GenerateSchematic() {
 }
 
 bool MDS1101SchematicTool::ExportToProtoVM(const std::string& filename) {
-    LOG("Exporting schematic to ProtoVM format: " << filename);
+    MDS1101_LOG("Exporting schematic to ProtoVM format: " << filename);
     
     // In a real implementation, this would convert the schematic
     // to ProtoVM's internal format or PSL (ProtoVM Schematic Language)
     std::ofstream file(filename);
     if (!file.is_open()) {
-        LOG("Failed to open file for export: " << filename);
+        MDS1101_LOG("Failed to open file for export: " << filename);
         return false;
     }
     
@@ -90,20 +90,20 @@ bool MDS1101SchematicTool::ExportToProtoVM(const std::string& filename) {
     }
     
     file.close();
-    LOG("Successfully exported schematic to: " << filename);
+    MDS1101_LOG("Successfully exported schematic to: " << filename);
     
     return true;
 }
 
 void MDS1101SchematicTool::RenderSchematic() {
-    LOG("Rendering schematic for visualization");
+    MDS1101_LOG("Rendering schematic for visualization");
     
     // For now, just print the schematic to console
     schematic.Print();
 }
 
 bool MDS1101SchematicTool::IdentifyComponents() {
-    LOG("Identifying components in PCB image");
+    MDS1101_LOG("Identifying components in PCB image");
     
     // In a real implementation, this would use image processing
     // to identify components like transistors, resistors, etc.
@@ -118,7 +118,7 @@ bool MDS1101SchematicTool::IdentifyComponents() {
 }
 
 bool MDS1101SchematicTool::TraceConnections() {
-    LOG("Tracing connections between components");
+    MDS1101_LOG("Tracing connections between components");
     
     // In a real implementation, this would trace the copper traces
     // in the PCB image to identify connections between components
@@ -133,7 +133,7 @@ bool MDS1101SchematicTool::TraceConnections() {
 }
 
 bool MDS1101SchematicTool::NormalizeImage() {
-    LOG("Normalizing PCB image for better analysis");
+    MDS1101_LOG("Normalizing PCB image for better analysis");
     
     // In a real implementation, this would adjust image contrast,
     // remove noise, and enhance the image for component detection
@@ -142,14 +142,14 @@ bool MDS1101SchematicTool::NormalizeImage() {
 }
 
 void MDS1101SchematicTool::CreateComponentSymbols() {
-    LOG("Creating component symbols for schematic");
+    MDS1101_LOG("Creating component symbols for schematic");
     
     // In a real implementation, this would convert detected components
     // to standard schematic symbols
 }
 
 void MDS1101SchematicTool::GenerateConnectionPaths() {
-    LOG("Generating connection paths for schematic");
+    MDS1101_LOG("Generating connection paths for schematic");
     
     // In a real implementation, this would convert PCB traces
     // to schematic connection lines

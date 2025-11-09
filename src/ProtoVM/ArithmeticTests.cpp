@@ -1,5 +1,8 @@
 #include "ProtoVM.h"
 
+#include <Core/Core.h>
+using namespace UPP;
+
 // Input driver component to set initial values for testing
 struct InputDriver : Chip {
     bool output_value = false;

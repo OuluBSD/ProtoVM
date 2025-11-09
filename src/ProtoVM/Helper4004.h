@@ -2,6 +2,9 @@
 #define _ProtoVM_Helper4004_h_
 
 #include "ProtoVM.h"
+#include "IC4001.h"  // Include the header with IC4001 definition
+#include "IC4002.h"  // Include the header with IC4002 definition
+#include "IC4004.h"  // Include the header with IC4004 definition
 
 // Helper functions for 4004 memory initialization and debugging
 bool LoadProgramTo4004ROM(Machine& mach, const String& filename, int start_addr);

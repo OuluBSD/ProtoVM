@@ -4,6 +4,9 @@
 #include "ICRamRom.h"
 #include "Helper4004.h"
 
+#include <Core/Core.h>
+using namespace UPP;
+
 Cli::Cli() : machine(nullptr), running(false) {
 }
 
@@ -631,10 +634,10 @@ void Cli::AddSignalTrace(const String& componentName, const String& pinName, int
                 machine->AddSignalToTrace(comp, pinName);
                 LOG("Added signal trace: " << componentName << "." << pinName << " on PCB " << pcbId);
             } else {
-                LOG("Error: Pin  << pinName <<  not found on component  << componentName << ");
+                LOG("Error: Pin " << pinName << " not found on component " << componentName);
             }
         } else {
-            LOG("Error: Component  << componentName <<  not found on PCB " << pcbId);
+            LOG("Error: Component " << componentName << " not found on PCB " << pcbId);
         }
     } else {
         LOG("Error: No machine available or invalid PCB ID");

@@ -212,6 +212,7 @@ ElectricNodeBase::Connector& ElectricNodeBase::GetTrivialSource() {
 			return c;
 	Panic("internal error");
 	NEVER();
+	return conns[0]; // This line will never be reached due to Panic/NEVER, but silences compiler warning
 }
 
 ElectricNodeBase::Connector& ElectricNodeBase::GetTrivialSink() {
@@ -225,6 +226,7 @@ ElectricNodeBase::Connector& ElectricNodeBase::GetTrivialSink() {
 			return c;
 	Panic("internal error");
 	NEVER();
+	return conns[0]; // This line will never be reached due to Panic/NEVER, but silences compiler warning
 }
 
 /*ElectricNodeBase& ElectricNodeBase::GetRange(int off, int len) {

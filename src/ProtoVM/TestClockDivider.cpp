@@ -1,6 +1,9 @@
 #include "ProtoVM.h"
 #include "ClockDivider.h"
 
+#include <Core/Core.h>
+using namespace UPP;
+
 // Test for the ClockDivider component
 void TestClockDivider() {
     LOG("Starting ClockDivider Test...");

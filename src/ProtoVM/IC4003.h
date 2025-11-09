@@ -31,6 +31,10 @@ public:
 
     virtual const char* GetClassName() const { return "IC4003"; }
 
+    // I/O character output functionality
+    void SetCharacterOutputCallback(void (*callback)(char c));
+    void ProcessOutputData();  // Process data when latched for character output
+
 private:
     // 4-bit shift register
     byte shift_reg;     // 4-bit shift register: [bit3][bit2][bit1][bit0]
@@ -59,6 +63,9 @@ private:
     void ShiftRegister();
     void LatchOutput();
     void UpdateOutput();
+
+private:
+    void (*char_output_callback)(char c);  // Callback for character output
 };
 
 #endif

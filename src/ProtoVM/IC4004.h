@@ -41,6 +41,22 @@ public:
 
     virtual const char* GetClassName() const { return "IC4004"; }
 
+    // Debugging methods
+    byte GetAccumulator() const { return accumulator; }
+    uint16 GetProgramCounter() const { return program_counter; }
+    uint16 GetAddressRegister() const { return address_register; }
+    byte GetStackPointer() const { return stack_pointer; }
+    bool GetCarryFlag() const { return carry_flag; }
+    bool GetAuxCarryFlag() const { return aux_carry_flag; }
+    bool GetTestMode() const { return test_mode; }
+    bool GetIsExecuting() const { return is_executing; }
+    bool GetMemoryReadActive() const { return memory_read_active; }
+    bool GetMemoryWriteActive() const { return memory_write_active; }
+    int GetCurrentInstruction() const { return current_instruction; }
+    int GetInstructionCycle() const { return instruction_cycle; }
+    byte GetRegister(int index) const { return registers[index % 16]; }
+    const byte* GetRegisterPtr() const { return registers; }
+
 private:
     // 4004 has 16 registers of 4 bits each, plus accumulator
     byte registers[16];  // R0-R15: 4-bit registers

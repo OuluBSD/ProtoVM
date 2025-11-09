@@ -2,6 +2,7 @@
 #include "IC4001.h"
 #include "IC4002.h"
 #include "ICRamRom.h"
+#include "Helper4004.h"
 
 Cli::Cli() : machine(nullptr), running(false) {
 }
@@ -114,6 +115,18 @@ void Cli::ProcessCommand(const String& command) {
 	else if (cmd == "dump" || cmd == "d" || cmd == "memory") {
 		ProcessMemoryDumpCommand(tokens);
 	}
+	else if (cmd == "4004load" || cmd == "4load") {
+		Process4004LoadCommand(tokens);
+	}
+	else if (cmd == "4004poke" || cmd == "4poke") {
+		Process4004PokeCommand(tokens);
+	}
+	else if (cmd == "4004peek" || cmd == "4peek") {
+		Process4004PeekCommand(tokens);
+	}
+	else if (cmd == "4004debug" || cmd == "4debug") {
+		Process4004DebugCommand(tokens);
+	}
 	else {
 		Cout() << "Unknown command: " << cmd << ". Type 'help' for available commands.\n";
 	}
@@ -138,6 +151,11 @@ void Cli::ShowHelp() {
 	Cout() << "  break, b [subcmd] - Manage breakpoints (list, set, clear)\n";
 	Cout() << "  dump, d, memory [start] [end] - Display memory contents in hex dump format\n";
 	Cout() << "  quit, q, exit    - Quit CLI\n";
+	Cout() << "\nIntel 4004 Specific Commands:\n";
+	Cout() << "  4004load, 4load  - Load 4004 binary program file (4004load <file> [addr])\n";
+	Cout() << "  4004poke, 4poke  - Write to 4004 memory (4004poke <addr> <value>)\n";
+	Cout() << "  4004peek, 4peek  - Read from 4004 memory (4004peek <addr>)\n";
+	Cout() << "  4004debug, 4debug - Debug 4004 CPU and memory (4004debug [subcommand])\n";
 	Cout() << "\nComponent Inspection Commands:\n";
 	Cout() << "  inspect <component_name> [pcb_id] - Show detailed information about a specific component\n";
 	Cout() << "    Displays component class, name, change status, delay info, etc.\n";
@@ -159,6 +177,11 @@ void Cli::ShowHelp() {
 	Cout() << "  tracelog          - Show signal transitions\n";
 	Cout() << "  netlist 0         - Generate netlist for PCB 0\n";
 	Cout() << "  run 100           - Run simulation for 100 ticks\n";
+	Cout() << "  4004load program.bin 0x000  - Load 4004 program at address 0x000\n";
+	Cout() << "  4004poke 0x010 0x05         - Write value 0x05 to 4004 memory at 0x010\n";
+	Cout() << "  4004peek 0x010             - Read value from 4004 memory at 0x010\n";
+	Cout() << "  4004debug cpu              - Show 4004 CPU state\n";
+	Cout() << "  4004debug memory 0x000 16   - Show 16 bytes of 4004 memory starting at 0x000\n";
 }
 
 void Cli::ProcessWriteCommand(const Vector<String>& tokens) {
@@ -1021,5 +1044,166 @@ void Cli::ShowSignalTraceLog() {
         LOG("Total transitions logged: " << machine->GetSignalTransitionCount());
     } else {
         LOG("Error: No machine available.");
+    }
+}
+
+void Cli::Process4004LoadCommand(const Vector<String>& tokens) {
+    if (!machine) {
+        Cout() << "Error: No machine available.\n";
+        return;
+    }
+
+    if (tokens.GetCount() < 2) {
+        Cout() << "Usage: 4004load <filename> [address]\n";
+        Cout() << "  filename: Path to the binary file to load into 4004 ROM\n";
+        Cout() << "  address:  Starting address (default: 0x000)\n";
+        return;
+    }
+
+    String filename = tokens[1];
+    int start_address = 0; // Default start address
+
+    // Parse optional address parameter
+    if (tokens.GetCount() >= 3) {
+        String addr_str = tokens[2];
+        if (!addr_str.StartsWith("0x") && !addr_str.StartsWith("0X")) {
+            addr_str = "0x" + addr_str; // Add 0x prefix for hex parsing
+        }
+        start_address = StrInt(addr_str);
+        
+        // Validate address is within 4004's 12-bit range
+        if (start_address < 0 || start_address > 0xFFF) {
+            Cout() << "Error: Address must be between 0x000 and 0xFFF (12-bit range)\n";
+            return;
+        }
+    }
+
+    // Use the helper function I created (now supports multiple formats)
+    bool success = LoadProgramTo4004ROM(*machine, filename, start_address);
+    if (success) {
+        String extension = GetFileExt(filename);
+        Cout() << "Successfully loaded " << extension << " program file into 4004 ROM from '" << filename 
+               << "' at address 0x" << HexStr(start_address) << "\n";
+    } else {
+        Cout() << "Failed to load program from '" << filename << "'\n";
+    }
+}
+
+void Cli::Process4004PokeCommand(const Vector<String>& tokens) {
+    if (!machine) {
+        Cout() << "Error: No machine available.\n";
+        return;
+    }
+
+    if (tokens.GetCount() < 3) {
+        Cout() << "Usage: 4004poke <address> <value>\n";
+        Cout() << "  address: Memory address to write to (0x000-0xFFF)\n";
+        Cout() << "  value:   4-bit value to write (0x0-0xF)\n";
+        return;
+    }
+
+    String addr_str = tokens[1];
+    String val_str = tokens[2];
+
+    if (!addr_str.StartsWith("0x") && !addr_str.StartsWith("0X")) {
+        addr_str = "0x" + addr_str; // Add 0x prefix for hex parsing
+    }
+    if (!val_str.StartsWith("0x") && !val_str.StartsWith("0X")) {
+        val_str = "0x" + val_str; // Add 0x prefix for hex parsing
+    }
+
+    int addr = StrInt(addr_str);
+    byte value = (byte)StrInt(val_str);
+
+    if (addr < 0 || addr > 0xFFF) {
+        Cout() << "Error: Address must be between 0x000 and 0xFFF (12-bit range)\n";
+        return;
+    }
+
+    if (value > 0x0F) {
+        Cout() << "Error: Value must be between 0x0 and 0xF (4-bit value)\n";
+        return;
+    }
+
+    // Use the helper function I created
+    Poke4004Memory(*machine, addr, value);
+    Cout() << "Poked memory at address 0x" << HexStr(addr) << " with value 0x" << HexStr(value) << "\n";
+}
+
+void Cli::Process4004PeekCommand(const Vector<String>& tokens) {
+    if (!machine) {
+        Cout() << "Error: No machine available.\n";
+        return;
+    }
+
+    if (tokens.GetCount() < 2) {
+        Cout() << "Usage: 4004peek <address>\n";
+        Cout() << "  address: Memory address to read from (0x000-0xFFF)\n";
+        return;
+    }
+
+    String addr_str = tokens[1];
+
+    if (!addr_str.StartsWith("0x") && !addr_str.StartsWith("0X")) {
+        addr_str = "0x" + addr_str; // Add 0x prefix for hex parsing
+    }
+
+    int addr = StrInt(addr_str);
+
+    if (addr < 0 || addr > 0xFFF) {
+        Cout() << "Error: Address must be between 0x000 and 0xFFF (12-bit range)\n";
+        return;
+    }
+
+    // Use the helper function I created
+    byte value = Peek4004Memory(*machine, addr);
+    Cout() << "Peeked memory at address 0x" << HexStr(addr) << ", got value 0x" << HexStr(value) << "\n";
+}
+
+void Cli::Process4004DebugCommand(const Vector<String>& tokens) {
+    if (!machine) {
+        Cout() << "Error: No machine available.\n";
+        return;
+    }
+
+    String subcommand = "";
+    if (tokens.GetCount() > 1) {
+        subcommand = ToLower(tokens[1]);
+    }
+
+    if (subcommand == "cpu" || subcommand == "state") {
+        // Debug CPU state
+        Debug4004CPUState(*machine);
+    } else if (subcommand == "memory" || subcommand == "mem") {
+        // Dump memory
+        int start_addr = 0;
+        int count = 64; // Default to first 64 bytes
+        
+        if (tokens.GetCount() > 2) {
+            String addr_str = tokens[2];
+            if (!addr_str.StartsWith("0x") && !addr_str.StartsWith("0X")) {
+                addr_str = "0x" + addr_str;
+            }
+            start_addr = StrInt(addr_str);
+        }
+        
+        if (tokens.GetCount() > 3) {
+            count = StrInt(tokens[3]);
+        }
+        
+        Dump4004Memory(*machine, start_addr, count);
+    } else if (subcommand == "" || subcommand == "all") {
+        // Show all debug info
+        Cout() << "=== 4004 Debug Info ===\n";
+        Debug4004CPUState(*machine);
+        Cout() << "\n";
+        Dump4004Memory(*machine, 0, 64);  // Show first 64 bytes of memory
+        Cout() << "=== End 4004 Debug Info ===\n";
+    } else {
+        Cout() << "Usage: 4004debug [subcommand]\n";
+        Cout() << "  Subcommands:\n";
+        Cout() << "    cpu|state - Show CPU state\n";
+        Cout() << "    memory|mem [start_addr] [count] - Show memory dump\n";
+        Cout() << "    all       - Show all debug info (default)\n";
     }
 }

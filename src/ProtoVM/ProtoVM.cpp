@@ -43,9 +43,21 @@ void Test90_SignalTracing();
 void TestMDS1101SchematicTool();
 void Run4004UnitTests();
 
+// Character output function
+void OutputCharacter(char c);
 
+
+
+// Helper functions for 4004 memory initialization and debugging
+bool LoadProgramTo4004ROM(Machine& mach, const String& filename, int start_addr = 0);
+void Debug4004CPUState(Machine& mach);
+void Poke4004Memory(Machine& mach, int addr, byte value);
+byte Peek4004Memory(Machine& mach, int addr);
+void Dump4004Memory(Machine& mach, int start_addr, int count);
 
 void TestPslParserFunction();  // Forward declaration
+
+#include "Helper4004.h"
 
 void SetupMiniMax4004(Machine& mach) {
     Pcb& pcb = mach.AddPcb();
@@ -62,8 +74,8 @@ void SetupMiniMax4004(Machine& mach) {
 
     // Create address decoder for memory mapping
     AddressDecoder4004& addr_decoder = pcb.Add<AddressDecoder4004>("ADDR_DEC");  
-    addr_decoder.SetRAMRegion(0x000, 0x00F);  // Map first 16 addresses to RAM (4002 has 40 bits)
-    addr_decoder.SetROMRegion(0x010, 0xFFF);  // Map remaining addresses to ROM
+    addr_decoder.SetRAMRegion(0x000, 0x0FF);  // Map first 256 addresses to RAM (4002 banks 0-3)
+    addr_decoder.SetROMRegion(0x100, 0xFFF);  // Map remaining addresses to ROM
 
     // Create clock generator for proper 4004 timing
     ClockGenerator4004& clock_gen = pcb.Add<ClockGenerator4004>("CLK_GEN");
@@ -136,14 +148,13 @@ void SetupMiniMax4004(Machine& mach) {
         rom["A10"] >> addr_bus[10];
         rom["A11"] >> addr_bus[11];
 
-        // Connect RAM to data bus (bidirectional, simplified connection)
-        // In 4002, input and output are separate, so we'll connect appropriately
-        cpu["D0"] >> ram["I0"];  // CPU data out to RAM input
-        cpu["D1"] >> ram["I1"];
-        cpu["D2"] >> ram["I2"];
-        cpu["D3"] >> ram["I3"];
+        // Connect RAM to data bus (bidirectional with proper tri-state)
+        ram["I0"] >> data_bus[0];  // RAM input connects to data bus when writing
+        ram["I1"] >> data_bus[1];
+        ram["I2"] >> data_bus[2];
+        ram["I3"] >> data_bus[3];
         
-        // RAM output connects to data bus when reading
+        // RAM output connects to data bus when reading (tristate when not enabled)
         ram["O0"] >> data_bus[0];
         ram["O1"] >> data_bus[1];
         ram["O2"] >> data_bus[2];
@@ -155,35 +166,86 @@ void SetupMiniMax4004(Machine& mach) {
         addr_bus[2] >> ram["A2"];
         addr_bus[3] >> ram["A3"];
 
+        // Connect RAM bank select - map higher address bits to banks
+        addr_bus[4] >> ram["C0"];
+        addr_bus[5] >> ram["C1"];
+        addr_bus[6] >> ram["C2"];
+        addr_bus[7] >> ram["C3"];
+
         // Connect clock generator to CPU and memory
         clock_gen["CM4"] >> cpu["CM4"];     // Phase 1 clock to CPU
-        clock_gen["CM"] >> cpu["CM"];       // Phase 2 clock to CPU's CM pin
-        clock_gen["CM"] >> rom["CM4"];      // Memory clock to ROM
-        clock_gen["CM"] >> ram["CM4"];      // Memory clock to RAM
+        clock_gen["CM"] >> cpu["CM"];       // Phase 2 clock (also connects to memory in real 4004)
+        clock_gen["CM4"] >> rom["CM4"];     // Memory clock to ROM 
+        clock_gen["CM4"] >> ram["CM4"];     // Memory clock to RAM
 
         // Connect power-on reset circuit to CPU and other components
         por_circuit["RESET_OUT"] >> cpu["RES"];        // Reset to CPU
+        por_circuit["RESET_OUT"] >> rom["JAM"];        // Reset to ROM enable (active low, so this disables ROM initially)
+        por_circuit["RESET_OUT"] >> ram["JAM"];        // Reset to RAM enable (active low, so this disables RAM initially)
         por_circuit["RESET_OUT"] >> clock_gen["CLK_EN"]; // Reset/enable to clock generator
 
-        // Connect memory control signals
-        cpu["MR"] >> rom["JAM"];   // Memory Read to ROM chip enable (active low)
+        // Connect CPU control signals (BUSY is output, SBY is input - but 4004 doesn't have SBY as input)
+        // CPU BUSY output could be connected to an indicator or left unconnected for now
+        // cpu["BUSY"] >> some_output; // For now, let's not connect BUSY to anything specific
+
+        // Connect memory control signals - correct connections
+        cpu["MR"] >> ram["JAM"];   // Memory Read signal to RAM enable (active low in real 4004)
+        cpu["MR"] >> rom["JAM"];   // Memory Read signal to ROM enable (active low)  
         cpu["MW"] >> ram["WM"];    // Memory Write to RAM write enable
+        cpu["R/W"] >> ram["JAM"];  // Read/Write control affects output enable (simplified connection)
 
         // Connect I/O shift register for expanded I/O
         cpu["D0"] >> io_shift_reg["SR0"];  // CPU output to shift register input
-        io_shift_reg["SO0"] >> cpu["D0"];  // Shift register output to CPU input (feedback)
-        
+        io_shift_reg["SO0"] >> cpu["D0"];  // Shift register output to CPU input
+
         // Connect shift register clock to CPU
         cpu["CM"] >> io_shift_reg["CM4"];  // CPU clock output to shift register
-        
-        // Connect CPU I/O control to shift register latch
-        cpu["CM4"] >> io_shift_reg["L0"];  // Use clock as latch for simplicity
+
+        // Connect CPU I/O control to shift register latches
+        cpu["CM4"] >> io_shift_reg["L0"];  // Latch 0
+        cpu["CM4"] >> io_shift_reg["L1"];  // Latch 1
+        cpu["CM4"] >> io_shift_reg["L2"];  // Latch 2  
+        cpu["CM4"] >> io_shift_reg["L3"];  // Latch 3
+
+        // Add any missing connections here
+        cpu["D0"] >> io_shift_reg["SR0"];  // Serial input from CPU to shift register
+        io_shift_reg["SO0"] >> cpu["D0"];  // Serial output from shift register to CPU
 
         LOG("MiniMax4004 system configured with 4004 CPU, 4001 ROM, 4002 RAM, 4003 I/O, address decoder, clock generator, and power-on reset");
     }
     catch (Exc e) {
         LOG("Connection error in SetupMiniMax4004: " << e);
     }
+    
+    // Set up character output callback for the I/O shift register
+    try {
+        Pcb* pcb = &mach.pcbs[mach.pcbs.GetCount()-1]; // Get the last (current) PCB
+        if (pcb) {
+            ElectricNodeBase* comp = nullptr;
+            for (int i = 0; i < pcb->GetNodeCount(); i++) {
+                if (String(pcb->GetNode(i).GetClassName()) == "IC4003") {
+                    comp = &pcb->GetNode(i);
+                    break;
+                }
+            }
+            
+            if (comp) {
+                IC4003* io_reg = dynamic_cast<IC4003*>(comp);
+                if (io_reg) {
+                    io_reg->SetCharacterOutputCallback(OutputCharacter);
+                }
+            }
+        }
+    } catch (...) {
+        LOG("Error setting up character output callback");
+    }
+}
+
+// Character output function
+void OutputCharacter(char c) {
+    // Output the character to the console
+    UPP::Cout() << c << UPP::EOL;
+    LOG("Character output: '" << c << "' (0x" << HexStr(c) << ")");
 }
 
 void TestMDS1101SchematicTool() {

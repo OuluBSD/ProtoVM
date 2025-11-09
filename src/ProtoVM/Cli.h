@@ -35,6 +35,10 @@ private:
 	void ProcessContinueCommand(const Vector<String>& tokens);
 	void ProcessBreakCommand(const Vector<String>& tokens);
 	void ProcessMemoryDumpCommand(const Vector<String>& tokens);
+	void Process4004LoadCommand(const Vector<String>& tokens);
+	void Process4004PokeCommand(const Vector<String>& tokens);
+	void Process4004PeekCommand(const Vector<String>& tokens);
+	void Process4004DebugCommand(const Vector<String>& tokens);
 
 public:
 	// Public API for programmatic access to CLI functionality

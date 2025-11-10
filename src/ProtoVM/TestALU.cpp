@@ -1,9 +1,6 @@
 #include "ProtoVM.h"
 #include "ALU.h"
 
-#include <Core/Core.h>
-using namespace UPP;
-
 // Test for the ALU component
 void TestALU() {
     Pcb pcb;
@@ -122,7 +119,7 @@ void TestALU() {
     LOG("ALU Test: A=5, B=3, Operation=ADD");
     String result_bits_str = AsString((int)r0.result) + AsString((int)r1.result) + AsString((int)r2.result) + AsString((int)r3.result);
     LOG("Result bits: " + result_bits_str);
-    LOG("Result: " + AsString(final_result) + " (expected: 8)");
+    LOG("Result: " << final_result << " (expected: 8)");
     String zero_carry_flags = "Zero flag: " + AsString((int)z.result) + ", Carry flag: " + AsString((int)c.result);
     LOG(zero_carry_flags);
     String overflow_negative_flags = "Overflow flag: " + AsString((int)o.result) + ", Negative flag: " + AsString((int)n.result);
@@ -132,7 +129,7 @@ void TestALU() {
     if (final_result == 8) {
         LOG("ALU ADD test PASSED!");
     } else {
-        LOG("ALU ADD test FAILED! Expected 8, got " + AsString(final_result));
+        LOG("ALU ADD test FAILED! Expected 8, got " << final_result);
     }
 }
 

@@ -1,9 +1,6 @@
 #include "ProtoVM.h"
 #include "ALU.h"
 
-#include <Core/Core.h>
-using namespace UPP;
-
 ALU::ALU(int width) {
     // Ensure width is valid (between 1 and 8 bits for this implementation)
     ASSERT(width > 0 && width <= 8);
@@ -188,7 +185,7 @@ bool ALU::Process(ProcessType type, int bytes, int bits, uint16 conn_id, Electri
             // These are input connections, no output processing needed
         }
         else {
-            LOG("error: ALU: unhandled conn-id " + AsString((int)conn_id));
+            LOG("error: ALU: unhandled conn-id " << (int)conn_id);
             return false;
         }
     }
@@ -225,7 +222,7 @@ bool ALU::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
         carry_in = *data & 1;
     }
     else {
-        LOG("error: ALU: unimplemented conn-id " + AsString((int)conn_id));
+        LOG("error: ALU: unimplemented conn-id " << (int)conn_id);
         return false;
     }
     

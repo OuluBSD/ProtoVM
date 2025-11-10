@@ -5,12 +5,9 @@
 #include <stdio.h>
 #include <fstream>
 
-#include <Core/Core.h>
-using namespace UPP;
-
 // Load a program into 4004 ROM from a binary file (supporting different formats)
 bool LoadProgramTo4004ROM(Machine& mach, const String& filename, int start_addr) {
-    LOG("Loading program from: " + AsString(filename) + " to address 0x" + AsString(HexStr(start_addr)));
+    LOG("Loading program from: " << filename << " to address 0x" << HexStr(start_addr));
     
     // Find an IC4001 (ROM) component to load the program into
     for (int pcb_id = 0; pcb_id < mach.pcbs.GetCount(); pcb_id++) {

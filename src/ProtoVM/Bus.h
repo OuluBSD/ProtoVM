@@ -92,8 +92,9 @@ public:
 		if (conn_id == 0) {
 			if (BITS == 0) {
 				ASSERT(data_bytes == BYTES && data_bits == 0);
-				int copy_bytes = min(data_bytes, BYTES);
+				// Handle tristate behavior - check if the connection is from a tristate component
 				
+				int copy_bytes = min(data_bytes, BYTES);
 				// Handle tri-state behavior - only update if data is valid
 				for (int i = 0; i < copy_bytes; i++) {
 					if (!is_driven[i]) {

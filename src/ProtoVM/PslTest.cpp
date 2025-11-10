@@ -1,9 +1,6 @@
 #include "ProtoVM.h"
 #include "PslParser.h"
 
-#include <Core/Core.h>
-using namespace UPP;
-
 // Example usage of the PSL parser functionality
 void TestPslParserFunction() {
     String psl_code = 

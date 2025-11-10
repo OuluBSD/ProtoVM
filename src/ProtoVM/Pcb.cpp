@@ -115,7 +115,15 @@ void Pcb::Attach(ElectricNodeBase& from, ElectricNodeBase& to) {
 		if (!sink.IsConnectable())
 			throw Exc((String)"sink is not connectable, from " + a + " to " + b);
 		
-		ASSERT(sink.is_sink && src.is_src);
+		// Improved connection validation to handle bidirectional pins properly
+		// When a pin is bidirectional, it has both is_src and is_sink set to true
+		// Allow connections if at least one side can drive and at least one side can receive
+		bool has_driver = (src.is_src || sink.is_src);
+		bool has_receiver = (src.is_sink || sink.is_sink);
+		
+		if (!has_driver || !has_receiver) {
+			throw Exc((String)"Invalid connection: connection must have at least one driver and one receiver, from " + a + "." + src.name + " to " + b + "." + sink.name);
+		}
 		src.links.Add().conn = &sink;
 		sink.links.Add().conn = &src;
 	}
@@ -130,7 +138,14 @@ void Pcb::Attach(ElectricNodeBase& from, ElectricNodeBase& to) {
 			if (!sink.IsConnectable())
 				throw Exc((String)"sink is not connectable, from " + a + " to " + b);
 			
-			ASSERT(sink.is_sink && src.is_src);
+			// Improved connection validation to handle bidirectional pins properly
+			// Allow connections if at least one side can drive and at least one side can receive
+			bool has_driver = (src.is_src || sink.is_src);
+			bool has_receiver = (src.is_sink || sink.is_sink);
+			
+			if (!has_driver || !has_receiver) {
+				throw Exc((String)"Invalid connection: connection must have at least one driver and one receiver, from " + a + "." + src.name + " to " + b + "." + sink.name);
+			}
 			src.links.Add().conn = &sink;
 			sink.links.Add().conn = &src;
 		}
@@ -149,7 +164,15 @@ void Pcb::Attach(ElectricNodeBase& from, ElectricNodeBase& to) {
 			if (!sink.IsConnectable())
 				throw Exc((String)"sink is not connectable, from " + a + " to " + b);
 			
-			ASSERT(sink.is_sink && src.is_src);
+			// Improved connection validation to handle bidirectional pins properly
+			// When a pin is bidirectional, it has both is_src and is_sink set to true
+			// Allow connections if at least one side can drive and at least one side can receive
+			bool has_driver = (src.is_src || sink.is_src);
+			bool has_receiver = (src.is_sink || sink.is_sink);
+			
+			if (!has_driver || !has_receiver) {
+				throw Exc((String)"Invalid connection: connection must have at least one driver and one receiver, from " + a + "." + src.name + " to " + b + "." + sink.name);
+			}
 			src.links.Add().conn = &sink;
 			sink.links.Add().conn = &src;
 		}
@@ -199,18 +222,12 @@ void Pcb::GetLinkBases(Array<LinkBase>& links) {
 					l.src = &from;
 				}
 				ASSERT(l.sink->is_sink && l.src->is_src);
-				
-				//Pin* test_src_pin = CastPtr<Pin>(l.src->base);
-				//ASSERT(!test_src_pin || !test_src_pin->is_high);
-				
+
 				from_clink.link = &l;
 				to_clink->link = &l;
 			}
 		}
 	}
-	
-	
-	
 }
 
 

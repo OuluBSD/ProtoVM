@@ -2,9 +2,6 @@
 #include "Machine.h"
 #include "Cli.h"
 
-#include <Core/Core.h>
-using namespace UPP;
-
 // Test for signal tracing functionality
 void TestSignalTracing() {
     LOG("Starting Signal Tracing Test...");
@@ -142,17 +139,14 @@ void TestSignalTracing() {
     // Run simulation for 10 ticks to generate some signal transitions
     LOG("Running simulation for 10 ticks to generate signal transitions...");
     for (int i = 0; i < 10; i++) {
-        String msg = "Processing tick " + AsString(i);
-        LOG(msg);
+        LOG("Processing tick " << i);
         if (!mach.Tick()) {
-            String msg = "Simulation failed at tick " + AsString(i);
-            LOG(msg);
+            LOG("Simulation failed at tick " << i);
             return;
         }
     }
 
-    String msg = "Simulation completed. Signal transitions recorded: " + AsString(mach.GetSignalTransitionCount());
-    LOG(msg);
+    LOG("Simulation completed. Signal transitions recorded: " << mach.GetSignalTransitionCount());
 
     // Now show the signal log using the public API
     LOG("Displaying signal transition log:");

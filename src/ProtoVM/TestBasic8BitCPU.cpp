@@ -1,9 +1,6 @@
 #include "ProtoVM.h"
 #include "Basic8BitCPU.h"
 
-#include <Core/Core.h>
-using namespace UPP;
-
 // Test for the Basic8BitCPU component
 void TestBasic8BitCPU() {
     LOG("Starting Basic8BitCPU Test...");
@@ -14,11 +11,11 @@ void TestBasic8BitCPU() {
 
     // Initialize CPU state
     LOG("Initial state:");
-    LOG("  A = 0x" + AsString(HexStr(cpu.GetAccumulator())));
-    LOG("  X = 0x" + AsString(HexStr(cpu.GetXRegister())));
-    LOG("  Y = 0x" + AsString(HexStr(cpu.GetYRegister())));
-    LOG("  PC = 0x" + AsString(HexStr(cpu.GetProgramCounter())));
-    LOG("  S = 0x" + AsString(HexStr(cpu.GetStackPointer())));
+    LOG("  A = 0x" << HexStr(cpu.GetAccumulator()));
+    LOG("  X = 0x" << HexStr(cpu.GetXRegister()));
+    LOG("  Y = 0x" << HexStr(cpu.GetYRegister()));
+    LOG("  PC = 0x" << HexStr(cpu.GetProgramCounter()));
+    LOG("  S = 0x" << HexStr(cpu.GetStackPointer()));
 
     // Simulate a simple program execution
     // For this test, we'll manually set up a simple sequence:
@@ -37,23 +34,23 @@ void TestBasic8BitCPU() {
     cpu.Tick();
     
     LOG("After LDA_IMM simulation:");
-    LOG("  A = 0x" + AsString(HexStr(cpu.GetAccumulator())));
-    LOG("  X = 0x" + AsString(HexStr(cpu.GetXRegister())));
-    LOG("  Y = 0x" + AsString(HexStr(cpu.GetYRegister())));
+    LOG("  A = 0x" << HexStr(cpu.GetAccumulator()));
+    LOG("  X = 0x" << HexStr(cpu.GetXRegister()));
+    LOG("  Y = 0x" << HexStr(cpu.GetYRegister()));
 
     // Second instruction: LDX_IMM 0x10
     cpu.Tick();
     LOG("After LDX_IMM simulation:");
-    LOG("  A = 0x" + AsString(HexStr(cpu.GetAccumulator())));
-    LOG("  X = 0x" + AsString(HexStr(cpu.GetXRegister())));
-    LOG("  Y = 0x" + AsString(HexStr(cpu.GetYRegister())));
+    LOG("  A = 0x" << HexStr(cpu.GetAccumulator()));
+    LOG("  X = 0x" << HexStr(cpu.GetXRegister()));
+    LOG("  Y = 0x" << HexStr(cpu.GetYRegister()));
 
     // Third instruction: INX
     cpu.Tick();
     LOG("After INX simulation:");
-    LOG("  A = 0x" + AsString(HexStr(cpu.GetAccumulator())));
-    LOG("  X = 0x" + AsString(HexStr(cpu.GetXRegister())));
-    LOG("  Y = 0x" + AsString(HexStr(cpu.GetYRegister())));
+    LOG("  A = 0x" << HexStr(cpu.GetAccumulator()));
+    LOG("  X = 0x" << HexStr(cpu.GetXRegister()));
+    LOG("  Y = 0x" << HexStr(cpu.GetYRegister()));
 
     LOG("Basic8BitCPU test completed.");
 }

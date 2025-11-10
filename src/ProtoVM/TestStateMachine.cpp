@@ -1,9 +1,6 @@
 #include "ProtoVM.h"
 #include "StateMachine.h"
 
-#include <Core/Core.h>
-using namespace UPP;
-
 // Entry point for the test that works with Machine
 void Test60_StateMachine() {
     LOG("Starting FSM Test...");
@@ -31,13 +28,11 @@ void Test60_StateMachine() {
     fsm.SetOutputForState(2, 0x02);  // Output 2 in state 2
     fsm.SetOutputForState(3, 0x03);  // Output 3 in state 3
 
-    String msg1 = "Initial state: State=" + AsString(fsm.GetCurrentState());
-    LOG(msg1);
+    LOG("Initial state: State=" << fsm.GetCurrentState());
     
     // Test basic transitions manually by setting input and ticking
     // Initially in state 0
-    String msg2 = "Current state: " + AsString(fsm.GetCurrentState());
-    LOG(msg2);
+    LOG("Current state: " << fsm.GetCurrentState());
     
     // Set input to transition from state 0 to 1 (IN0=1)
     fsm.PutRaw(2, (byte*)1, 0, 1);  // Set IN0 = 1
@@ -54,30 +49,25 @@ void Test60_StateMachine() {
     // Set IN1 to transition to state 2
     fsm.PutRaw(3, (byte*)1, 0, 1);  // Set IN1 = 1
     fsm.Tick();
-    String msg5 = "After setting IN1=1: State=" + AsString(fsm.GetCurrentState());
-    LOG(msg5);
+    LOG("After setting IN1=1: State=" << fsm.GetCurrentState());
     
     // Reset IN1 to 0
     fsm.PutRaw(3, (byte*)0, 0, 1);  // Set IN1 = 0
     fsm.Tick();
-    String msg6 = "After setting IN1=0: State=" + AsString(fsm.GetCurrentState());
-    LOG(msg6);
+    LOG("After setting IN1=0: State=" << fsm.GetCurrentState());
     
     // Test a few more transitions manually
     fsm.PutRaw(4, (byte*)1, 0, 1);  // Set IN2 = 1
     fsm.Tick();
-    String msg7 = "After setting IN2=1: State=" + AsString(fsm.GetCurrentState());
-    LOG(msg7);
+    LOG("After setting IN2=1: State=" << fsm.GetCurrentState());
     
     fsm.PutRaw(4, (byte*)0, 0, 1);  // Set IN2 = 0
     fsm.Tick();
-    String msg8 = "After setting IN2=0: State=" + AsString(fsm.GetCurrentState());
-    LOG(msg8);
+    LOG("After setting IN2=0: State=" << fsm.GetCurrentState());
     
     fsm.PutRaw(5, (byte*)1, 0, 1);  // Set IN3 = 1
     fsm.Tick();
-    String msg9 = "After setting IN3=1: State=" + AsString(fsm.GetCurrentState());
-    LOG(msg9);
+    LOG("After setting IN3=1: State=" << fsm.GetCurrentState());
     
     LOG("State Machine test completed.");
 }

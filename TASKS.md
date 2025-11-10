@@ -191,4 +191,4 @@
 - [x] Added interactive CLI mode for circuit debugging
 - [x] Updated project documentation and task tracking
 - [x] Enhanced 4-bit counter implementation with clock generator
-- [x] Enhanced AND gate test with dynamic inputs
+- [x] Enhanced AND gate test with dynamic inputs- [ ] Fix "trying to connect two sources" error in 4004 CPU simulation

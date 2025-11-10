@@ -140,7 +140,7 @@ void Cli::ProcessWriteCommand(const Vector<String>& tokens) {
 	
 	// In a complete implementation, this would write to actual components
 	// For now, we'll just log what would have happened
-	LOG("Would write 0x" << HexStr(value) << " to " << component << " at address 0x" << HexStr(address));
+	LOG("Would write 0x" + HexStr(value) + " to " + component + " at address 0x" + HexStr(address));
 }
 
 void Cli::ProcessReadCommand(const Vector<String>& tokens) {
@@ -159,7 +159,7 @@ void Cli::ProcessReadCommand(const Vector<String>& tokens) {
 	
 	// In a complete implementation, this would read from actual components
 	// For now, we'll just simulate a read
-	LOG("Would read from " << component << " at address 0x" << HexStr(address));
+	LOG("Would read from " + component + " at address 0x" + HexStr(address));
 	Cout() << "Read: 0xFF (simulated)\n";
 }
 
@@ -566,12 +566,12 @@ void Cli::AddSignalTrace(const String& componentName, const String& pinName, int
             if (pinFound) {
                 // Add the signal to the trace
                 machine->AddSignalToTrace(comp, pinName);
-                LOG("Added signal trace: " << componentName << "." << pinName << " on PCB " << pcbId);
+                LOG("Added signal trace: " + componentName + "." + pinName + " on PCB " + AsString(pcbId));
             } else {
-                LOG("Error: Pin  << pinName <<  not found on component  << componentName << ");
+                LOG("Error: Pin " + pinName + " not found on component " + componentName);
             }
         } else {
-            LOG("Error: Component  << componentName <<  not found on PCB " << pcbId);
+            LOG("Error: Component " + componentName + " not found on PCB " + AsString(pcbId));
         }
     } else {
         LOG("Error: No machine available or invalid PCB ID");
@@ -589,16 +589,16 @@ void Cli::ShowSignalTraceLog() {
             int start = max(0, transitions.GetCount() - 50);
             for (int i = start; i < transitions.GetCount(); i++) {
                 const Machine::SignalTransition& trans = transitions[i];
-                LOG("Tick " << trans.tick_number << ": " << trans.component_name 
-                     << "." << trans.pin_name << " [" << (int)trans.old_value 
-                     << " -> " << (int)trans.new_value << "]");
+                LOG("Tick " + AsString(trans.tick_number) + ": " + trans.component_name 
+                     + "." + trans.pin_name + " [" + AsString((int)trans.old_value) 
+                     + " -> " + AsString((int)trans.new_value) + "]");
             }
             
             if (start > 0) {
-                LOG("  ... (showing last 50 of " << transitions.GetCount() << " total)");
+                LOG("  ... (showing last 50 of " + AsString(transitions.GetCount()) + " total)");
             }
         }
-        LOG("Total transitions logged: " << machine->GetSignalTransitionCount());
+        LOG("Total transitions logged: " + AsString(machine->GetSignalTransitionCount()));
     } else {
         LOG("Error: No machine available.");
     }

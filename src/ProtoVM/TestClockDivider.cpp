@@ -14,9 +14,9 @@ void TestClockDivider() {
 
     // Test the initial state
     LOG("Initial state:");
-    LOG("  Division factor: " << clkDiv.GetDivisionFactor());
-    LOG("  Counter: " << clkDiv.GetCounter());
-    LOG("  Output clock: " << clkDiv.GetOutputClock());
+    LOG("  Division factor: " + AsString(clkDiv.GetDivisionFactor()));
+    LOG("  Counter: " + AsString(clkDiv.GetCounter()));
+    LOG("  Output clock: " + AsString(clkDiv.GetOutputClock()));
 
     // Simulate input clock ticks to test the divider
     byte clock_state = 0;
@@ -34,7 +34,7 @@ void TestClockDivider() {
         // Process the tick
         clkDiv.Tick();
         
-        LOG("  Tick " << i << ": In=" << (int)clock_state 
+        LOG("  Tick " << AsString(i) << ": In=" << AsString((int)clock_state) 
              << ", Out=" << (int)clkDiv.GetOutputClock() 
              << ", Counter=" << clkDiv.GetCounter());
     }

@@ -14,9 +14,9 @@ void TestClockGate() {
 
     // Test initial state
     LOG("Initial state:");
-    LOG("  Input clock: " << clkGate.GetInputClock());
-    LOG("  Enable signal: " << clkGate.GetEnableSignal());
-    LOG("  Output clock: " << clkGate.GetOutputClock());
+    LOG("  Input clock: " + AsString(clkGate.GetInputClock()));
+    LOG("  Enable signal: " + AsString(clkGate.GetEnableSignal()));
+    LOG("  Output clock: " + AsString(clkGate.GetOutputClock()));
 
     // Simulate various scenarios
     byte input_clock = 0;
@@ -31,9 +31,10 @@ void TestClockGate() {
         clkGate.PutRaw(0, &input_clock, 0, 1);  // Set CLK_IN
         clkGate.Tick();
         
-        LOG("  Step " << i << ": In=" << (int)input_clock 
-             << ", EN=" << (int)enable 
-             << ", Out=" << (int)clkGate.GetOutputClock());
+        String step_info = "  Step " + AsString(i) + ": In=" + AsString((int)input_clock) 
+             + ", EN=" + AsString((int)enable) 
+             + ", Out=" + AsString((int)clkGate.GetOutputClock());
+        LOG(step_info);
     }
     
     LOG("\\nTest 2: Enable = 1 (clock gating disabled - should pass clock)");
@@ -45,9 +46,10 @@ void TestClockGate() {
         clkGate.PutRaw(0, &input_clock, 0, 1);  // Set CLK_IN
         clkGate.Tick();
         
-        LOG("  Step " << i << ": In=" << (int)input_clock 
-             << ", EN=" << (int)enable 
-             << ", Out=" << (int)clkGate.GetOutputClock());
+        String step_info = "  Step " + AsString(i) + ": In=" + AsString((int)input_clock) 
+             + ", EN=" + AsString((int)enable) 
+             + ", Out=" + AsString((int)clkGate.GetOutputClock());
+        LOG(step_info);
     }
     
     LOG("\\nTest 3: Transition from enabled to disabled");
@@ -57,7 +59,7 @@ void TestClockGate() {
     clkGate.PutRaw(1, &enable, 0, 1);  // EN = 1
     clkGate.PutRaw(0, &input_clock, 0, 1);  // CLK_IN = 1
     clkGate.Tick();
-    LOG("  Before disable - In=" << (int)input_clock << ", EN=" << (int)enable << ", Out=" << (int)clkGate.GetOutputClock());
+    LOG("  Before disable - In=" + AsString((int)input_clock) + ", EN=" + AsString((int)enable) + ", Out=" + AsString((int)clkGate.GetOutputClock()));
     
     // Now disable the clock gate
     enable = 0;
@@ -66,7 +68,7 @@ void TestClockGate() {
     input_clock = 0;
     clkGate.PutRaw(0, &input_clock, 0, 1);  // Try to change CLK_IN
     clkGate.Tick();
-    LOG("  After disable  - In=" << (int)input_clock << ", EN=" << (int)enable << ", Out=" << (int)clkGate.GetOutputClock());
+    LOG("  After disable  - In=" + AsString((int)input_clock) + ", EN=" + AsString((int)enable) + ", Out=" + AsString((int)clkGate.GetOutputClock()));
     
     LOG("ClockGate test completed.");
 }

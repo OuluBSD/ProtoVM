@@ -63,7 +63,7 @@ bool FullAdder::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits
             carry_in = *data & 1;
             break;
         default:
-            LOG("error: FullAdder: unimplemented conn-id " << conn_id);
+            LOG("error: FullAdder: unimplemented conn-id " + AsString((int)conn_id));
             return false;
     }
     return true;
@@ -192,7 +192,7 @@ bool Adder4Bit::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits
             carry_in = *data & 1;
             break;
         default:
-            LOG("error: Adder4Bit: unimplemented conn-id " << conn_id);
+            LOG("error: Adder4Bit: unimplemented conn-id " + AsString((int)conn_id));
             return false;
     }
     return true;
@@ -338,7 +338,7 @@ bool AdderSubtractor4Bit::PutRaw(uint16 conn_id, byte* data, int data_bytes, int
             carry_in = *data & 1;
             break;
         default:
-            LOG("error: AdderSubtractor4Bit: unimplemented conn-id " << conn_id);
+            LOG("error: AdderSubtractor4Bit: unimplemented conn-id " + AsString((int)conn_id));
             return false;
     }
     return true;

@@ -13,8 +13,8 @@ void TestPLL() {
     pll.SetName("TestPLL_X4");
 
     LOG("PLL Configuration:");
-    LOG("  Multiplication factor: " << pll.GetMultiplicationFactor());
-    LOG("  Initial locked status: " << pll.IsLocked());
+    LOG("  Multiplication factor: " + AsString((int)pll.GetMultiplicationFactor()));
+    LOG("  Initial locked status: " + AsString((bool)pll.IsLocked()));
 
     // Simulate the PLL operation
     byte input_clock = 0;

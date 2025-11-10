@@ -1,3 +1,4 @@
+#include "ProtoVM.h"
 #include "PslTestRunner.h"
 #include <fstream>
 
@@ -10,8 +11,8 @@ bool PslTestRunner::RunTest(TestNode* test_node) {
         return false;
     }
     
-    LOG("Running test: " << test_node->name);
-    LOG("Testing circuit: " << test_node->circuit_under_test);
+    LOG("Running test: " + AsString(test_node->name));
+    LOG("Testing circuit: " + AsString(test_node->circuit_under_test));
     
     // Setup the circuit for testing
     if (!SetupCircuitForTest(test_node->circuit_under_test)) {
@@ -22,7 +23,7 @@ bool PslTestRunner::RunTest(TestNode* test_node) {
     // If the circuit has stimulus defined, process it
     if (!test_node->stimulus.empty()) {
         for (size_t i = 0; i < test_node->stimulus.size(); i++) {
-            LOG("Applying stimulus step " << i);
+            LOG("Applying stimulus step " + AsString(i));
             
             // Apply the stimulus to the circuit
             if (!ApplyStimulus(test_node->stimulus[i])) {
@@ -42,7 +43,7 @@ bool PslTestRunner::RunTest(TestNode* test_node) {
             // If there are expected values for this step, validate them
             if (i < test_node->expected.size()) {
                 if (!ValidateOutputs(test_node->expected[i], outputs)) {
-                    LOG("Test failed: outputs don't match expected values at step " << i);
+                    LOG("Test failed: outputs don't match expected values at step " + AsString(i));
                     return false;
                 }
             }
@@ -55,7 +56,7 @@ bool PslTestRunner::RunTest(TestNode* test_node) {
         }
     }
     
-    LOG("Test " << test_node->name << " completed successfully");
+    LOG("Test " + AsString(test_node->name) + " completed successfully");
     return true;
 }
 
@@ -63,13 +64,13 @@ bool PslTestRunner::RunTestFromFile(const String& filename) {
     // Read the PSL test file
     FileIn file(filename);
     if (!file) {
-        LOG("Error: Could not open test file: " << filename);
+        LOG("Error: Could not open test file: " + AsString(filename));
         return false;
     }
     
     String content = LoadFile(filename);
     if (content.IsEmpty()) {
-        LOG("Error: Empty test file: " << filename);
+        LOG("Error: Empty test file: " + AsString(filename));
         return false;
     }
     
@@ -112,18 +113,18 @@ bool PslTestRunner::ValidateOutputs(const std::map<String, String>& expected,
         
         auto actual_it = actual.find(signal_name);
         if (actual_it == actual.end()) {
-            LOG("Expected signal " << signal_name << " not found in actual outputs");
+            LOG("Expected signal " + AsString(signal_name) + " not found in actual outputs");
             all_match = false;
             continue;
         }
         
         String actual_value = actual_it->second;
         if (expected_value != actual_value) {
-            LOG("Signal " << signal_name << " mismatch: expected " << expected_value 
-                         << ", got " << actual_value);
+            LOG("Signal " + AsString(signal_name) + " mismatch: expected " + AsString(expected_value) 
+                         + ", got " + AsString(actual_value));
             all_match = false;
         } else {
-            LOG("Signal " << signal_name << " matches: " << actual_value);
+            LOG("Signal " + AsString(signal_name) + " matches: " + AsString(actual_value));
         }
     }
     
@@ -153,7 +154,7 @@ bool PslTestRunner::SetupCircuitForTest(const String& circuit_name) {
     } else if (circuit_name == "cpu6502") {
         LOG("Setting up cpu6502 circuit for testing");
     } else {
-        LOG("Unknown circuit for testing: " << circuit_name);
+        LOG("Unknown circuit for testing: " + AsString(circuit_name));
         return false;
     }
     
@@ -173,7 +174,7 @@ bool PslTestRunner::ApplyStimulus(const std::map<String, String>& stimulus) {
         String signal_name = stim.first;
         String value = stim.second;
         
-        LOG("Applying stimulus: " << signal_name << " = " << value);
+        LOG("Applying stimulus: " + AsString(signal_name) + " = " + AsString(value));
         
         // In a real implementation, this would find the appropriate component pin
         // and set its value. For now, we'll just log it.
@@ -204,10 +205,10 @@ bool PslTestRunner::RunSimulation(int ticks) {
     
     for (int i = 0; i < ticks; i++) {
         if (!machine->Tick()) {
-            LOG("Simulation tick " << i << " failed");
+            LOG("Simulation tick " + AsString(i) + " failed");
             return false;
         } else {
-            LOG("Simulation tick " << i << " completed");
+            LOG("Simulation tick " + AsString(i) + " completed");
         }
     }
     

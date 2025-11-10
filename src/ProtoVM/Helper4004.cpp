@@ -1,3 +1,4 @@
+#include "ProtoVM.h"
 #include "Helper4004.h"
 #include "IC4001.h"
 #include "IC4002.h"
@@ -9,7 +10,7 @@ using namespace UPP;
 
 // Load a program into 4004 ROM from a binary file (supporting different formats)
 bool LoadProgramTo4004ROM(Machine& mach, const String& filename, int start_addr) {
-    LOG("Loading program from: " << filename << " to address 0x" << HexStr(start_addr));
+    LOG("Loading program from: " + AsString(filename) + " to address 0x" + AsString(HexStr(start_addr)));
     
     // Find an IC4001 (ROM) component to load the program into
     for (int pcb_id = 0; pcb_id < mach.pcbs.GetCount(); pcb_id++) {
@@ -28,19 +29,19 @@ bool LoadProgramTo4004ROM(Machine& mach, const String& filename, int start_addr)
                         extension = ToLower(extension);
                         
                         if (extension == ".hex") {
-                            LOG("Loading Intel HEX format file into 4001 ROM component: " << comp->GetName());
+                            LOG("Loading Intel HEX format file into 4001 ROM component: " + AsString(comp->GetName()));
                             return LoadIntelHexTo4004ROM(rom, filename, start_addr);
                         } else if (extension == ".ihx" || extension == ".i86") {
-                            LOG("Loading Intel HEX format file into 4001 ROM component: " << comp->GetName());
+                            LOG("Loading Intel HEX format file into 4001 ROM component: " + AsString(comp->GetName()));
                             return LoadIntelHexTo4004ROM(rom, filename, start_addr);
                         } else {
                             // Default to raw binary file loading
-                            LOG("Loading raw binary file into 4001 ROM component: " << comp->GetName());
+                            LOG("Loading raw binary file into 4001 ROM component: " + AsString(comp->GetName()));
                             
                             // Load the binary file
                             FileIn file(filename);
                             if (!file.IsOpen()) {
-                                LOG("Error: Could not open file '" << filename << "'");
+                                LOG("Error: Could not open file '" + AsString(filename) + "'");
                                 return false;
                             } else {
                                 // Read and load the binary data
@@ -60,7 +61,7 @@ bool LoadProgramTo4004ROM(Machine& mach, const String& filename, int start_addr)
                                     }
                                 }
 
-                                LOG("Successfully loaded raw binary file into ROM from address 0x" << HexStr(start_addr));
+                                LOG("Successfully loaded raw binary file into ROM from address 0x" + AsString(HexStr(start_addr)));
                                 return true;
                             }
                         }
@@ -81,7 +82,7 @@ bool LoadProgramTo4004ROM(Machine& mach, const String& filename, int start_addr)
 bool LoadIntelHexTo4004ROM(IC4001* rom, const String& filename, int start_addr) {
     FileIn file(filename);
     if (!file.IsOpen()) {
-        LOG("Error: Could not open Intel HEX file '" << filename << "'");
+        LOG("Error: Could not open Intel HEX file '" + AsString(filename) + "'");
         return false;
     }
 

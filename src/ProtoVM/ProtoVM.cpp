@@ -90,12 +90,6 @@ void SetupMiniMax4004(Machine& mach) {
     Bus<12>& addr_bus = pcb.Add<Bus<12>>("ADDR_BUS");
 
     try {
-        // Connect CPU data bus pins to data bus (bidirectional connection)
-        cpu["D0"] >> data_bus[0];
-        cpu["D1"] >> data_bus[1];
-        cpu["D2"] >> data_bus[2];
-        cpu["D3"] >> data_bus[3];
-
         // Connect CPU address bus pins to address bus
         cpu["A0"] >> addr_bus[0];
         cpu["A1"] >> addr_bus[1];
@@ -125,8 +119,13 @@ void SetupMiniMax4004(Machine& mach) {
         addr_bus[11] >> addr_decoder["A11"];
 
         // Connect chip select signals from decoder to memory chips
-        addr_decoder["RAM_CS"] >> ram["JAM"];  // RAM chip select to RAM enable
         addr_decoder["ROM_CS"] >> rom["JAM"];  // ROM chip select to ROM enable
+
+        // Connect CPU data bus pins to data bus (bidirectional connection)
+        cpu["D0"] >> data_bus[0];
+        cpu["D1"] >> data_bus[1];
+        cpu["D2"] >> data_bus[2];
+        cpu["D3"] >> data_bus[3];
 
         // Connect ROM to data bus (output)
         rom["O0"] >> data_bus[0];
@@ -148,14 +147,15 @@ void SetupMiniMax4004(Machine& mach) {
         rom["A10"] >> addr_bus[10];
         rom["A11"] >> addr_bus[11];
 
-        // Connect RAM to data bus (bidirectional with proper tri-state)
-        ram["I0"] >> data_bus[0];  // RAM input connects to data bus when writing
-        ram["I1"] >> data_bus[1];
-        ram["I2"] >> data_bus[2];
-        ram["I3"] >> data_bus[3];
-        
-        // RAM output connects to data bus when reading (tristate when not enabled)
-        ram["O0"] >> data_bus[0];
+        // Connect RAM to data bus - For now, just connect inputs to CPU data out
+        cpu["D0"] >> ram["I0"];  // CPU drives RAM during write
+        cpu["D1"] >> ram["I1"];
+        cpu["D2"] >> ram["I2"];
+        cpu["D3"] >> ram["I3"];
+
+        // RAM outputs should connect to bus, but this might cause the assertion error
+        // So let's try a different approach for the moment:
+        ram["O0"] >> data_bus[0]; // RAM output to data bus when reading
         ram["O1"] >> data_bus[1];
         ram["O2"] >> data_bus[2];
         ram["O3"] >> data_bus[3];
@@ -181,7 +181,7 @@ void SetupMiniMax4004(Machine& mach) {
         // Connect power-on reset circuit to CPU and other components
         por_circuit["RESET_OUT"] >> cpu["RES"];        // Reset to CPU
         por_circuit["RESET_OUT"] >> rom["JAM"];        // Reset to ROM enable (active low, so this disables ROM initially)
-        por_circuit["RESET_OUT"] >> ram["JAM"];        // Reset to RAM enable (active low, so this disables RAM initially)
+        por_circuit["RESET_OUT"] >> ram["WM"];         // Reset to RAM write enable (active low, so this disables RAM initially)
         por_circuit["RESET_OUT"] >> clock_gen["CLK_EN"]; // Reset/enable to clock generator
 
         // Connect CPU control signals (BUSY is output, SBY is input - but 4004 doesn't have SBY as input)
@@ -189,10 +189,8 @@ void SetupMiniMax4004(Machine& mach) {
         // cpu["BUSY"] >> some_output; // For now, let's not connect BUSY to anything specific
 
         // Connect memory control signals - correct connections
-        cpu["MR"] >> ram["JAM"];   // Memory Read signal to RAM enable (active low in real 4004)
-        cpu["MR"] >> rom["JAM"];   // Memory Read signal to ROM enable (active low)  
+        cpu["MR"] >> rom["JAM"];   // Memory Read signal to ROM enable (active low)
         cpu["MW"] >> ram["WM"];    // Memory Write to RAM write enable
-        cpu["R/W"] >> ram["JAM"];  // Read/Write control affects output enable (simplified connection)
 
         // Connect I/O shift register for expanded I/O
         cpu["D0"] >> io_shift_reg["SR0"];  // CPU output to shift register input

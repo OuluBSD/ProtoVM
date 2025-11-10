@@ -142,14 +142,17 @@ void TestSignalTracing() {
     // Run simulation for 10 ticks to generate some signal transitions
     LOG("Running simulation for 10 ticks to generate signal transitions...");
     for (int i = 0; i < 10; i++) {
-        LOG("Processing tick " << i);
+        String msg = "Processing tick " + AsString(i);
+        LOG(msg);
         if (!mach.Tick()) {
-            LOG("Simulation failed at tick " << i);
+            String msg = "Simulation failed at tick " + AsString(i);
+            LOG(msg);
             return;
         }
     }
 
-    LOG("Simulation completed. Signal transitions recorded: " << mach.GetSignalTransitionCount());
+    String msg = "Simulation completed. Signal transitions recorded: " + AsString(mach.GetSignalTransitionCount());
+    LOG(msg);
 
     // Now show the signal log using the public API
     LOG("Displaying signal transition log:");

@@ -120,16 +120,19 @@ void TestALU() {
     int final_result = (result_bits[3] << 3) | (result_bits[2] << 2) | (result_bits[1] << 1) | result_bits[0];
     
     LOG("ALU Test: A=5, B=3, Operation=ADD");
-    LOG("Result bits: " << (int)r0.result << (int)r1.result << (int)r2.result << (int)r3.result);
-    LOG("Result: " << final_result << " (expected: 8)");
-    LOG("Zero flag: " << (int)z.result << ", Carry flag: " << (int)c.result);
-    LOG("Overflow flag: " << (int)o.result << ", Negative flag: " << (int)n.result);
+    String result_bits_str = AsString((int)r0.result) + AsString((int)r1.result) + AsString((int)r2.result) + AsString((int)r3.result);
+    LOG("Result bits: " + result_bits_str);
+    LOG("Result: " + AsString(final_result) + " (expected: 8)");
+    String zero_carry_flags = "Zero flag: " + AsString((int)z.result) + ", Carry flag: " + AsString((int)c.result);
+    LOG(zero_carry_flags);
+    String overflow_negative_flags = "Overflow flag: " + AsString((int)o.result) + ", Negative flag: " + AsString((int)n.result);
+    LOG(overflow_negative_flags);
     
     // Verification
     if (final_result == 8) {
         LOG("ALU ADD test PASSED!");
     } else {
-        LOG("ALU ADD test FAILED! Expected 8, got " << final_result);
+        LOG("ALU ADD test FAILED! Expected 8, got " + AsString(final_result));
     }
 }
 

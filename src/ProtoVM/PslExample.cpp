@@ -39,7 +39,7 @@ void TestPslParser() {
         String cpp_code = compiler.CompileCircuit(circuit);
         
         LOG("Generated C++ code:");
-        LOG(cpp_code);
+        LOG(AsString(cpp_code));
         
         // In a real application, you would save this to a file and
         // potentially compile it or process it further

@@ -120,13 +120,15 @@ bool TestFullAdder() {
                     
                     // Check if actual matches expected
                     if (sum_actual != (sum_exp != 0) || cout_actual != (cout_exp != 0)) {
-                        LOG("  FAILED: A=" << a_val << ", B=" << b_val << ", Cin=" << cin_val 
-                              << " -> Sum: actual=" << (int)sum_actual << " vs expected=" << sum_exp
-                              << ", Cout: actual=" << (int)cout_actual << " vs expected=" << cout_exp);
+                        String fail_msg = "  FAILED: A=" + AsString(a_val) + ", B=" + AsString(b_val) + ", Cin=" + AsString(cin_val) 
+                              + " -> Sum: actual=" + AsString((int)sum_actual) + " vs expected=" + AsString(sum_exp)
+                              + ", Cout: actual=" + AsString((int)cout_actual) + " vs expected=" + AsString(cout_exp);
+                        LOG(fail_msg);
                         test_passed = false;
                     } else {
-                        LOG("  PASSED: A=" << a_val << ", B=" << b_val << ", Cin=" << cin_val 
-                              << " -> Sum=" << (int)sum_actual << ", Cout=" << (int)cout_actual);
+                        String pass_msg = "  PASSED: A=" + AsString(a_val) + ", B=" + AsString(b_val) + ", Cin=" + AsString(cin_val) 
+                              + " -> Sum=" + AsString((int)sum_actual) + ", Cout=" + AsString((int)cout_actual);
+                        LOG(pass_msg);
                     }
                 }
             }
@@ -141,7 +143,7 @@ bool TestFullAdder() {
         return test_passed;
     }
     catch (Exc e) {
-        LOG("Error in FullAdder test: " << e);
+        LOG("Error in FullAdder test: " + AsString(e));
         return false;
     }
 }
@@ -221,8 +223,8 @@ bool TestAdderSubtractor4Bit() {
         bool cout_val = cout_capture.GetValue();
         
         if (s3_val != true || s2_val != false || s1_val != false || s0_val != false || cout_val != false) {
-            LOG("  FAILED: 5 + 3 != 8, got " << (s3_val ? "1":"0") << (s2_val ? "1":"0") 
-                  << (s1_val ? "1":"0") << (s0_val ? "1":"0") << " carry=" << (int)cout_val);
+            String result = String(s3_val ? "1":"0") + String(s2_val ? "1":"0") + String(s1_val ? "1":"0") + String(s0_val ? "1":"0");
+            LOG("  FAILED: 5 + 3 != 8, got " + result);
             test_passed = false;
         } else {
             LOG("  PASSED: 5 + 3 = 8 (1000)");
@@ -241,8 +243,8 @@ bool TestAdderSubtractor4Bit() {
         cout_val = cout_capture.GetValue();
         
         if (s3_val != false || s2_val != false || s1_val != true || s0_val != false || cout_val != false) {
-            LOG("  FAILED: 1 + 1 != 2, got " << (s3_val ? "1":"0") << (s2_val ? "1":"0") 
-                  << (s1_val ? "1":"0") << (s0_val ? "1":"0") << " carry=" << (int)cout_val);
+            String result = String(s3_val ? "1":"0") + String(s2_val ? "1":"0") + String(s1_val ? "1":"0") + String(s0_val ? "1":"0");
+            LOG("  FAILED: 1 + 1 != 2, got " + result + " carry=" + AsString((int)cout_val));
             test_passed = false;
         } else {
             LOG("  PASSED: 1 + 1 = 2 (0010)");
@@ -266,8 +268,8 @@ bool TestAdderSubtractor4Bit() {
         cout_val = cout_capture.GetValue();
         
         if (s3_val != false || s2_val != false || s1_val != true || s0_val != false) {  // Expected: 0010 (2)
-            LOG("  FAILED: 5 - 3 != 2, got " << (s3_val ? "1":"0") << (s2_val ? "1":"0") 
-                  << (s1_val ? "1":"0") << (s0_val ? "1":"0") << " carry=" << (int)cout_val);
+            String result = String(s3_val ? "1":"0") + String(s2_val ? "1":"0") + String(s1_val ? "1":"0") + String(s0_val ? "1":"0");
+            LOG("  FAILED: 5 - 3 != 2, got " + result + " carry=" + AsString((int)cout_val));
             test_passed = false;
         } else {
             LOG("  PASSED: 5 - 3 = 2 (0010)");
@@ -282,7 +284,7 @@ bool TestAdderSubtractor4Bit() {
         return test_passed;
     }
     catch (Exc e) {
-        LOG("Error in AdderSubtractor4Bit test: " << e);
+        LOG("Error in AdderSubtractor4Bit test: " + AsString(e));
         return false;
     }
 }

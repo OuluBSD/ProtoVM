@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Script to run the 4004 CPU simulation with the provided character output program
+
+echo "Running 4004 CPU simulation with character output program..."
+echo "Loading program that outputs 'A' character at address 0x0000"
+
+# Build the project if needed
+if [ ! -f "build/ProtoVM" ]; then
+    echo "ProtoVM executable not found. Building project..."
+    bash build.sh
+fi
+
+# Run the simulation with our binary
+echo "Executing: ./build/ProtoVM minimax4004 --load-binary 4004_putchar.bin 0x0 --ticks 20"
+echo "(Note: This may fail due to connection issues in the 4004 circuit)"
+./build/ProtoVM minimax4004 --load-binary 4004_putchar.bin 0x0 --ticks 20
+
+echo "4004 simulation completed (or failed with expected connection errors)."
+echo ""
+echo "To run other available circuits:"
+echo "  ./build/ProtoVM flipflop --ticks 10"
+echo "  ./build/ProtoVM andgate --ticks 10"
+echo "  ./build/ProtoVM counter --ticks 20"
+echo "  ./build/ProtoVM 6502 --ticks 100"

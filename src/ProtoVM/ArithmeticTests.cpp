@@ -140,7 +140,7 @@ bool TestFullAdder() {
         return test_passed;
     }
     catch (Exc e) {
-        LOG("Error in FullAdder test: " << e);
+        LOG("Error in FullAdder test: " + String(e));
         return false;
     }
 }
@@ -241,7 +241,7 @@ bool TestAdderSubtractor4Bit() {
         
         if (s3_val != false || s2_val != false || s1_val != true || s0_val != false || cout_val != false) {
             String result = String(s3_val ? "1":"0") + String(s2_val ? "1":"0") + String(s1_val ? "1":"0") + String(s0_val ? "1":"0");
-            LOG("  FAILED: 1 + 1 != 2, got " << result << " carry=" << (int)cout_val);
+            LOG("  FAILED: 1 + 1 != 2, got " + result + " carry=" + AsString((int)cout_val));
             test_passed = false;
         } else {
             LOG("  PASSED: 1 + 1 = 2 (0010)");
@@ -266,7 +266,7 @@ bool TestAdderSubtractor4Bit() {
         
         if (s3_val != false || s2_val != false || s1_val != true || s0_val != false) {  // Expected: 0010 (2)
             String result = String(s3_val ? "1":"0") + String(s2_val ? "1":"0") + String(s1_val ? "1":"0") + String(s0_val ? "1":"0");
-            LOG("  FAILED: 5 - 3 != 2, got " << result << " carry=" << (int)cout_val);
+            LOG("  FAILED: 5 - 3 != 2, got " + result + " carry=" + AsString((int)cout_val));
             test_passed = false;
         } else {
             LOG("  PASSED: 5 - 3 = 2 (0010)");
@@ -281,7 +281,7 @@ bool TestAdderSubtractor4Bit() {
         return test_passed;
     }
     catch (Exc e) {
-        LOG("Error in AdderSubtractor4Bit test: " << e);
+        LOG("Error in AdderSubtractor4Bit test: " + String(e));
         return false;
     }
 }

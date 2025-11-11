@@ -44,6 +44,7 @@ file
 	IC4004.cpp,
 	Test4004Output.cpp,
 	Test4004Instructions.cpp,
+	Test4004Dummy.cpp,
 	IC6502.cpp,
 	AddressDecoder4004.h,
 	AddressDecoder4004.cpp,

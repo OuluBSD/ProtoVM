@@ -41,6 +41,8 @@ void TestMDS1101SchematicTool();
 void Run4004UnitTests();
 int Run4004OutputTests();
 int Run4004InstructionTests();
+bool TestDummy4004CPU();
+bool TestDummy4004InCircuit();
 // Character output function
 void OutputCharacter(char c);
 // Helper functions for 4004 memory initialization and debugging
@@ -236,6 +238,7 @@ CONSOLE_APP_MAIN {
 		Cout() << "  minimax4004 - MiniMax 4004 computer circuit\n";
 		Cout() << "  test4004output - Run 4004 CPU output functionality tests\n";
 		Cout() << "  test4004instructions - Run 4004 CPU instruction tests\n";
+		Cout() << "  test4004dummy - Run 4004 dummy CPU test (WR0 output verification)\n";
 		Cout() << "  statemachine - State machine test circuit\n";
 		Cout() << "  basiccpu     - Basic 8-bit CPU test circuit\n";
 		Cout() << "  clkdivider   - Clock divider test circuit\n";
@@ -356,6 +359,16 @@ CONSOLE_APP_MAIN {
 			LOG("4004 Instruction Tests completed with exit code: " << test_result);
 			// For this test circuit, we'll just run the tests and then finish
 			max_ticks = 0;
+		} else if (circuit_name == "test4004dummy") {
+			LOG("Running 4004 Dummy CPU Test (WR0 Output Verification)...");
+			bool test_result = TestDummy4004InCircuit();
+			if (test_result) {
+				LOG("4004 Dummy CPU Test completed successfully!");
+				max_ticks = 0;
+			} else {
+				LOG("4004 Dummy CPU Test failed!");
+				max_ticks = 0;
+			}
 		} else if (circuit_name == "statemachine") {
 			Test60_StateMachine();
 		} else if (circuit_name == "basiccpu") {

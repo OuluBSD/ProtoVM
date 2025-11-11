@@ -1,83 +1,60 @@
-#ifndef ProtoVM_IC4002_h
-#define ProtoVM_IC4002_h
+#ifndef _ProtoVM_IC4002_h_
+#define _ProtoVM_IC4002_h_
 
-#include "Component.h"
-#include "ICs.h"
-#include "Common.h"
-#include "Bus.h"
+#include <algorithm> // for std::min
 
 /*
- * Intel 4002 RAM Implementation for ProtoVM
- *
- * The Intel 4002 is a 40-bit (40x1) static RAM chip with:
- * - 40 memory locations of 1 bit each
- * - 4 outputs (4 banks of 10 bits each)
- * - Separate input and output pins
- * - Character generator RAM in original implementation
- *
- * Pinout:
- * - A0-A3: Address inputs (4-bit address for 10 positions per bank)
- * - C0-C3: Bank select inputs (4 banks)
- * - I0-I3: Input data bits (4-bit input)
- * - O0-O3: Output data bits (4-bit output)
- * - WM: Write Memory enable
- * - CM4: Clock input
+ * Intel 4002 4-bit Static RAM
+ * 
+ * The Intel 4002 is a 4-bit static RAM chip with:
+ * - 4-bit data input/output
+ * - 4-bit address input (16 x 4-bit = 64 bits total storage)
+ * - Separate input/output pins for data
+ * - Chip select and write enable control
  */
 
 class IC4002 : public Chip {
-public:
-    IC4002();
-    virtual ~IC4002() {}
-
-    virtual bool Tick();
-    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id);
-    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits);
-
-    virtual const char* GetClassName() const { return "IC4002"; }
-
 private:
-    // 4002 has 40 memory bits organized as 4 banks of 10 bits each
-    byte memory[4][10];  // 4 banks of 10 bits each = 40 bits total
-    
-    // Current address and bank
-    byte address;        // 0-9 address within bank
-    byte bank;           // 0-3 bank selection
-    bool write_mode;     // Whether in write mode
-    
-    // Input and output data
-    byte input_data;     // 4 bit input data
-    byte output_data;    // 4 bit output data
-    
-    // Pin mappings (relative to AddPin calls)
-    enum PinNames {
-        A0 = 0,    // Address bits
-        A1 = 1,
-        A2 = 2,
-        A3 = 3,
-        C0 = 4,    // Bank selection
-        C1 = 5,
-        C2 = 6,
-        C3 = 7,
-        I0 = 8,    // Input data
-        I1 = 9, 
-        I2 = 10,
-        I3 = 11,
-        O0 = 12,   // Output data
-        O1 = 13,
-        O2 = 14,
-        O3 = 15,
-        WM = 16,   // Write Memory enable
-        CM4 = 17   // Clock input
-    };
+    static constexpr int MAX_SIZE = 16; // 16 x 4-bit = 64 bits storage
+    static constexpr int A0 = 0;        // Address pins (4 bits)
+    static constexpr int A1 = 1;
+    static constexpr int A2 = 2;
+    static constexpr int A3 = 3;
+    static constexpr int D0 = 4;        // Bidirectional data pins (4 bits)
+    static constexpr int D1 = 5;
+    static constexpr int D2 = 6;
+    static constexpr int D3 = 7;
+    static constexpr int CS = 8;        // Chip Select (active low)
+    static constexpr int WE = 9;        // Write Enable (active high)
 
-    // Internal state for current tick
-    uint32 in_pins;
+    // Memory storage
+    byte memory[MAX_SIZE];  // 4-bit values stored in 8-bit bytes (upper 4 bits unused)
+
+    // Control signals
+    bool chip_select;
+    bool write_enable;
+    uint8_t address;
+    byte data_in;
+    byte data_out;
+
+    // Input values
+    uint8_t in_addr;
     byte in_data;
-    
-    void SetPin(int i, bool b);
-    void ReadMemory();
-    void WriteMemory();
-    void UpdateOutput();
+    bool in_cs;
+    bool in_we;
+
+public:
+    IC4002(int size = MAX_SIZE);
+
+    bool Tick() override;
+    bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
+    bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+
+    // Helper methods
+    void WriteMemory(uint8_t addr, byte value);
+    byte ReadMemory(uint8_t addr) const;
+    void SetMemory(uint8_t addr, byte value) { WriteMemory(addr, value); }
+    byte GetMemory(uint8_t addr) const { return ReadMemory(addr); }
 };
 
 #endif

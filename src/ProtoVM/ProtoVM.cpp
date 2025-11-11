@@ -5,6 +5,7 @@
 #include "IC4002.h"
 #include "IC4003.h"
 #include "AddressDecoder4004.h"
+#include "BusInterface4004.h"
 #include "ClockGenerator4004.h"
 #include "PowerOnReset4004.h"
 #include "Test4004CPU.h"
@@ -66,13 +67,8 @@ void SetupMiniMax4004(Machine& mach) {
     IC4004& cpu = pcb.Add<IC4004>("CPU4004");
 
     // Create memory components for the 4004 system
-    ICRamRom& rom = pcb.Add<ICRamRom>("ROM4001");  // 4001 ROM equivalent
-    rom.SetSize(256);      // Example size: 256 bytes
-    rom.SetReadOnly(true); // ROM is read-only
-
-    ICRamRom& ram = pcb.Add<ICRamRom>("RAM4002");  // 4002 RAM equivalent
-    ram.SetSize(40);       // 40 bytes as in original 4002
-    ram.SetReadOnly(false); // RAM is read/write
+    IC4001& rom = pcb.Add<IC4001>("ROM4001");  // Proper 4001 ROM component
+    IC4002& ram = pcb.Add<IC4002>("RAM4002");  // Proper 4002 RAM component
 
     // Create buses for the 4004 system
     Bus<4>& data_bus = pcb.Add<Bus<4>>("DATA_BUS");
@@ -85,25 +81,24 @@ void SetupMiniMax4004(Machine& mach) {
     Pin& vcc = pcb.Add<Pin>("vcc").SetReference(1);     // VCC
 
     try {
-        // Connect CPU data bus pins to data bus
-        cpu["D0"] >> data_bus[0];
-        cpu["D1"] >> data_bus[1];
-        cpu["D2"] >> data_bus[2];
-        cpu["D3"] >> data_bus[3];
-
-        // Connect CPU address bus pins to address bus
-        cpu["A0"] >> addr_bus[0];
-        cpu["A1"] >> addr_bus[1];
-        cpu["A2"] >> addr_bus[2];
-        cpu["A3"] >> addr_bus[3];
-        cpu["A4"] >> addr_bus[4];
-        cpu["A5"] >> addr_bus[5];
-        cpu["A6"] >> addr_bus[6];
-        cpu["A7"] >> addr_bus[7];
-        cpu["A8"] >> addr_bus[8];
-        cpu["A9"] >> addr_bus[9];
-        cpu["A10"] >> addr_bus[10];
-        cpu["A11"] >> addr_bus[11];
+        // Connect CPU to buses - following bus-centric approach from 6502 example
+        data_bus[0] >> cpu["D0"];
+        data_bus[1] >> cpu["D1"];
+        data_bus[2] >> cpu["D2"];
+        data_bus[3] >> cpu["D3"];
+        
+        addr_bus[0] >> cpu["A0"];
+        addr_bus[1] >> cpu["A1"];
+        addr_bus[2] >> cpu["A2"];
+        addr_bus[3] >> cpu["A3"];
+        addr_bus[4] >> cpu["A4"];
+        addr_bus[5] >> cpu["A5"];
+        addr_bus[6] >> cpu["A6"];
+        addr_bus[7] >> cpu["A7"];
+        addr_bus[8] >> cpu["A8"];
+        addr_bus[9] >> cpu["A9"];
+        addr_bus[10] >> cpu["A10"];
+        addr_bus[11] >> cpu["A11"];
 
         // Connect CPU control signals
         clk >> cpu["CM4"];        // Clock to CPU
@@ -128,38 +123,35 @@ void SetupMiniMax4004(Machine& mach) {
         addr_bus[7] >> rom["A7"];
         addr_bus[8] >> rom["A8"];
         addr_bus[9] >> rom["A9"];
-        addr_bus[10] >> rom["A10"];
-        addr_bus[11] >> rom["A11"];
 
-        // ROM data connections (outputs to bus)
-        rom["D0"] >> data_bus[0];
-        rom["D1"] >> data_bus[1];
-        rom["D2"] >> data_bus[2];
-        rom["D3"] >> data_bus[3];
+        // ROM data connections (data bus to ROM)
+        data_bus[0] >> rom["D0"];
+        data_bus[1] >> rom["D1"];
+        data_bus[2] >> rom["D2"];
+        data_bus[3] >> rom["D3"];
 
         // ROM control signals (active low)
-        vcc["0"] >> rom["~OE"];  // Output enable inactive
-        vcc["0"] >> rom["~CS"];  // Chip select inactive
-        vcc["0"] >> rom["~WR"];  // Write enable (not used for ROM)
+        vcc["0"] >> rom["~OE"];  // Output enable active
+        vcc["0"] >> rom["~CS"];  // Chip select active
 
-        // Connect RAM to buses
+        // Connect RAM to buses (4002 RAM has 4-bit address)
         addr_bus[0] >> ram["A0"];
         addr_bus[1] >> ram["A1"];
         addr_bus[2] >> ram["A2"];
         addr_bus[3] >> ram["A3"];
 
-        // RAM data connections (bidirectional)
-        ram["D0"] >> data_bus[0];  // Output to bus
-        ram["D1"] >> data_bus[1];
-        ram["D2"] >> data_bus[2];
-        ram["D3"] >> data_bus[3];
+        // RAM data connections - connect ram to data bus 
+        // (data bus manages bidirectional communication)
+        data_bus[0] >> ram["D0"];  // Data bus to RAM bidirectional pin
+        data_bus[1] >> ram["D1"];
+        data_bus[2] >> ram["D2"];
+        data_bus[3] >> ram["D3"];
 
-        // RAM control signals (active low)
-        vcc["0"] >> ram["~OE"];  // Output enable inactive
-        vcc["0"] >> ram["~CS"];  // Chip select inactive
-        vcc["0"] >> ram["~WR"];  // Write enable inactive
+        // RAM control signals (active low CS, active high WE)
+        vcc["0"] >> ram["~CS"];  // Chip select active
+        ground["0"] >> ram["WE"]; // Write enable inactive (0 = read mode)
 
-        LOG("MiniMax4004 system configured with 4004 CPU, ROM, and RAM");
+        LOG("MiniMax4004 system configured with 4004 CPU, 4001 ROM, and 4002 RAM");
     }
     catch (Exc e) {
         LOG("Connection error in SetupMiniMax4004: " << e);
@@ -507,7 +499,7 @@ CONSOLE_APP_MAIN {
 								
 								// Read and load the binary data
 								int addr = load_address;
-								while (!file.IsEof() && addr <= 0xFFF) {
+								while (!file.IsEof() && addr < 1024) {
 									int byte_val = file.Get();
 									if (byte_val == -1) break; // End of file
 									
@@ -516,7 +508,7 @@ CONSOLE_APP_MAIN {
 									addr++;
 									
 									// Also store upper 4 bits if there's space
-									if (addr <= 0xFFF) {
+									if (addr < 1024) {
 										rom->SetMemory(addr, (byte_val >> 4) & 0x0F); // Store upper 4 bits
 										addr++;
 									}

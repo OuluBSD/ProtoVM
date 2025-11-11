@@ -43,7 +43,7 @@ bool LoadProgramTo4004ROM(Machine& mach, const String& filename, int start_addr)
                             } else {
                                 // Read and load the binary data
                                 int addr = start_addr;
-                                while (!file.IsEof() && addr <= 0xFFF) {
+                                while (!file.IsEof() && addr < 1024) {
                                     int byte_val = file.Get();
                                     if (byte_val == -1) break; // End of file
 
@@ -52,7 +52,7 @@ bool LoadProgramTo4004ROM(Machine& mach, const String& filename, int start_addr)
                                     addr++;
 
                                     // Also store upper 4 bits if there's space
-                                    if (addr <= 0xFFF) {
+                                    if (addr < 1024) {
                                         rom->SetMemory(addr, (byte_val >> 4) & 0x0F); // Store upper 4 bits
                                         addr++;
                                     }
@@ -139,7 +139,7 @@ bool LoadIntelHexTo4004ROM(IC4001* rom, const String& filename, int start_addr) 
                     rom->SetMemory(rom_addr, byte_val & 0x0F); // Store lower 4 bits
                     rom_addr = (rom_addr + 1) & 0xFFF;
                     
-                    if (rom_addr <= 0xFFF) {
+                    if (rom_addr < 1024) {
                         rom->SetMemory(rom_addr, (byte_val >> 4) & 0x0F); // Store upper 4 bits
                     }
                 }

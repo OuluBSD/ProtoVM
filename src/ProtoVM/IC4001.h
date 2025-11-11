@@ -1,85 +1,63 @@
-#ifndef ProtoVM_IC4001_h
-#define ProtoVM_IC4001_h
+#ifndef _ProtoVM_IC4001_h_
+#define _ProtoVM_IC4001_h_
 
-#include "Component.h"
-#include "ICs.h"
-#include "Common.h"
-#include "Bus.h"
+#include <algorithm> // for std::min
 
 /*
- * Intel 4001 ROM Implementation for ProtoVM
- *
- * The Intel 4001 is a 2048-bit (256x8) read-only memory chip used with the 4004 CPU.
- * In the 4004 system, ROMs are used for program storage.
- *
- * Pinout:
- * - A0-A7: Address inputs (8-bit address for 256 locations)
- * - A8-A9: Additional address inputs (10-bit total for 1024 locations in some configurations)
- * - O0-O3: Output data bits (4-bit output - in 4004 system, data is 4 bits)
- * - CM: Clock output (to synchronize with CPU)
- * - CM4: Clock input (from CPU)
- * - JAM: Chip enable/disable
+ * Intel 4001 4-bit ROM
+ * 
+ * The Intel 4001 is a 4-bit ROM chip with:
+ * - 4-bit data output
+ * - 10-bit address input (1024 x 4-bit = 4096 bits total storage)
+ * - Output enable control
  */
 
 class IC4001 : public Chip {
-public:
-    IC4001();
-    virtual ~IC4001() {}
-
-    virtual bool Tick();
-    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id);
-    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits);
-
-    virtual const char* GetClassName() const { return "IC4001"; }
-    
-    // Method to load program data into ROM
-    void LoadProgram(const byte* data, int size);
-    void SetMemory(int addr, byte value);
-    byte GetMemory(int addr) const;
-
 private:
-    // 4001 has 256 words of 4-bits each (emulating 2048x1 configuration)
-    // For 4004 compatibility, we'll use 4096 4-bit words (as 4004 has 12-bit address space)
-    byte memory[4096];  // 4096 x 4-bit locations = 2048 bytes of 4-bit data
-    
-    // Current address
-    uint16 address;     // 12-bit address (0-4095)
-    
-    // Output data
-    byte output_data;   // 4 bit output data
-    
-    // Status
-    bool enabled;       // Whether chip is enabled
-    
-    // Pin mappings (relative to AddPin calls)
-    enum PinNames {
-        A0 = 0,    // Address bits (12 in total for 4004 compatibility)
-        A1 = 1,
-        A2 = 2,
-        A3 = 3,
-        A4 = 4,
-        A5 = 5,
-        A6 = 6,
-        A7 = 7,
-        A8 = 8,
-        A9 = 9,
-        A10 = 10,
-        A11 = 11,
-        O0 = 12,   // Output data
-        O1 = 13,
-        O2 = 14,
-        O3 = 15,
-        CM = 16,   // Clock output to CPU
-        CM4 = 17,  // Clock input from CPU
-        JAM = 18   // Chip enable
-    };
+    static constexpr int MAX_SIZE = 1024; // 1024 x 4-bit = 4096 bits storage
+    static constexpr int A0 = 0;          // Address pins (10 bits)
+    static constexpr int A1 = 1;
+    static constexpr int A2 = 2;
+    static constexpr int A3 = 3;
+    static constexpr int A4 = 4;
+    static constexpr int A5 = 5;
+    static constexpr int A6 = 6;
+    static constexpr int A7 = 7;
+    static constexpr int A8 = 8;
+    static constexpr int A9 = 9;
+    static constexpr int D0 = 10;         // Bidirectional data pins (4 bits)
+    static constexpr int D1 = 11;
+    static constexpr int D2 = 12;
+    static constexpr int D3 = 13;
+    static constexpr int CS = 14;         // Chip Select (active low)
+    static constexpr int OE = 15;         // Output Enable (active low)
 
-    // Internal state for current tick
-    uint32 in_pins;
-    
-    void SetPin(int i, bool b);
-    void ReadMemory();
-    void UpdateOutput();
+    // Memory storage
+    byte memory[MAX_SIZE];  // 4-bit values stored in 8-bit bytes (upper 4 bits unused)
+
+    // Control signals
+    bool chip_select;
+    bool output_enable;
+    uint16_t address;
+    byte data_out;
+
+    // Input values
+    uint16_t in_addr;
+    bool in_cs;
+    bool in_oe;
+
+public:
+    IC4001(int size = MAX_SIZE);
+
+    bool Tick() override;
+    bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
+    bool PutRaw(uint16 conn_id, byte* data, int data_bits, int data_bytes) override;
+
+    // Helper methods
+    void WriteMemory(uint16_t addr, byte value);
+    byte ReadMemory(uint16_t addr) const;
+    void SetMemory(uint16_t addr, byte value) { WriteMemory(addr, value); }
+    byte GetMemory(uint16_t addr) const { return ReadMemory(addr); }
 };
 
 #endif

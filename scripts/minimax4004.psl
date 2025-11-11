@@ -3,16 +3,32 @@
 
 computer Minimax4004:
     cpu: IC4004("CPU4004")
-    rom: ICRamRom("ROM4001", size=256, read_only=True)  # 4001 ROM with 256 bytes
-    ram: ICRamRom("RAM4002", size=40, read_only=False)   # 4002 RAM with 40 bytes
-    io: IC4003("IO4003")  # 4003 shift register for I/O
+    rom: IC4001("ROM4001")  # 4001 ROM with 10 address lines and 4 data lines
+    ram: IC4002("RAM4002")   # 4002 RAM with 4 address lines and 4 data lines
 
-    # Bus connections
-    cpu.data_bus.connect(rom.data_bus, ram.data_bus, io.data_bus)
-    cpu.addr_bus.connect(rom.addr_bus, ram.addr_bus, io.addr_bus)
-    cpu.control_bus.connect(rom.control, ram.control, io.control)
+    # Data bus connections (4-bit)
+    cpu.D0.connect(rom.D0, ram.D0)
+    cpu.D1.connect(rom.D1, ram.D1)
+    cpu.D2.connect(rom.D2, ram.D2)
+    cpu.D3.connect(rom.D3, ram.D3)
+
+    # Address bus connections
+    cpu.A0.connect(rom.A0, ram.A0)  # Common address to both
+    cpu.A1.connect(rom.A1, ram.A1)
+    cpu.A2.connect(rom.A2, ram.A2)
+    cpu.A3.connect(rom.A3, ram.A3)
+    cpu.A4.connect(rom.A4)  # ROM has more address lines (A4-A9)
+    cpu.A5.connect(rom.A5)
+    cpu.A6.connect(rom.A6)
+    cpu.A7.connect(rom.A7)
+    cpu.A8.connect(rom.A8)
+    cpu.A9.connect(rom.A9)
+
+    # Control signals
+    cpu.CM4.connect(rom.CS, ram.CS)  # Clock to both chips
+    cpu.MR.connect(rom.OE)  # Memory Read to ROM Output Enable
+    cpu.MW.connect(ram.WE)  # Memory Write to RAM Write Enable
 
 # Memory mapping
-# 4001 ROM: 0x000-0x0FF
-# 4002 RAM: 0x100-0x127
-# 4003 I/O: 0x128-0x12F
+# 4001 ROM: 256 4-bit words accessible via A0-A7 (or fewer address lines)
+# 4002 RAM: 16 4-bit words accessible via A0-A3

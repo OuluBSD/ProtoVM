@@ -29,20 +29,32 @@ BusController4004::BusController4004() {
 
     // Add the pins for the bus controller
     // CPU data pins (bidirectional)
-    AddBidirectional("CPU_D0");
-    AddBidirectional("CPU_D1");
-    AddBidirectional("CPU_D2");
-    AddBidirectional("CPU_D3");
-    
-    // ROM data pins (bidirectional)
-    AddBidirectional("ROM_D0");
-    AddBidirectional("ROM_D1");
-    AddBidirectional("ROM_D2");
-    AddBidirectional("ROM_D3");
-    
+    // Add the pins for the bus controller
+    // CPU data pins (input from CPU when writing to memory, output to CPU when reading from memory)
+    AddSink("CPU_D0_IN");     // CPU writes data to this pin when storing to memory
+    AddSink("CPU_D1_IN"); 
+    AddSink("CPU_D2_IN");
+    AddSink("CPU_D3_IN");
+    AddSource("CPU_D0_OUT");  // CPU reads data from this pin when loading from memory
+    AddSource("CPU_D1_OUT");
+    AddSource("CPU_D2_OUT");
+    AddSource("CPU_D3_OUT");
+
+    // ROM data pins (data output from ROM to controller)
+    AddSink("ROM_D0_OUT");    // Data flows FROM ROM TO controller
+    AddSink("ROM_D1_OUT");
+    AddSink("ROM_D2_OUT");
+    AddSink("ROM_D3_OUT");
+
     // RAM data pins (separate input and output)
     AddSink("RAM_DIN0");      // Data inputs to RAM
     AddSink("RAM_DIN1");
+    AddSink("RAM_DIN2");
+    AddSink("RAM_DIN3");
+    AddSource("RAM_DOUT0");   // Data outputs from RAM
+    AddSource("RAM_DOUT1");
+    AddSource("RAM_DOUT2");
+    AddSource("RAM_DOUT3");
     AddSink("RAM_DIN2");
     AddSink("RAM_DIN3");
     AddSource("RAM_DOUT0");   // Data outputs from RAM
@@ -140,18 +152,27 @@ bool BusController4004::Process(ProcessType type, int bytes, int bits, uint16 co
                 return dest.PutRaw(dest_conn_id, &bit_val, 0, 1);
             }
 
-            // CPU data pins (when CPU is driving)
-            case BusController4004::CPU_D0:
-            case BusController4004::CPU_D1:
-            case BusController4004::CPU_D2:
-            case BusController4004::CPU_D3:
+            // CPU data pins (when sending data to CPU)
+            case BusController4004::CPU_D0_OUT:
+            case BusController4004::CPU_D1_OUT:
+            case BusController4004::CPU_D2_OUT:
+            case BusController4004::CPU_D3_OUT:
             {
-                if (cpu_mw) {  // When CPU is writing
-                    int bit_pos = conn_id - BusController4004::CPU_D0;
-                    byte bit_val = (cpu_data >> bit_pos) & 0x1;
-                    return dest.PutRaw(dest_conn_id, &bit_val, 0, 1);
+                // Send appropriate data to CPU based on which memory is selected
+                int bit_pos = conn_id - BusController4004::CPU_D0_OUT;
+                byte output_data = 0;
+                
+                // Determine what data to send based on control signals
+                if (cpu_mr) { // Memory Read - send ROM data
+                    output_data = (rom_data >> bit_pos) & 0x1;
+                } else if (cpu_mw) { // Memory Write - send CPU data back for verification
+                    output_data = (cpu_data >> bit_pos) & 0x1;
+                } else {
+                    // Default state - possibly floating or last value
+                    output_data = (cpu_data >> bit_pos) & 0x1;
                 }
-                break;
+                
+                return dest.PutRaw(dest_conn_id, &output_data, 0, 1);
             }
 
             default:
@@ -167,25 +188,25 @@ bool BusController4004::PutRaw(uint16 conn_id, byte* data, int data_bytes, int d
     bool value;
 
     switch (conn_id) {
-        // Handle CPU data inputs (when CPU is receiving)
-        case BusController4004::CPU_D0:
-        case BusController4004::CPU_D1:
-        case BusController4004::CPU_D2:
-        case BusController4004::CPU_D3:
+        // Handle CPU data inputs (when CPU sends data to bus controller)
+        case BusController4004::CPU_D0_IN:
+        case BusController4004::CPU_D1_IN:
+        case BusController4004::CPU_D2_IN:
+        case BusController4004::CPU_D3_IN:
             if (data_bytes == 0 && data_bits == 1) {  // Single bit input
-                int bit_pos = conn_id - BusController4004::CPU_D0;
+                int bit_pos = conn_id - BusController4004::CPU_D0_IN;
                 byte mask = 1 << bit_pos;
                 in_cpu_data = (in_cpu_data & ~mask) | ((*data & 1) << bit_pos);
             }
             break;
 
-        // Handle ROM data inputs
-        case BusController4004::ROM_D0:
-        case BusController4004::ROM_D1:
-        case BusController4004::ROM_D2:
-        case BusController4004::ROM_D3:
+        // Handle ROM data inputs (data from ROM to bus controller)
+        case BusController4004::ROM_D0_OUT:
+        case BusController4004::ROM_D1_OUT:
+        case BusController4004::ROM_D2_OUT:
+        case BusController4004::ROM_D3_OUT:
             if (data_bytes == 0 && data_bits == 1) {  // Single bit input
-                int bit_pos = conn_id - BusController4004::ROM_D0;
+                int bit_pos = conn_id - BusController4004::ROM_D0_OUT;
                 byte mask = 1 << bit_pos;
                 in_rom_data = (in_rom_data & ~mask) | ((*data & 1) << bit_pos);
             }

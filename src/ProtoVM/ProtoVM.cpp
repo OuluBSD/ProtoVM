@@ -58,8 +58,11 @@ void SetupMiniMax4004(Machine& mach) {
     IC4004& cpu = pcb.Add<IC4004>("CPU4004");
 
     // Create memory components for the 4004 system
-    IC4001& rom = pcb.Add<IC4001>("ROM4001");  // Proper 4001 ROM component for binary loading
+    IC4001& rom = pcb.Add<IC4001>("ROM4001");  // Proper 4001 ROM component
     IC4002& ram = pcb.Add<IC4002>("RAM4002");  // Proper 4002 RAM component
+
+    // Create bus controller for proper 4004 system bus arbitration
+    BusController4004& bus_ctrl = pcb.Add<BusController4004>("BUS_CTRL");
 
     // Create buses for the 4004 system
     Bus<12>& addr_bus = pcb.Add<Bus<12>>("ADDR_BUS");
@@ -71,6 +74,16 @@ void SetupMiniMax4004(Machine& mach) {
     Pin& vcc = pcb.Add<Pin>("vcc").SetReference(1);     // VCC
 
     try {
+        // Connect CPU data pins to bus controller
+        cpu["D0"] >> bus_ctrl["CPU_D0_IN"];
+        cpu["D1"] >> bus_ctrl["CPU_D1_IN"];
+        cpu["D2"] >> bus_ctrl["CPU_D2_IN"];
+        cpu["D3"] >> bus_ctrl["CPU_D3_IN"];
+        bus_ctrl["CPU_D0_OUT"] >> cpu["D0"];
+        bus_ctrl["CPU_D1_OUT"] >> cpu["D1"];
+        bus_ctrl["CPU_D2_OUT"] >> cpu["D2"];
+        bus_ctrl["CPU_D3_OUT"] >> cpu["D3"];
+
         // Connect address bus - addresses go from CPU to memory
         cpu["A0"] >> addr_bus[0];
         cpu["A1"] >> addr_bus[1];
@@ -85,7 +98,12 @@ void SetupMiniMax4004(Machine& mach) {
         cpu["A10"] >> addr_bus[10];
         cpu["A11"] >> addr_bus[11];
 
-        // Connect ROM and RAM addresses via address bus
+        // Connect ROM data and address pins to bus controller and address bus
+        rom["D0"] >> bus_ctrl["ROM_D0_OUT"];
+        rom["D1"] >> bus_ctrl["ROM_D1_OUT"];
+        rom["D2"] >> bus_ctrl["ROM_D2_OUT"];
+        rom["D3"] >> bus_ctrl["ROM_D3_OUT"];
+        
         addr_bus[0] >> rom["A0"];
         addr_bus[1] >> rom["A1"];
         addr_bus[2] >> rom["A2"];
@@ -97,29 +115,45 @@ void SetupMiniMax4004(Machine& mach) {
         addr_bus[8] >> rom["A8"];
         addr_bus[9] >> rom["A9"];
 
+        // Connect RAM data and address pins to bus controller and address bus
+        bus_ctrl["RAM_DIN0"] >> ram["D0"];
+        bus_ctrl["RAM_DIN1"] >> ram["D1"];
+        bus_ctrl["RAM_DIN2"] >> ram["D2"];
+        bus_ctrl["RAM_DIN3"] >> ram["D3"];
+        ram["D0"] >> bus_ctrl["RAM_DOUT0"];
+        ram["D1"] >> bus_ctrl["RAM_DOUT1"];
+        ram["D2"] >> bus_ctrl["RAM_DOUT2"];
+        ram["D3"] >> bus_ctrl["RAM_DOUT3"];
+        
         addr_bus[0] >> ram["A0"];
         addr_bus[1] >> ram["A1"];
         addr_bus[2] >> ram["A2"];
         addr_bus[3] >> ram["A3"];
 
-        // Connect CPU control signals to provide basic clock and reset
+        // Connect CPU control signals
         clk >> cpu["CM4"];        // Clock to CPU
         reset >> cpu["RES"];      // Reset to CPU
 
         cpu["CM"] >> ground["0"];   // CPU clock output to ground
         cpu["BUSY"] >> ground["0"]; // Busy signal to ground
+        cpu["R/W"] >> bus_ctrl["CPU_RW"]; // Connect to bus controller
+        cpu["MR"] >> bus_ctrl["CPU_MR"];   // Connect to bus controller
+        cpu["MW"] >> bus_ctrl["CPU_MW"];   // Connect to bus controller
         cpu["SBY"] >> ground["0"];  // System busy to ground
 
-        // Connect memory control signals to enable access
-        vcc["0"] >> rom["~OE"];  // ROM output enable active
-        vcc["0"] >> rom["~CS"];  // ROM chip select active
-        vcc["0"] >> ram["~CS"];  // RAM chip select active
-        ground["0"] >> ram["WE"]; // RAM write enable inactive (read mode)
+        // Connect bus controller clock signals
+        clk >> bus_ctrl["CPU_CLK"];
+        clk >> bus_ctrl["MEM_CLK"];  // For simplicity, using same clock
 
-        // For now, skip direct data connections that cause bidirectional conflicts
-        // The primary goal is to allow binary loading to work
+        // Connect ROM control signals (active low)
+        vcc["0"] >> rom["~OE"];  // Output enable active
+        vcc["0"] >> rom["~CS"];  // Chip select active
 
-        LOG("MiniMax4004 system configured with 4004 CPU, 4001 ROM, and 4002 RAM");
+        // Connect RAM control signals (active low CS, active high WE)
+        vcc["0"] >> ram["~CS"];  // Chip select active
+        ground["0"] >> ram["WE"]; // Write enable inactive (0 = read mode)
+
+        LOG("MiniMax4004 system configured with 4004 CPU, 4001 ROM, 4002 RAM, and bus controller");
     }
     catch (Exc e) {
         LOG("Connection error in SetupMiniMax4004: " << e);

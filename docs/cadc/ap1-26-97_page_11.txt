@@ -1,0 +1,44 @@
+14 15 16 L? Selected to Output 3
+0 0 0 0 ERT 1
+
+0 0 0 1 EXT 2
+
+0 0 1 0 EXT 3
+
+0 0 1 i EXT 4
+
+0 1 0 0 EXT 5
+
+0 1 0 1 EXT 6
+
+0 L 1 0 EXT 7
+
+0 1 L i EXT 9
+
+1 0 0 0 24 (controlled by bit 18)
+1 0 0 1 => {controlled by bits 18-20)
+L 0 L 0 EXT 11
+
+1 0 1 L EXT 2 + EXT 4
+
+1 1 0 0 EXT 2 - EXT 8
+
+1 1 0 1 EXT 2 - EXT 4
+
+1 1 L 0 EXT 4 - EXT 2
+
+1 L 1 1 EXT 4 + EXT 8
+
+1 EXT 12 + EXT 8 = 24
+
+MSB
+
+19 20
+
+0 0 =, + EXT 2=2,
+
+0 1 HE, ° EXT 2=25
+
+1 0 3, + EXT 4=2,
+
+1 1 F717 EXT 4=35

@@ -1,0 +1,38 @@
+Since each SL has three outputs the capability is there to
+perform three additions and/or subtractions during one word
+time. Output 3 has the added feature of performing two additions
+during the same data transfer. This would be A+58+C. This
+feature was incorporated te handle the many cases of concluding
+a polynomial evaluation and adding another value to it, This
+would look like (A, x+AQ)} + ¥. As the product of A,x is being
+transferred to memory the Ag constant and Y value can be added
+to it. As can be seen the addition and subtraction, if used
+properly, can take "zero" time since transferring of data has
+to be accomplished anyway.
+
+These four units comprise the hardware that can perform
+arithmetic operations, As shown in Figure 2 each PMU, PDU and
+SLF has a Data $teering Unit associated with them. As will be
+discussed later this allows many data paths to be operating
+consecutively, Thus computational power is greatly increased.
+
+MEMORY UNITS
+
+There are two memory units, Read-Only Memory (ROM) fer
+instruction storage and Random Access (Read/Write) Storage (RAS)
+for intermediate data storage, The ROM cperates as a 2560-bit
+yvandom access/sequential access device, It internally stores
+fixed patterns of 128 words of 20 bit length for serial readout.
+The patterns are specified by the user. The ROM has provision
+to accept a 20-bit serial binary word address. The first seven
+bits indicates which of the 128 words is to be accessed, and
+the next three bits specifies, by manufacture mask decoding,
+which ROM out of a possible eight ROM group should have its
+output enabled.
+
+The address management is accomplished by 2a register counter
+contained within the ROM. This counter has the following cap-
+ability: (1) resettable, (2) steppable such that the memory can
+be sequenced through the 128-word field, (3) accepts a retain
+address command and holds the present address, and (4) accepts
+a numerical input for independent address modifying or loading.

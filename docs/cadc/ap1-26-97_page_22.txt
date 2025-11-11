@@ -1,0 +1,42 @@
+System executive control bits 13 through 19 are assigned
+to control the processor modules. The reason for having such a
+control is to minimize the storage requirements in the ROM's by
+disabling their operation when they are not being used.
+
+SOFTWARE COMMENTS
+
+The software for this system is closely associated with the
+hardware arrangement. To program such a system efficiently
+requires complete knowledge of the hardware, At the present
+time there is no assembler available to properly handie Ehe
+multiple instruction set and data path considerations to yield
+an efficient program.
+
+Present programming requires hand coding at the machine
+code level, This is certainly tedious but it results in a more
+efficient circuit interconnect and minimum total instruction
+words, All of this reflects the number of arithmetic modules
+and ROM's necessary to handie a particular problem.
+
+ADVANTAGES AND DISADVANTAGES
+
+The advantages cf such a system are determined by the
+constraints under which system design was accomplished. The
+size of the circuit packages were such that the original size
+constraint was met. The sizes are indicated below:
+
+Multiplier Unit - 28 pin dual in-line package
+Divider Unit = 28 "
+Special Logic Unit - 28 "
+Steering Unit - 28 "
+R.O.M. - 14 "
+R.A.5S,. -~ 14 "
+
+The flexibility of the hardware to adapt to a great number
+of problem statements along with its R.O.M. reprogramming capa-
+bility is certainly a feature desirable in all systems of this
+kind. The Fact that the software and hardware can be used in
+conjunction with each other helps to reduce the total parts count
+in the system. When total parts are reduced then power consumption
+
+and cost will be reduced. Power consumption for the CPU-Memory

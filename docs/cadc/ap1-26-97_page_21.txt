@@ -1,0 +1,67 @@
+SYSTEM EXECUTIVE CONTROL
+
+The system executive control is used to control many parts of
+
+the total system.
+
+In
+
+general, it is used to control the inputs
+
+(A/D, diseretes, sensor inputs},the outputs (D/A, digital data,
+
+discrete), and the processor modules,
+
+The system executive control consists of an associated group
+
+of ROM's, supplying a 20-bicE control word every operation time.
+
+Each bit has a preassigned task based upon the hardware configura-
+
+tion. The assignment for each of the bits might be as follows:
+
+MSB 20
+19
+18
+i?
+16
+15
+14
+13
+12
+11
+
+ke
+2
+
+eppw Fin mh wa w ‘oO
+
+LSB
+
+Enables Discrete Inputs to Processor
+
+SLU
+SLU
+SLU
+PDBU
+PDU
+PMU
+PMU
+
+Control ROM Enable
+Data ROM-2 Enable
+Data ROM-1 Enable
+Control ROM Enable
+Data ROM Enable
+
+Control ROM Enable
+Data ROM Enable
+
+Enables System Self Test
+Analog ~ to - Digital Converter Control
+
+Output Digital - to - Analog Control
+
+Digital Sensor Input Control
+
+Control of System Sync and Control Counters

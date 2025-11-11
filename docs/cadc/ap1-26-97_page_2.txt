@@ -1,0 +1,54 @@
+ing, data comparison and discrete or flag inputs and outputs.
+This meant that the arithmetic and logical functions of the
+
+system had to handle at least the following aperations:
+
+Multiply
+
+Divide
+
+Add
+
+Subtracck
+
+Limits
+
+Square Root
+
+And
+
+Or
+
+Conditional Transfer
+Unconditional Transfer
+Recelve Discrete Data
+Receive Digital Data
+Qutput Discrete Data
+Output Digital Data
+
+The last constraint of cost was certainly important since
+the system would eventually go into high volume production.
+
+FUNCTIONS TO BE IMPLEMENTED
+
+Before we proceed, a better understanding of the functions
+to be implemented is necessary. The function that most often
+
+occurred was the polynomial,
+_ 6 5 4 3 2 1
+F(X) = Ags + agx” + a,x + agx + aoe” + a,x + ag
+where x was the input, either from outside the CPU (sensors) or
+from its own memory.
+
+In order to save arithmetic time the polynomial was implemented
+in its “nested” form as follows:
+
+F(X) = (CCC C(xa,) + az) x + a,) x + 2q) x + ay) x + a) x,+ ag
+
+The data limit function was one that would accept 3 binary
+inputs, an upper limit (U), a lower Limit (L) and a parameter (P>.
+The output would then be as follows;
+
+PifU2s: P2tL.
+Lif P « L
+UiiPe;> L

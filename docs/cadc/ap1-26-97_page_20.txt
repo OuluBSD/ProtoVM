@@ -1,0 +1,22 @@
+Module 3 Instruction Word
+
+LSB 1
+2 Selects SLF ‘| Also Selects
+3 RAS Register SLF Functions To SLF and
+4 SLF RAS
+5. Write
+-
+Selects Lower
+Out 1 : | Limit Data |
+1 |
+1 Selects Upper
+Our 20 43 Limit Data’ \
+13 To SLF
+14 Steering
+15
+16
+out 3 17 Selects Parameter Data
+18 and RAS Storage Data
+i9
+
+MSB 20

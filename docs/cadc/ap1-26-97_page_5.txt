@@ -1,0 +1,51 @@
+Early in the architecture study it was realized that
+package size and quantity should be kept to a minimum if we were
+to meet the size constraints established, With minimum packaging
+space requirements it was necessary to use packages with the
+fewest possible leads. This would minimize the complex p.c, card
+4nterconnect which was inevitable. Because of this the processor
+was designed to transfer data serially throughout the entire system,
+
+PROCESSOR PARALELLISM
+
+As is known by all computer designers, serial machines are
+usually not the best way to go if computational speed is needed.
+To get around this it was decided to have several arithmetic or
+processing units working at the same time. This resulted in a
+technique known as "pipeline processing" or "pipeline concurrency".
+As defined by Bell and Newell” “pipeline concurrency is the name
+given to a system of multiple functional units, each of which is
+responsible for partial interpretational and execution of the
+
+instruction stream."
+
+This system uses multiple functional units each dedicated
+
+for a specific task, These functional units are:
+
+, Parallel Multiplier Unit (PMU)
+
+. Parallel Divider Unit (PDU)
+
+. Special Logic Function (SLF)
+
+. Data Steering Unit (SL)
+
+. Random Access Storage (Read/Write) (RAS)
+. Read-Only Memory Unit (ROM)
+
+aw ee WBS Nw FR
+
+Figure 2 shows a block diagram of the functional units as
+they would work together in a typical system. Each unit was designed
+to operate as a separate entity and could be used without the need
+of any of the other units. This was done to provide maximum
+expandibility with minimum additional hardware, Each functional
+unit is controlled by its own micro-instruction ROM. The micro-
+instructions are also transferred serially to minimize package
+pin count, Temporary data storage is provided in the form of
+read/write memory.
+
+1. Gordon G, Bell, and Allen Newell, Computer Structures: Readings
+and Examples, McGraw Hill Book Co., N.Y.; > PR.
+

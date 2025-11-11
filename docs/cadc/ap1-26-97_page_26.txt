@@ -1,0 +1,17 @@
+19.
+
+20,
+
+21,
+
+Donald E, Waldecker, "Comparison of a Microprogrammed and a
+Non-Microprogrammed Computer,'' Computer Design, June 1970,
+pp. 73-77
+
+Thomas M. Whitney, "A Test Procedure for Microprogrammed
+Systems," Presented at the 3rd Annual Workshop on Micro-
+programming, Buffalo, N.¥., Octcber 1970
+
+M. V. Wilkes, "The Growth of Interest in Microprogramming:
+A Literature Survey," Computer Surveys, Vol. 1, No. 3,
+Sept. 1969, pp. 139-145

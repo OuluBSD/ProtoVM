@@ -1,0 +1,35 @@
+INTRODUCTION
+
+This paper describes the architecture of the CPU and Memory
+for the Central Air Data Computer (CADC) System used in the Grumman/
+Navy FI4A carrier-based fighter aircraft. The CADC performs
+specialized computerational functions in response to input stimuli
+such as pressure sensors, temperature sensors and closed loop
+feedback inputs, Outputs from the CADC system are used to drive
+pilot visual displays (such as, altimeter, temperature indicator,
+mach number indicator, etc.) and to provide control inputs for
+other aircraft systems. The outputs from the CADC are in the form
+of digital and analog signals. Figure i illustrates a block
+diagram for the CADC.
+
+Being in a flight environment meant that certain constraints
+must greatly reflect the architecture of the CPU and Memory.
+These constraints were size, power, reai-time computing capability
+and cost, not necessarily in that order. Other constraints such
+as temperature, acceleration and mechanical shock affected the
+overall design of the CADC.
+
+The size of the CPU-Memory was limited to a maximum of 40
+square inches. This included the arithmetic section, read-only
+memory, and read/write memory. Since the unit was to be packaged
+on a printed circuit card the number of Layers of the p.c. card
+was an important consideration. The power consumption had a limit
+of 10 watts at ambient 25°C. This was principally a function of
+the capabilities of the p.c. card to withstand the heat.
+
+The required computing capacity for the CPU was not defined
+at the beginning. This meant that the system had to be somewhat
+flexible to changes in computational load. Of course limits had
+to be set to be able to work within the other constraints. What
+was known about the computation was the form of the equations to
+be implemented, This included polynominal evaluations, data limit-

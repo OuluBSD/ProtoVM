@@ -1,0 +1,35 @@
+BIBLIOGRAPHY
+
+Staff of American Micro-systems, Inc., Engineering Course
+in MOS Technology, American Micro=systems, Inc., Santa
+Clara, Calif., 1970
+
+Thomas C. Bartee, Irwin L. Lebow and Irving S, Reed,
+
+Theory and Design of Digital Machines, McGraw Hill Book
+Company, N.Y¥., 1962
+
+Lee L Boysel and Joseph P. Murphy, "“Four-Phase LSI Logic
+Offers New Approach to Computer Designers," Computer
+Design, April i970, pp. 141-146
+
+T. C. Chen, "Parallelism, Pipelining and Computer Efficiency,"
+Computer Design, Jan. 1971, p. 69
+
+Robert W. Cook and Michael J. Flynn, "System Design of a
+Dynamic Microprocessor," IEEE Transactions on Computers,
+Vol. 19, No. 3, March 1970, pp. 213-222
+
+William R. Graham, "The Parallel and the Pipeline Computers,"
+Datamation, April 1970, p. 68
+
+D. C. Gunderson, "Some Effects of Advances In Memory System
+Technology On Computer Organization," IEEE Computer Group
+Computer, Nov,/Dec, 1970, pp. 7-11
+
+Robert C. Haavind, "The Many Faces of Microprogramming,"
+Computer Decisions, Sept. 1971, pp. 6-10
+
+Raymond M. Holt, "MOS Processor For the F14A CADC," Garrett
+AiResearch Corp., Terrance, Calif., Technical Report No.
+71-7266, April 1971

@@ -1,0 +1,29 @@
+discussed in this paper exceeded the original 10 watts. This
+was due to the large quantity of read-only memory needed to
+implement the problem statement, With present day technology
+the cost of such a commercial CPU-Memory system could be less
+than $2000 in large quantities. This is based on a price of
+tess than $65 per circuit type.
+
+The disadvantages of this system is reflected in the software,
+To hand code the entire program in a machine such as this is a
+time consuming and tedious effort. To use an assembler or trans-
+lator to perform the coding would result in a less efficient
+program and possibly more hardware. To obtain the minimal
+hardware configuration a person with both hardware and software
+knowledge of the system is needed, Future designs of this nature
+need to be worked closer with the software requirements in order
+
+to minimize the effort required for programming.
+
+SUMMARY
+
+A CPU-Memory system has been presented that satisfied the
+requirements of a particular application. The "pipelined"
+approach resulted in a system with enough flexibility to satisfy
+the present requirement and to adapt to other areas of applica-
+tion. MOS technology previded "state of the art" power dis-
+sipations and packaging densities obtainable in no other way.
+This system proved to be the most effective in meeting the
+
+given requirements.

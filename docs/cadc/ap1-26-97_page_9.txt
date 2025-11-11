@@ -1,0 +1,40 @@
+by means of a parallel algorithm in one more word time (Wy). The
+quotient is shifted out in the next Wp, while inputs for the next
+operation are simultaneously shifted in. The division operation
+is achieved by using a non-restoring division algorithm.” An
+actual photograph of the PDU chip is shown in Figure 4,
+
+The Special Logic Function performs logical operations and
+generates specific data and logic outputs, The unit accepts an
+instruction word which specifies details of the operation.
+
+The fundamental logical operation of this unit is the limit
+funetion, It consists of three registers (U,P, and L} whose inputs
+arrive in Wy. One of these registers is picked at the end of W,
+by associated comparison logic. Other logic functions such as
+AND's, OR's, GRAY CODE (special), Conditional, and Unconditional
+data branching is also included in this Logic.
+
+The Data Steering Unit operates as a three channel serial
+digital data multiplexer. Information is shifted serially through
+the device during Wy- A 15 bit instruction word is accepted
+during W, that specifies which input or input combinations (Add
+or subtract) is to be "steered" to each of three data outputs,
+
+The instruction word for this unit is the last 15 bits of the
+90-bit instruction word. From the least significant end, the
+first four bits specifies the selection for Output 1. The next
+
+four bits specifies the selection for Output 2 and the last
+seven bits specifies the selection for Output 3. Addition or
+subtraction is performed by specifying that output combination
+to be "steered" to the output. By performing additions and
+subtractions in this manner the programmer can obtain the sum
+and difference during the same word time that the data is being
+transferred. This transfer may be either to or from the memory
+or arithmetic units, Specific instruction codes are interpreted
+
+as follows:
+
+3, Yoahan Chu, Digital Computer Design Fundamentals, MeGrawHill
+Book Co., N.Y., 1962, pg. 39.

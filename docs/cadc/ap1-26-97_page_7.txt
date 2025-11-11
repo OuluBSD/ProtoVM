@@ -1,0 +1,42 @@
+Before looking at the functions of each of these units a
+brief look ack the timing is needed. Figure 3 illustrates this
+timing. The CPU-Memory clock is 375KHz, One complete clock period,
+defined as a bit time is 2.66yusec., Every 20 consecutive bit times
+are defined as a word, The first bit time of a word is called TO,
+and the last time of the word is called T19. Two types of words
+are used in the system, W, and Wg: in Was the arithmetical
+algorithms operate and instruction words are shifted serially
+into each functional unit. In Wy, computational inputs and out-
+puts are shifted serially among the units, A word mark used to
+distinguish word times is a signal coincident with T18 of every
+word time, Two consecutive word times, Wy, and Wo; is called an
+operation (op) time. To distinguish the final operation time
+a frame mark is generated in the system executive control, The
+time between frame marks is called a frame. A frame includes
+one complete cycle of computations, The frame mark is micro-
+programmed to allow the user to restart the computational cycle
+when all previous computations are complete. Since this system
+must operate in real time it was therefore necessary to obtain
+the most computation from each functional unit during each frame
+
+time,
+
+ARITHMETIC UNITS
+
+The Parallel Multiplier Unit accepts two serial inputs,
+multiplicand and multiplier, in one word time (Wo) and produces
+their properly rounded product by means of a parallel algorithm
+
+in one more word time.
+
+The product is shifted out in the next Wy, while inputs for
+the next operation are simultaneously shifted ot The multiplication
+operation is achieved using Booth's algorithm’, The PMU does not
+need an instruction word to operate, but is capable of operating
+continuously in this manner.
+
+The Parallel Divider Unit accepts two serial inputs, dividend
+and divisor, in one word time (Wa) and produces the proper quotient
+
+2. Yoahan Chu, Digital Computer’ Design Fundamentals, McGrawHill
+Book Co., N.¥., 1962, pg. 32.

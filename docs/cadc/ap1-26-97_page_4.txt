@@ -1,0 +1,40 @@
+Even though such a function could be programmed in software, it
+was decided to build it in hardware since it was used often
+
+enough.
+
+Data conditioning and scaling also had to be accomplished.
+This involved the following simple expressions:
+
++
+F=S4
+poAcsk
+
+At Cc
+
+Again the occurance of these were frequent enough to warrent
+hardware consideration. This will become apparent later when the
+hardware is discussed,
+
+Since size and power consumption was of the ultimate importance,
+MOS technology was chosen as the means of circuit implementation.
+This allowed greater packaging densities to be obtained that
+otherwise would not be. The slowness of MOS devices and the high
+thresholds used allowed a design that was virtually immune to
+electrical noise on the ground or transmitted from packages within
+elose proximity, The higher supply voltages required resulted in
+a more efficient power supply design.
+
+NUMBER SYSTEM
+
+The CPU is a fractional fixed point machine with the most
+significant bit a sign bit and the other bits representing data.
+Negative numbers are represented in two's complement notation.
+Two's complementation was chosen Co avoid the ambiguity of double
+
+zeros.
+
+The word length chosen for the system was 20 bits; 19 bits
+of data and 1 bit for sign. This length was chosen after a thorough
+analysis of the accuracy required for certain throughput calculations
+such as the rate of change of altitude function.

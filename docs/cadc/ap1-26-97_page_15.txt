@@ -1,0 +1,41 @@
+SYSTEM OPERATION AND INSTRUCTION FORMAT
+
+This processor uses a total of 28 circults., The breakdown
+is as follows:
+-~ Parallel Multiplier Unit (PMU)
+-- Parallel Divider Unit (PDU)
+== Special Logic Function (SLF)
+-- Random Access Storage Units (RAS)
+-- Data Steering Units (SL)
+19 -- Read-Only Memory Units (ROM)
+An actual photograph of the processor is shown in Figure 6,
+
+wwe ee
+
+The system has been divided into three modules, each module identi-
+fied by its arithmetic unit. The modules are as follows:
+
+Multiply Divide Special Logic
+Module 1 Module 2 Module 3
+L -- PMU 1 -- PDU 1 -- SELF
+Lo-- SL 1 -- SL 1 -- SL
+1 == RAS 1 -- RAS 1 -- RAS
+3 «- Data ROM's 1 -- Data ROM 2? -- Data ROM's
+3 -- Instruction Instruction Instruction
+ROM's ROM's ROM's
+
+Each arithmetic unit has an associated steering unit and RAS
+unit. This is not an absolutely necessary association but is chosen
+to add flexibility to the programming. Figure 7 illustrates another
+possibility of a circuit arrangement. It is important to note thaEe
+the hardware arrangement is flexible to the given problem statement.
+If many muitiplies are needed in a given problem then two or more
+multiplier units could be used instead cf one. The same can be true
+for any of the other circuits.
+
+Each module as shown in Figure 2? is a specialized CPU with its
+own data and instruction storage and read/write storage. Each
+operates as told by its instruction word. All of the modules are
+operating consecutively, each doing what it was dedicated for, The
+interconnection of tthe modules determines how the units work together
+The timing pulses to the units provide synchronization between Chen,

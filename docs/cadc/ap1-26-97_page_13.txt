@@ -1,0 +1,30 @@
+To accomplish the above address management, six logic inputs
+{reset (R), retain, increment, load, add, sub} and one address
+data input are provided,
+
+The address field is defined as follows: the first seven
+LgB's will select one of 128 20-bit words, The next three will
+be used to select one of eight ROM's, the remaining ten will be
+zero. The three~bit select field will determine, by mask decod-
+ing, which chip's (ROM) output is to be enabled. ROM's that
+are not enabled by the chip select field have disabled their
+outputs. The particular application described in this paper
+uses the ROM in the sequential access mode only.
+
+The RAS memory operates as a 16-word random access read-
+write storage device. Information is shifted serially into
+and out of selected registers during W,. Memory readout is
+nondestructive, i.e., if a register is selected to be read only,
+then the data are also rewritten into the selected register.
+
+The RAS accepts an instruction word of 5 bits during W,- The
+least significant four bits of the instruction word specifies
+one of sixteen 20-bit serial registers. The contents of the
+selected register is shifted out to the data output serially
+during the next Wp and Way At the Wo time, information from
+
+the data input is written into the selected register if the
+fifth control bit is a "1", If the fifth bit is a "Q"">, the
+register contents remain unaffected, An external logic input
+“inhibit write’ is provided to inhibit writing. The instruction
+word selects registers according to the following configuration:

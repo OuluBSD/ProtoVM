@@ -1,0 +1,50 @@
+Module 1 Instruction Word
+
+Selects PMU RAS | To PMU RAS
+
+LSB
+
+1
+1 |
+3 if Registers
+4 |
+5 Write
+‘
+7 5elects i
+WEEE 8 ; Multiplicand Data
+9
+10 ~
+Out 2 11 i Selects —
+12 Multiplier Data 7 To PMU Steering
+13 ;
+14 |
+15
+16 Selects RAS
+out 3 L? Storage Data |
+18
+MSB 20
+
+Module ? Instruction Word
+
+—~
+
+LSB 1 )
+2 Selects PDU RAS
+3 5 Registers To PDU RAS
+&
+5 Write
+6 7 ae
+7 Selects
+Out 1 8 5 Divisor Data
+9
+10
+Out 2 11 Selects
+12 Dividend Data To PDU Steering
+13
+14
+15
+16 Selects RAS
+out 3 1? Storage Data
+18
+19
+MSB 20

@@ -1,0 +1,28 @@
+For a unit to accept data from a source the output of the source
+must be connected to the input of the steering unit for that module.
+The transfer of data from module to module is a function of the
+interconnect and the instruction word. Every Wy time a new instruc-
+tion word is transferred from each instruction ROM group to the
+units in each module. These instruction words define the data
+path to be selected to each output of each steering unit during the
+next Wy cycle. System operation continues in this manner, W,
+(instruction fetch), Wy (data fetch) until the system executive
+control resets the instruction ROM's. Data storage ROM's can be
+treated like the outputs from the other circuits. They are
+connected to the inputs of the steering units. The total number
+of ROM's used in each group is a function of the total amount of
+storage required and the update rate of the system. The number
+of arithmetic units is a function of the amount of calculation and
+the update rate of the system. As shown, the hardware is flexible
+to handle changes in two directions: computational load and
+update rate. This flexibility is required to handle the various
+types of systems to be implemented,
+
+A general hardware arrangement illustrating the flexibility
+of the hardware is shown in Figure 8. The final configuration
+chosen by the user must depend on the total system programming
+requirements.
+
+For the system in Figure 2 the following would be its three
+
+instruction word formats.

@@ -1,0 +1,49 @@
+10,
+
+li.
+
+12.
+
+13,
+
+14,
+
+15.
+
+16.
+
+17.
+
+18.
+
+Samir 5S, Husson, Microprogramning: Principles and Practices,
+Prentice-Hall, New Jersey, 1970
+
+R. La. Kleir and Cc, V. Ramamoorthy, “Optimization Strategies
+for Microprograms,’' IEEE Transactions on Computers, Vol. 20,
+July 1971, pp. 783-794
+
+Frank J. Langley, "Small Computer Design Using Microprogramming
+and Multifunction LSI Arrays," Computer Design, April 1970,
+pp. 151-157
+
+William J, Patzer and Gilbert C, Vandling, "Systems Impli-
+cations of Microprogramming,' Computer Design, December 1967,
+pp. 62-66
+
+Montgomery Phister, Jr., Logical Design of Digital Computers,
+Wiley and Sons, N.Y., 1963
+
+Stephen R. Redfield, "A Study in Microprogrammed Processors:
+A Medium Sized Microprogrammed Processor,'' IEEE Transactions
+on Computers, Vol. 20, July 1971, pp. 743-750
+
+Robert F. Rosin, "Contemporary Concepts of Microprogramming
+and Emulation,” Computer Surveys, Vol. 1, No. 4, Dec. 1969,
+pp. 197-212
+
+"Design of Microprogrammable Systems,'' Signetics Memory Systems
+Application Note SM 80052AN ,
+
+"Economic Advantages of Micropregramming"™, Signetics Memory
+Systems Application Note SM SO053AN

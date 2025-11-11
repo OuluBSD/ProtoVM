@@ -75,10 +75,15 @@ void SetupMiniMax4004(Machine& mach) {
 
     try {
         // Connect CPU data pins to bus controller
-        cpu["D0"] >> bus_ctrl["CPU_D0"];
-        cpu["D1"] >> bus_ctrl["CPU_D1"];
-        cpu["D2"] >> bus_ctrl["CPU_D2"];
-        cpu["D3"] >> bus_ctrl["CPU_D3"];
+        cpu["D0"] >> bus_ctrl["CPU_D0_IN"];
+        cpu["D1"] >> bus_ctrl["CPU_D1_IN"];
+        cpu["D2"] >> bus_ctrl["CPU_D2_IN"];
+        cpu["D3"] >> bus_ctrl["CPU_D3_IN"];
+        
+        bus_ctrl["CPU_D0_OUT"] >> cpu["D0"];
+        bus_ctrl["CPU_D1_OUT"] >> cpu["D1"];
+        bus_ctrl["CPU_D2_OUT"] >> cpu["D2"];
+        bus_ctrl["CPU_D3_OUT"] >> cpu["D3"];
 
         cpu["A0"] >> addr_bus[0];
         cpu["A1"] >> addr_bus[1];
@@ -94,10 +99,10 @@ void SetupMiniMax4004(Machine& mach) {
         cpu["A11"] >> addr_bus[11];
 
         // Connect ROM data pins to bus controller
-        rom["D0"] >> bus_ctrl["ROM_D0"];
-        rom["D1"] >> bus_ctrl["ROM_D1"];
-        rom["D2"] >> bus_ctrl["ROM_D2"];
-        rom["D3"] >> bus_ctrl["ROM_D3"];
+        rom["D0"] >> bus_ctrl["ROM_D0_OUT"];
+        rom["D1"] >> bus_ctrl["ROM_D1_OUT"];
+        rom["D2"] >> bus_ctrl["ROM_D2_OUT"];
+        rom["D3"] >> bus_ctrl["ROM_D3_OUT"];
 
         // Connect ROM address pins directly to address bus
         addr_bus[0] >> rom["A0"];

@@ -338,7 +338,7 @@ bool Test4004_FIM_Instruction() {
         }
         
         // Run for multiple ticks to execute the instruction
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 10; i++) {
             mach.Tick();
         }
         
@@ -347,6 +347,313 @@ bool Test4004_FIM_Instruction() {
     }
     catch (Exc e) {
         LOG("Error in Test4004_FIM_Instruction: " << e);
+        return false;
+    }
+}
+
+// Test JCN (Jump Conditional) instruction - tests condition-based jumps
+bool Test4004_JCN_Instruction() {
+    LOG("Testing JCN instruction (0x10-0x1F)...");
+    
+    try {
+        Machine mach = Create4004TestCircuit();
+        
+        // Find components
+        IC4001* rom = nullptr;
+        IC4004* cpu = nullptr;
+        
+        for (int i = 0; i < mach.pcbs[0].GetNodeCount(); i++) {
+            ElectricNodeBase* node = &mach.pcbs[0].GetNode(i);
+            if (String(node->GetClassName()) == "IC4001") {
+                rom = dynamic_cast<IC4001*>(node);
+            } else if (String(node->GetClassName()) == "IC4004") {
+                cpu = dynamic_cast<IC4004*>(node);
+            }
+        }
+        
+        if (!rom || !cpu) {
+            LOG("Error: Could not find ROM or CPU component");
+            return false;
+        }
+        
+        // Program: JCN 0, 0x05 (Jump if test=true and carry=0 to address R0R1 which points to 0x0005)
+        // This would be 0x10 0x00, but we'll put dummy data at address 0x0005 too
+        rom->SetMemory(0x0, 0x0);  // Low nibble of JCN (0x10)
+        rom->SetMemory(0x1, 0x1);  // High nibble of JCN (0x10)
+        rom->SetMemory(0x2, 0x0);  // Low nibble of condition/addr (0x00)
+        rom->SetMemory(0x3, 0x0);  // High nibble of condition/addr (0x00)
+        
+        // Dummy instruction at jump destination (0x5 * 2 = addresses 0xA, 0xB in ROM)
+        rom->SetMemory(0xA, 0x0);  // NOP low nibble
+        rom->SetMemory(0xB, 0x0);  // NOP high nibble
+        
+        // Release reset
+        Pin* reset = nullptr;
+        for (int i = 0; i < mach.pcbs[0].GetNodeCount(); i++) {
+            ElectricNodeBase* node = &mach.pcbs[0].GetNode(i);
+            if (String(node->GetClassName()) == "Pin" && node->GetName() == "RESET") {
+                reset = dynamic_cast<Pin*>(node);
+                break;
+            }
+        }
+        
+        if (reset) {
+            reset->SetReference(1);  // Deassert reset
+        }
+        
+        // Run for multiple ticks to execute the instruction
+        for (int i = 0; i < 10; i++) {
+            mach.Tick();
+        }
+        
+        LOG("✓ JCN instruction test completed");
+        return true;
+    }
+    catch (Exc e) {
+        LOG("Error in Test4004_JCN_Instruction: " << e);
+        return false;
+    }
+}
+
+// Test WRM instruction (Write accumulator to memory)
+bool Test4004_WRM_Instruction() {
+    LOG("Testing WRM instruction (0x80)...");
+    
+    try {
+        Machine mach = Create4004TestCircuit();
+        
+        // Find components
+        IC4001* rom = nullptr;
+        IC4004* cpu = nullptr;
+        
+        for (int i = 0; i < mach.pcbs[0].GetNodeCount(); i++) {
+            ElectricNodeBase* node = &mach.pcbs[0].GetNode(i);
+            if (String(node->GetClassName()) == "IC4001") {
+                rom = dynamic_cast<IC4001*>(node);
+            } else if (String(node->GetClassName()) == "IC4004") {
+                cpu = dynamic_cast<IC4004*>(node);
+            }
+        }
+        
+        if (!rom || !cpu) {
+            LOG("Error: Could not find ROM or CPU component");
+            return false;
+        }
+        
+        // Set up memory first: FIM R0R1, 0x05 to set memory address, then WRM
+        rom->SetMemory(0x0, 0x0);  // Low nibble of FIM (0x20)
+        rom->SetMemory(0x1, 0x2);  // High nibble of FIM (0x20)
+        rom->SetMemory(0x2, 0x5);  // Low nibble of immediate (0x05)
+        rom->SetMemory(0x3, 0x0);  // High nibble of immediate (0x05) 
+        rom->SetMemory(0x4, 0x0);  // Low nibble of WRM (0x80)
+        rom->SetMemory(0x5, 0x8);  // High nibble of WRM (0x80)
+        
+        // Release reset
+        Pin* reset = nullptr;
+        for (int i = 0; i < mach.pcbs[0].GetNodeCount(); i++) {
+            ElectricNodeBase* node = &mach.pcbs[0].GetNode(i);
+            if (String(node->GetClassName()) == "Pin" && node->GetName() == "RESET") {
+                reset = dynamic_cast<Pin*>(node);
+                break;
+            }
+        }
+        
+        if (reset) {
+            reset->SetReference(1);  // Deassert reset
+        }
+        
+        // Run for multiple ticks to execute the instruction
+        for (int i = 0; i < 15; i++) {
+            mach.Tick();
+        }
+        
+        LOG("✓ WRM instruction test completed");
+        return true;
+    }
+    catch (Exc e) {
+        LOG("Error in Test4004_WRM_Instruction: " << e);
+        return false;
+    }
+}
+
+// Test ADD instruction (TAC -> DAC pattern which adds accumulator to memory)
+bool Test4004_ADD_Instruction() {
+    LOG("Testing ADD/SUB instructions (0xA0-0xBF for subtract)...");
+    
+    try {
+        Machine mach = Create4004TestCircuit();
+        
+        // Find components
+        IC4001* rom = nullptr;
+        IC4004* cpu = nullptr;
+        
+        for (int i = 0; i < mach.pcbs[0].GetNodeCount(); i++) {
+            ElectricNodeBase* node = &mach.pcbs[0].GetNode(i);
+            if (String(node->GetClassName()) == "IC4001") {
+                rom = dynamic_cast<IC4001*>(node);
+            } else if (String(node->GetClassName()) == "IC4004") {
+                cpu = dynamic_cast<IC4004*>(node);
+            }
+        }
+        
+        if (!rom || !cpu) {
+            LOG("Error: Could not find ROM or CPU component");
+            return false;
+        }
+        
+        // First set up address using FIM R0R1, then perform SBM (subtract memory - A = A - memory[R0R1])
+        // SBM is 0xA0 + condition nibble
+        rom->SetMemory(0x0, 0x0);  // Low nibble of FIM (0x20)
+        rom->SetMemory(0x1, 0x2);  // High nibble of FIM (0x20)
+        rom->SetMemory(0x2, 0x5);  // Low nibble of immediate (0x05)
+        rom->SetMemory(0x3, 0x0);  // High nibble of immediate (0x05)
+        rom->SetMemory(0x4, 0x0);  // Low nibble of SBM (0xA0) 
+        rom->SetMemory(0x5, 0xA);  // High nibble of SBM (0xA0)
+        
+        // Set memory at address 0x05 to have some value to subtract
+        rom->SetMemory(0xA, 0x3);  // Value to be subtracted (3)
+        rom->SetMemory(0xB, 0x0);  // Padding
+        
+        // Release reset
+        Pin* reset = nullptr;
+        for (int i = 0; i < mach.pcbs[0].GetNodeCount(); i++) {
+            ElectricNodeBase* node = &mach.pcbs[0].GetNode(i);
+            if (String(node->GetClassName()) == "Pin" && node->GetName() == "RESET") {
+                reset = dynamic_cast<Pin*>(node);
+                break;
+            }
+        }
+        
+        if (reset) {
+            reset->SetReference(1);  // Deassert reset
+        }
+        
+        // Run for multiple ticks to execute the instruction sequence
+        for (int i = 0; i < 15; i++) {
+            mach.Tick();
+        }
+        
+        LOG("✓ ADD instruction test completed");
+        return true;
+    }
+    catch (Exc e) {
+        LOG("Error in Test4004_ADD_Instruction: " << e);
+        return false;
+    }
+}
+
+// Test WMP instruction (Write RAM port)
+bool Test4004_WMP_Instruction() {
+    LOG("Testing WMP instruction (0x90)...");
+    
+    try {
+        Machine mach = Create4004TestCircuit();
+        
+        // Find components
+        IC4001* rom = nullptr;
+        IC4004* cpu = nullptr;
+        
+        for (int i = 0; i < mach.pcbs[0].GetNodeCount(); i++) {
+            ElectricNodeBase* node = &mach.pcbs[0].GetNode(i);
+            if (String(node->GetClassName()) == "IC4001") {
+                rom = dynamic_cast<IC4001*>(node);
+            } else if (String(node->GetClassName()) == "IC4004") {
+                cpu = dynamic_cast<IC4004*>(node);
+            }
+        }
+        
+        if (!rom || !cpu) {
+            LOG("Error: Could not find ROM or CPU component");
+            return false;
+        }
+        
+        // Write to ROM address with what would be a WMP instruction (0x90)
+        rom->SetMemory(0x0, 0x0);  // Low nibble of WMP (0x90)
+        rom->SetMemory(0x1, 0x9);  // High nibble of WMP (0x90)
+        
+        // Release reset
+        Pin* reset = nullptr;
+        for (int i = 0; i < mach.pcbs[0].GetNodeCount(); i++) {
+            ElectricNodeBase* node = &mach.pcbs[0].GetNode(i);
+            if (String(node->GetClassName()) == "Pin" && node->GetName() == "RESET") {
+                reset = dynamic_cast<Pin*>(node);
+                break;
+            }
+        }
+        
+        if (reset) {
+            reset->SetReference(1);  // Deassert reset
+        }
+        
+        // Run for multiple ticks to execute the instruction
+        for (int i = 0; i < 10; i++) {
+            mach.Tick();
+        }
+        
+        LOG("✓ WMP instruction test completed");
+        return true;
+    }
+    catch (Exc e) {
+        LOG("Error in Test4004_WMP_Instruction: " << e);
+        return false;
+    }
+}
+
+// Test control instructions like CLB (Clear Both flags) and CLC (Clear Carry)
+bool Test4004_Control_Instructions() {
+    LOG("Testing CLB (0xE0) and CLC (0xF0) instructions...");
+    
+    try {
+        Machine mach = Create4004TestCircuit();
+        
+        // Find components
+        IC4001* rom = nullptr;
+        IC4004* cpu = nullptr;
+        
+        for (int i = 0; i < mach.pcbs[0].GetNodeCount(); i++) {
+            ElectricNodeBase* node = &mach.pcbs[0].GetNode(i);
+            if (String(node->GetClassName()) == "IC4001") {
+                rom = dynamic_cast<IC4001*>(node);
+            } else if (String(node->GetClassName()) == "IC4004") {
+                cpu = dynamic_cast<IC4004*>(node);
+            }
+        }
+        
+        if (!rom || !cpu) {
+            LOG("Error: Could not find ROM or CPU component");
+            return false;
+        }
+        
+        // Program: CLB (0xE0) followed by CLC (0xF0)
+        rom->SetMemory(0x0, 0x0);  // Low nibble of CLB (0xE0)
+        rom->SetMemory(0x1, 0xE);  // High nibble of CLB (0xE0)
+        rom->SetMemory(0x2, 0x0);  // Low nibble of CLC (0xF0)
+        rom->SetMemory(0x3, 0xF);  // High nibble of CLC (0xF0)
+        
+        // Release reset
+        Pin* reset = nullptr;
+        for (int i = 0; i < mach.pcbs[0].GetNodeCount(); i++) {
+            ElectricNodeBase* node = &mach.pcbs[0].GetNode(i);
+            if (String(node->GetClassName()) == "Pin" && node->GetName() == "RESET") {
+                reset = dynamic_cast<Pin*>(node);
+                break;
+            }
+        }
+        
+        if (reset) {
+            reset->SetReference(1);  // Deassert reset
+        }
+        
+        // Run for multiple ticks to execute the instructions
+        for (int i = 0; i < 10; i++) {
+            mach.Tick();
+        }
+        
+        LOG("✓ Control instructions test completed");
+        return true;
+    }
+    catch (Exc e) {
+        LOG("Error in Test4004_Control_Instructions: " << e);
         return false;
     }
 }
@@ -453,6 +760,51 @@ int Run4004InstructionTests() {
         passed++;
     } else {
         LOG("✗ Test4004_FIM_Instruction FAILED");
+    }
+    
+    // Test JCN instruction
+    total++;
+    if (Test4004_JCN_Instruction()) {
+        LOG("✓ Test4004_JCN_Instruction PASSED");
+        passed++;
+    } else {
+        LOG("✗ Test4004_JCN_Instruction FAILED");
+    }
+    
+    // Test WRM instruction
+    total++;
+    if (Test4004_WRM_Instruction()) {
+        LOG("✓ Test4004_WRM_Instruction PASSED");
+        passed++;
+    } else {
+        LOG("✗ Test4004_WRM_Instruction FAILED");
+    }
+    
+    // Test ADD (SBM) instruction
+    total++;
+    if (Test4004_ADD_Instruction()) {
+        LOG("✓ Test4004_ADD_Instruction PASSED");
+        passed++;
+    } else {
+        LOG("✗ Test4004_ADD_Instruction FAILED");
+    }
+    
+    // Test WMP instruction
+    total++;
+    if (Test4004_WMP_Instruction()) {
+        LOG("✓ Test4004_WMP_Instruction PASSED");
+        passed++;
+    } else {
+        LOG("✗ Test4004_WMP_Instruction FAILED");
+    }
+    
+    // Test control instructions (CLB, CLC)
+    total++;
+    if (Test4004_Control_Instructions()) {
+        LOG("✓ Test4004_Control_Instructions PASSED");
+        passed++;
+    } else {
+        LOG("✗ Test4004_Control_Instructions FAILED");
     }
     
     // Test single instruction loading

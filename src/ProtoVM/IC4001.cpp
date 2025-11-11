@@ -40,8 +40,8 @@ IC4001::IC4001() {
     AddSource("O3"); // Output data bit 3
 
     // Control signals
-    AddSource("CM");  // Clock output to CPU
-    AddSink("CM4");   // Clock input from CPU
+    AddSink("CM");    // Clock input from CPU
+    AddSink("CM4");   // Clock input from system
     AddSink("JAM");   // Chip enable
 
     in_pins = 0;
@@ -98,11 +98,6 @@ bool IC4001::Process(ProcessType type, int bytes, int bits, uint16 conn_id, Elec
             case O0+3:
                 // Send the appropriate output bit
                 tmp[0] = (output_data >> (conn_id - O0)) & 0x1;
-                return dest.PutRaw(dest_conn_id, tmp, 0, 1);
-
-            // Handle clock output to CPU
-            case CM:
-                tmp[0] = (in_pins & (1 << CM4)) ? 1 : 0;  // Echo the input clock
                 return dest.PutRaw(dest_conn_id, tmp, 0, 1);
 
             default:

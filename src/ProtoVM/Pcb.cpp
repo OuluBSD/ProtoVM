@@ -213,7 +213,11 @@ void Pcb::GetLinkBases(Array<LinkBase>& links) {
 					l.sink = &to;
 					l.src = &from;
 				}
-				else if (!src_is_src && !sink_is_sink && (src_is_sink || sink_is_src || from.is_sink || to.is_src)) {
+				else if (!from.is_src && from.is_sink && to.is_src) {
+					l.sink = &from;
+					l.src = &to;
+				}
+				else if (!src_is_src && !sink_is_sink && (src_is_sink || sink_is_src || from.is_sink || (to.is_src && !to.is_sink))) {
 					l.sink = &from;
 					l.src = &to;
 				}
@@ -229,6 +233,3 @@ void Pcb::GetLinkBases(Array<LinkBase>& links) {
 		}
 	}
 }
-
-
-

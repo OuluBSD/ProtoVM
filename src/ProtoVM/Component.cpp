@@ -15,7 +15,7 @@ Pin::Pin() {
 Pin& Pin::SetReference(bool is_high) {
 	this->is_high = is_high;
 	Clear();
-	AddBidirectional("0").SetMultiConn();
+	AddSource("0").SetMultiConn();
 	return *this;
 }
 
@@ -1205,7 +1205,6 @@ bool Register4Bit::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_b
 	}
 	return true;
 }
-
 
 
 

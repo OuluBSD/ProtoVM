@@ -14,7 +14,7 @@ class Bus : public ElcBase {
 	bool processing = false;
 	byte data[BYTES];
 	bool is_driven[BYTES];  // Track which bytes are actively driven
-	bool verbose = 1;
+	bool verbose = 0;
 	
 public:
 	Bus() {

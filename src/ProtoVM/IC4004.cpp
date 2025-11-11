@@ -192,9 +192,6 @@ bool IC4004::Process(ProcessType type, int bytes, int bits, uint16 conn_id, Elec
             case A0+11:
                 // Send address to connected memory components
                 tmp[0] = (address_register >> (conn_id - A0)) & 0x1;
-                if (conn_id == A0) {
-                    LOG("IC4004::Process: sending addr bit " << (conn_id-A0) << " = " << (int)tmp[0] << " from 0x" << HexStr(address_register));
-                }
                 return dest.PutRaw(dest_conn_id, tmp, 0, 1);
 
             // Handle data bus outputs - only when writing to memory
@@ -205,9 +202,6 @@ bool IC4004::Process(ProcessType type, int bytes, int bits, uint16 conn_id, Elec
                 if (memory_write_active) {  // Memory Write is active
                     // Extract the correct bit of accumulator
                     byte bit_val = (accumulator >> (conn_id - D0)) & 0x1;
-                    if (conn_id == D0) {
-                        LOG("IC4004::Process: sending data: " << HexStr(accumulator) << " bit " << (conn_id-D0) << " = " << (int)bit_val);
-                    }
                     return dest.PutRaw(dest_conn_id, &bit_val, 0, 1);
                 }
                 // When reading, don't drive the bus - let memory components drive it
@@ -247,10 +241,6 @@ bool IC4004::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
                     byte bit_pos = conn_id - D0;
                     byte mask = 1 << bit_pos;
                     accumulator = (accumulator & ~mask) | ((*data & 1) << bit_pos);
-
-                    if (conn_id == D0) {
-                        LOG("IC4004::PutRaw: received data bit 0, accumulator now: " << HexStr(accumulator));
-                    }
                 }
             }
             break;

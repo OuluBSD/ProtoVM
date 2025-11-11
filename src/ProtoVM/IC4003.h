@@ -25,11 +25,11 @@ public:
     IC4003();
     virtual ~IC4003() {}
 
-    virtual bool Tick();
-    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id);
-    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits);
+    bool Tick() override;
+    bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
+    bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
 
-    virtual const char* GetClassName() const { return "IC4003"; }
+    String GetClassName() const override { return "IC4003"; }
 
     // I/O character output functionality
     void SetCharacterOutputCallback(void (*callback)(char c));

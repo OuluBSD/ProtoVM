@@ -52,6 +52,7 @@ public:
     bool Tick() override;
     bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     bool PutRaw(uint16 conn_id, byte* data, int data_bits, int data_bytes) override;
+    String GetClassName() const override { return "IC4001"; }
 
     // Helper methods
     void WriteMemory(uint16_t addr, byte value);

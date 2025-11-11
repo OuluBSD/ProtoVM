@@ -55,12 +55,6 @@ BusController4004::BusController4004() {
     AddSource("RAM_DOUT1");
     AddSource("RAM_DOUT2");
     AddSource("RAM_DOUT3");
-    AddSink("RAM_DIN2");
-    AddSink("RAM_DIN3");
-    AddSource("RAM_DOUT0");   // Data outputs from RAM
-    AddSource("RAM_DOUT1");
-    AddSource("RAM_DOUT2");
-    AddSource("RAM_DOUT3");
     
     // Control signals
     AddSink("CPU_CLK");

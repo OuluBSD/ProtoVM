@@ -241,8 +241,12 @@ bool LinkBaseMap::UpdateProcess() {
 		}
 		
 		if (!ticked_count) {
-			LOG("LinkBaseMap::UpdateProcess: error: couldn't tick any unit");
-			return false;
+			LOG("LinkBaseMap::UpdateProcess: detected cycle, forcing priority order");
+			for (ProcessOp* op : todo_ops) {
+				if (!op->HasPriority())
+					op->priority = priority;
+			}
+			break;
 		}
 		
 		
@@ -517,6 +521,5 @@ void LinkBaseMap::UpdateProcess() {
 	
 }
 #endif
-
 
 

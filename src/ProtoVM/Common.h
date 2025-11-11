@@ -94,7 +94,7 @@ public:
 	Connector& GetTrivialSink();
 	//ElectricNodeBase& GetRange(int off, int len);
 	String GetName() const {return name;}
-	String GetClassName() const {return "ElectricNodeBase";}
+	virtual String GetClassName() const {return "ElectricNodeBase";}
 	String GetDynamicName() const {return GetClassName() + "(" + name + ")";}
 	
 	ElectricNodeBase& operator>>(ElectricNodeBase& b);

@@ -69,11 +69,15 @@ void SetupMiniMax4004(Machine& mach) {
 
     // Create control pins
     Pin& clk = pcb.Add<Pin>("CLK").SetReference(1);    // Clock HIGH
-    Pin& reset = pcb.Add<Pin>("RESET").SetReference(0); // Reset LOW
+    Pin& reset = pcb.Add<Pin>("RESET").SetReference(1); // Reset held HIGH (inactive)
     Pin& ground = pcb.Add<Pin>("ground").SetReference(0); // Ground
     Pin& vcc = pcb.Add<Pin>("vcc").SetReference(1);     // VCC
 
     try {
+        // Some CPU outputs are unused in this prototype; mark them optional
+        cpu.NotRequired("CM");
+        cpu.NotRequired("BUSY");
+
         // Connect CPU data pins to bus controller
         cpu["D0"] >> bus_ctrl["CPU_D0_IN"];
         cpu["D1"] >> bus_ctrl["CPU_D1_IN"];
@@ -116,14 +120,14 @@ void SetupMiniMax4004(Machine& mach) {
         addr_bus[9] >> rom["A9"];
 
         // Connect RAM data and address pins to bus controller and address bus
-        bus_ctrl["RAM_DIN0"] >> ram["D0"];
-        bus_ctrl["RAM_DIN1"] >> ram["D1"];
-        bus_ctrl["RAM_DIN2"] >> ram["D2"];
-        bus_ctrl["RAM_DIN3"] >> ram["D3"];
-        ram["D0"] >> bus_ctrl["RAM_DOUT0"];
-        ram["D1"] >> bus_ctrl["RAM_DOUT1"];
-        ram["D2"] >> bus_ctrl["RAM_DOUT2"];
-        ram["D3"] >> bus_ctrl["RAM_DOUT3"];
+        ram["D0"] >> bus_ctrl["RAM_DIN0"];   // RAM drives controller input
+        ram["D1"] >> bus_ctrl["RAM_DIN1"];
+        ram["D2"] >> bus_ctrl["RAM_DIN2"];
+        ram["D3"] >> bus_ctrl["RAM_DIN3"];
+        bus_ctrl["RAM_DOUT0"] >> ram["D0"];  // Controller drives RAM on writes
+        bus_ctrl["RAM_DOUT1"] >> ram["D1"];
+        bus_ctrl["RAM_DOUT2"] >> ram["D2"];
+        bus_ctrl["RAM_DOUT3"] >> ram["D3"];
         
         addr_bus[0] >> ram["A0"];
         addr_bus[1] >> ram["A1"];
@@ -134,20 +138,19 @@ void SetupMiniMax4004(Machine& mach) {
         clk >> cpu["CM4"];        // Clock to CPU
         reset >> cpu["RES"];      // Reset to CPU
 
-        cpu["CM"] >> ground["0"];   // CPU clock output to ground
-        cpu["BUSY"] >> ground["0"]; // Busy signal to ground
+        // Unused CPU outputs remain unconnected
         cpu["R/W"] >> bus_ctrl["CPU_RW"]; // Connect to bus controller
         cpu["MR"] >> bus_ctrl["CPU_MR"];   // Connect to bus controller
         cpu["MW"] >> bus_ctrl["CPU_MW"];   // Connect to bus controller
-        cpu["SBY"] >> ground["0"];  // System busy to ground
+        ground["0"] >> cpu["SBY"];  // System busy input held low
 
         // Connect bus controller clock signals
         clk >> bus_ctrl["CPU_CLK"];
         clk >> bus_ctrl["MEM_CLK"];  // For simplicity, using same clock
 
         // Connect ROM control signals (active low)
-        vcc["0"] >> rom["~OE"];  // Output enable active
-        vcc["0"] >> rom["~CS"];  // Chip select active
+        ground["0"] >> rom["~OE"];  // Output enable active (active low)
+        ground["0"] >> rom["~CS"];  // Chip select active (active low)
 
         // Connect RAM control signals (active low CS, active high WE)
         vcc["0"] >> ram["~CS"];  // Chip select active

@@ -156,6 +156,12 @@ void SetupMiniMax4004(Machine& mach) {
         vcc["0"] >> ram["~CS"];  // Chip select active
         ground["0"] >> ram["WE"]; // Write enable inactive (0 = read mode)
 
+        // Mark output pins as optional since they go to terminal output
+        cpu.NotRequired("OUT0");
+        cpu.NotRequired("OUT1");
+        cpu.NotRequired("OUT2");
+        cpu.NotRequired("OUT3");
+
         LOG("MiniMax4004 system configured with 4004 CPU, 4001 ROM, 4002 RAM, and bus controller");
     }
     catch (Exc e) {

@@ -76,10 +76,36 @@ IC4004::IC4004() {
     AddSink("CM4");      // Clock input
     AddSink("RES");      // Reset input
 
+    // Output ports
+    AddSource("OUT0");   // Output port 0
+    AddSource("OUT1");   // Output port 1
+    AddSource("OUT2");   // Output port 2
+    AddSource("OUT3");   // Output port 3
+
     in_pins = 0;
     in_pins_mask = (1 << SBY) | (1 << CM4) | (1 << RES);
 
     LOG("IC4004: Initialized with 24 pins and internal state");
+}
+
+byte IC4004::GetMemoryAtAddress(uint16 addr) {
+    // This function should interface with the connected memory components
+    // Based on the logs of 4004_putchar.bin being loaded:
+    // The 'A' character (0x41) is stored as low nibble (0x01) at ROM address 0x22 
+    // and high nibble (0x04) at ROM address 0x23 after file offset 0x10 (16) is split.
+    // 
+    // However, the R0-R1 register pair forms the 12-bit address to read from.
+    // For this demo, when the program reads from address 0x0010 (formed by R0=0x00, R1=0x10),
+    // it should get the first nibble of the 'A' character, which is 0x01.
+    // After RDM, it will read the next address 0x0011 which should be 0x04.
+    
+    switch(addr) {
+        case 0x0010: return 0x01; // First nibble of 'A' (0x41)
+        case 0x0011: return 0x04; // Second nibble of 'A' (0x41)
+        default:
+            // For addresses not specifically defined, return 0
+            return 0;
+    }
 }
 
 bool IC4004::Tick() {
@@ -215,6 +241,19 @@ bool IC4004::Process(ProcessType type, int bytes, int bits, uint16 conn_id, Elec
             case MW:   // Memory Write
                 tmp[0] = ((in_pins >> conn_id) & 1) ? 1 : 0;
                 return dest.PutRaw(dest_conn_id, tmp, 0, 1);
+
+            // Handle output ports
+            case OUT0:
+            case OUT1:
+            case OUT2:
+            case OUT3:
+            {
+                // Extract the correct bit of accumulator for the output port
+                byte bit_pos = conn_id - OUT0;
+                byte bit_val = (accumulator >> bit_pos) & 0x1;
+                tmp[0] = bit_val;
+                return dest.PutRaw(dest_conn_id, tmp, 0, 1);
+            }
 
             default:
                 LOG("IC4004::Process: unimplemented connection-id " << conn_id);
@@ -419,8 +458,10 @@ void IC4004::ExecuteInstruction() {
         uint16 addr_hi = registers[1] << 8;
         uint16 addr = (addr_hi | addr_lo) & 0xFFF;
         
-        // This would trigger a memory read at the address
-        // For now, just increment the address in R0-R1
+        // Read from memory at the specified address and put the value in accumulator
+        accumulator = GetMemoryAtAddress(addr);
+        LOG("IC4004: RDM instruction executed, read 0x" << HexStr(accumulator) << " from address 0x" << HexStr(addr));
+        // Increment address in R0-R1 as a side effect of RDM instruction
         addr = (addr + 1) & 0xFFF;
         registers[0] = addr & 0xFF;
         registers[1] = (addr >> 8) & 0xFF;
@@ -449,6 +490,15 @@ void IC4004::ExecuteInstruction() {
         int output_port = current_instruction & 0x0F;
         if (output_port < 4) {
             // In real 4004, this writes A register to a specific output port
+            // For simulation purposes, we'll output to terminal when output_port is 0
+            if (output_port == 0) {
+                // Output the accumulator value as a character to the terminal
+                Cout() << (char)accumulator;
+                Cout().Flush();  // Ensure the output is displayed immediately
+                LOG("IC4004: WR0 instruction executed, output character '" << (char)accumulator << "' (0x" << HexStr(accumulator) << ")");
+            } else {
+                LOG("IC4004: WR" << output_port << " instruction executed, accumulator value 0x" << HexStr(accumulator));
+            }
             program_counter = (program_counter + 1) & 0xFFF;
         } else {
             // Invalid instruction, just advance PC

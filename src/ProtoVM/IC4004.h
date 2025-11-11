@@ -104,7 +104,11 @@ private:
         MW = 20,   // Memory Write
         SBY = 21,  // System Busy input
         CM4 = 22,  // Clock input
-        RES = 23   // Reset input
+        RES = 23,  // Reset input
+        OUT0 = 24, // Output port 0
+        OUT1 = 25, // Output port 1
+        OUT2 = 26, // Output port 2
+        OUT3 = 27  // Output port 3
     };
     
     // Internal state for current tick
@@ -129,6 +133,7 @@ private:
     void UpdateControlLines();
     void SetDataBus(byte value, bool output_enable = true);
     byte GetDataBus();
+    byte GetMemoryAtAddress(uint16 addr);
     
     // Timing-related methods
     void UpdateTiming(int current_tick);

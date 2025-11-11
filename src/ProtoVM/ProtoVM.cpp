@@ -65,35 +65,32 @@ void SetupMiniMax4004(Machine& mach) {
     // Create and configure the 4004 CPU
     IC4004& cpu = pcb.Add<IC4004>("CPU4004");
 
-    // Create ROM and RAM components for the 4004 system
-    IC4001& rom = pcb.Add<IC4001>("ROM4001");  // 4001 ROM with 2048x4-bit capacity
-    IC4002& ram = pcb.Add<IC4002>("RAM4002");  // 4002 RAM with 40-bit capacity
+    // Create memory components for the 4004 system
+    ICRamRom& rom = pcb.Add<ICRamRom>("ROM4001");  // 4001 ROM equivalent
+    rom.SetSize(256);      // Example size: 256 bytes
+    rom.SetReadOnly(true); // ROM is read-only
 
-    // Create I/O component using 4003 shift register
-    IC4003& io_shift_reg = pcb.Add<IC4003>("IO4003");  // 4003 I/O expander
-
-    // Create address decoder for memory mapping
-    AddressDecoder4004& addr_decoder = pcb.Add<AddressDecoder4004>("ADDR_DEC");  
-    addr_decoder.SetRAMRegion(0x000, 0x0FF);  // Map first 256 addresses to RAM (4002 banks 0-3)
-    addr_decoder.SetROMRegion(0x100, 0xFFF);  // Map remaining addresses to ROM
-
-    // Create clock generator for proper 4004 timing
-    ClockGenerator4004& clock_gen = pcb.Add<ClockGenerator4004>("CLK_GEN");
-    clock_gen.SetClockFrequency(740000);  // Set to 740 kHz (typical 4004 frequency)
-
-    // Create power-on reset circuit
-    PowerOnReset4004& por_circuit = pcb.Add<PowerOnReset4004>("POR");
-    por_circuit.SetResetDuration(15);  // Set reset duration to 15 ticks
+    ICRamRom& ram = pcb.Add<ICRamRom>("RAM4002");  // 4002 RAM equivalent
+    ram.SetSize(40);       // 40 bytes as in original 4002
+    ram.SetReadOnly(false); // RAM is read/write
 
     // Create buses for the 4004 system
     Bus<4>& data_bus = pcb.Add<Bus<4>>("DATA_BUS");
     Bus<12>& addr_bus = pcb.Add<Bus<12>>("ADDR_BUS");
 
-    // Create dummy ground and VCC for pins that need default states
-    Pin& ground = pcb.Add<Pin>("ground").SetReference(0);  // Ground reference
-    Pin& vcc = pcb.Add<Pin>("vcc").SetReference(1);        // VCC reference
+    // Create control pins
+    Pin& clk = pcb.Add<Pin>("CLK").SetReference(1);    // Clock HIGH
+    Pin& reset = pcb.Add<Pin>("RESET").SetReference(0); // Reset LOW
+    Pin& ground = pcb.Add<Pin>("ground").SetReference(0); // Ground
+    Pin& vcc = pcb.Add<Pin>("vcc").SetReference(1);     // VCC
 
     try {
+        // Connect CPU data bus pins to data bus
+        cpu["D0"] >> data_bus[0];
+        cpu["D1"] >> data_bus[1];
+        cpu["D2"] >> data_bus[2];
+        cpu["D3"] >> data_bus[3];
+
         // Connect CPU address bus pins to address bus
         cpu["A0"] >> addr_bus[0];
         cpu["A1"] >> addr_bus[1];
@@ -108,24 +105,19 @@ void SetupMiniMax4004(Machine& mach) {
         cpu["A10"] >> addr_bus[10];
         cpu["A11"] >> addr_bus[11];
 
-        // Connect address bus to address decoder
-        addr_bus[0] >> addr_decoder["A0"];
-        addr_bus[1] >> addr_decoder["A1"];
-        addr_bus[2] >> addr_decoder["A2"];
-        addr_bus[3] >> addr_decoder["A3"];
-        addr_bus[4] >> addr_decoder["A4"];
-        addr_bus[5] >> addr_decoder["A5"];
-        addr_bus[6] >> addr_decoder["A6"];
-        addr_bus[7] >> addr_decoder["A7"];
-        addr_bus[8] >> addr_decoder["A8"];
-        addr_bus[9] >> addr_decoder["A9"];
-        addr_bus[10] >> addr_decoder["A10"];
-        addr_bus[11] >> addr_decoder["A11"];
+        // Connect CPU control signals
+        clk >> cpu["CM4"];        // Clock to CPU
+        reset >> cpu["RES"];      // Reset to CPU
 
-        // Connect chip select signals from decoder to memory chips
-        addr_decoder["ROM_CS"] >> rom["JAM"];  // ROM chip select to ROM enable
+        // Connect CPU control signals that were unconnected before
+        cpu["CM"] >> ground["0"];   // CPU clock output to ground
+        cpu["BUSY"] >> ground["0"]; // Busy signal to ground
+        cpu["R/W"] >> vcc["0"];     // Default to read mode
+        cpu["MR"] >> vcc["0"];      // Memory Read inactive
+        cpu["MW"] >> ground["0"];   // Memory Write inactive
+        cpu["SBY"] >> ground["0"];  // System busy to ground
 
-        // ROM address connections (from address bus)
+        // Connect ROM to buses
         addr_bus[0] >> rom["A0"];
         addr_bus[1] >> rom["A1"];
         addr_bus[2] >> rom["A2"];
@@ -139,139 +131,38 @@ void SetupMiniMax4004(Machine& mach) {
         addr_bus[10] >> rom["A10"];
         addr_bus[11] >> rom["A11"];
 
-        // Connect CPU data bus pins to data bus (bidirectional connection)
-        cpu["D0"] >> data_bus[0];
-        cpu["D1"] >> data_bus[1];
-        cpu["D2"] >> data_bus[2];
-        cpu["D3"] >> data_bus[3];
+        // ROM data connections (outputs to bus)
+        rom["D0"] >> data_bus[0];
+        rom["D1"] >> data_bus[1];
+        rom["D2"] >> data_bus[2];
+        rom["D3"] >> data_bus[3];
 
-        // Connect ROM outputs to data bus (for read operations)
-        // The address decoder and control logic should ensure only ROM drives bus during reads
-        rom["O0"] >> data_bus[0];  // ROM output to data bus
-        rom["O1"] >> data_bus[1];
-        rom["O2"] >> data_bus[2];
-        rom["O3"] >> data_bus[3];
+        // ROM control signals (active low)
+        vcc["0"] >> rom["~OE"];  // Output enable inactive
+        vcc["0"] >> rom["~CS"];  // Chip select inactive
+        vcc["0"] >> rom["~WR"];  // Write enable (not used for ROM)
 
-        // Connect RAM to data bus - For now, just connect inputs to data bus (not directly to CPU)
-        data_bus[0] >> ram["I0"];  // Bus drives RAM during write operations
-        data_bus[1] >> ram["I1"];
-        data_bus[2] >> ram["I2"];
-        data_bus[3] >> ram["I3"];
-        
-        // Connect RAM outputs to data bus (for read operations)
-        // The RAM should only drive the bus when it's enabled and in read mode
-        ram["O0"] >> data_bus[0];  // RAM output to data bus
-        ram["O1"] >> data_bus[1];
-        ram["O2"] >> data_bus[2];
-        ram["O3"] >> data_bus[3];
-
-        // RAM outputs to bus are handled by control signals (WM) and not directly connected
-        // to avoid conflicts with ROM outputs during initialization
-        // NOTE: RAM outputs need to be connected through proper tri-state logic if enabled
-        // For now, not connecting RAM outputs to prevent bus conflicts
-
-        // Connect RAM address lines (4002 uses 4 address lines for 10 positions per bank)
+        // Connect RAM to buses
         addr_bus[0] >> ram["A0"];
         addr_bus[1] >> ram["A1"];
         addr_bus[2] >> ram["A2"];
         addr_bus[3] >> ram["A3"];
 
-        // Connect RAM bank select - map higher address bits to banks
-        addr_bus[4] >> ram["C0"];
-        addr_bus[5] >> ram["C1"];
-        addr_bus[6] >> ram["C2"];
-        addr_bus[7] >> ram["C3"];
+        // RAM data connections (bidirectional)
+        ram["D0"] >> data_bus[0];  // Output to bus
+        ram["D1"] >> data_bus[1];
+        ram["D2"] >> data_bus[2];
+        ram["D3"] >> data_bus[3];
 
-        // Connect clock generator to CPU and memory
-        clock_gen["CM4"] >> cpu["CM4"];     // Phase 1 clock to CPU
-        cpu["CM"] >> rom["CM"];             // CPU clock output to ROM (4004 drives memory clock)
-        
-        clock_gen["CM4"] >> rom["CM4"];     // Memory clock to ROM
-        clock_gen["CM4"] >> ram["CM4"];     // Memory clock to RAM
+        // RAM control signals (active low)
+        vcc["0"] >> ram["~OE"];  // Output enable inactive
+        vcc["0"] >> ram["~CS"];  // Chip select inactive
+        vcc["0"] >> ram["~WR"];  // Write enable inactive
 
-        // Connect power-on reset circuit to CPU and other components
-        por_circuit["RESET_OUT"] >> cpu["RES"];        // Reset to CPU
-        por_circuit["RESET_OUT"] >> clock_gen["CLK_EN"]; // Reset/enable to clock generator
-
-        // Connect CPU control signals (BUSY is output, SBY is input - but 4004 doesn't have SBY as input)
-        // CPU BUSY output could be connected to an indicator or left unconnected for now
-        // cpu["BUSY"] >> some_output; // For now, let's not connect BUSY to anything specific
-
-        // Connect memory control signals - correct connections
-        // For now, connect CPU control signals appropriately but avoid conflicts
-        cpu["MW"] >> ram["WM"];               // Memory Write directly to RAM write enable
-
-        // Connect chip select signals from decoder to memory chips
-        addr_decoder["ROM_CS"] >> rom["JAM"];  // ROM chip select to ROM enable
-        addr_decoder["RAM_CS"] >> vcc["0"];    // RAM chip select - for now connect to VCC (always enabled)
-
-        // Connect I/O shift register for expanded I/O
-        cpu["D0"] >> io_shift_reg["SR0"];  // CPU output to shift register input
-        
-
-        // Connect shift register clock to CPU
-        cpu["CM"] >> io_shift_reg["CM4"];  // CPU clock output to shift register
-
-        // Connect CPU I/O control to shift register latches
-        vcc["0"] >> io_shift_reg["L0"];  // Latch control - using VCC for now
-        vcc["0"] >> io_shift_reg["L1"];  // Latch control - using VCC for now
-        vcc["0"] >> io_shift_reg["L2"];  // Latch control - using VCC for now
-        vcc["0"] >> io_shift_reg["L3"];  // Latch control - using VCC for now
-
-        // Connect unconnected pins to appropriate default states
-        // CPU pins that might not have specific connections
-        cpu["BUSY"] >> ground["0"];      // Busy signal defaults low when not connected to anything specific
-        cpu["R/W"] >> vcc["0"];          // Default to read mode
-        cpu["MR"] >> vcc["0"];           // Memory Read defaults high (inactive)
-        cpu["MW"] >> vcc["0"];           // Memory Write defaults high (inactive)
-        cpu["SBY"] >> ground["0"];       // System Busy defaults low when not connected to anything specific
-        cpu["RES"] >> vcc["0"];          // Reset defaults high (inactive)
-
-        // I/O shift register outputs that might not have specific destinations
-        io_shift_reg["O0"] >> ground["0"];
-        io_shift_reg["O1"] >> ground["0"];
-        io_shift_reg["O2"] >> ground["0"];
-        io_shift_reg["O3"] >> ground["0"];
-        io_shift_reg["SO0"] >> ground["0"]; // Serial output also connected to ground when no consumer
-
-        // Address decoder outputs that might not have destinations
-        addr_decoder["RAM_CS"] >> vcc["0"];  // Default to disabled state
-        addr_decoder["IO_CS"] >> vcc["0"];   // Default to disabled state
-        addr_decoder["CM4"] >> ground["0"];  // Clock input defaults to ground
-
-        // Clock generator outputs that might not have destinations
-        clock_gen["CM"] >> ground["0"];   // Clock output defaults low
-        clock_gen["T1"] >> ground["0"];   // Test point defaults low
-        clock_gen["T2"] >> ground["0"];   // Test point defaults low
-
-        // Power on reset outputs that might not have destinations
-        por_circuit["PWR_GOOD"] >> vcc["0"]; // Power good defaults high
+        LOG("MiniMax4004 system configured with 4004 CPU, ROM, and RAM");
     }
     catch (Exc e) {
         LOG("Connection error in SetupMiniMax4004: " << e);
-    }
-    
-    // Set up character output callback for the I/O shift register
-    try {
-        Pcb* pcb = &mach.pcbs[mach.pcbs.GetCount()-1]; // Get the last (current) PCB
-        if (pcb) {
-            ElectricNodeBase* comp = nullptr;
-            for (int i = 0; i < pcb->GetNodeCount(); i++) {
-                if (String(pcb->GetNode(i).GetClassName()) == "IC4003") {
-                    comp = &pcb->GetNode(i);
-                    break;
-                }
-            }
-            
-            if (comp) {
-                IC4003* io_reg = dynamic_cast<IC4003*>(comp);
-                if (io_reg) {
-                    io_reg->SetCharacterOutputCallback(OutputCharacter);
-                }
-            }
-        }
-    } catch (...) {
-        LOG("Error setting up character output callback");
     }
 }
 

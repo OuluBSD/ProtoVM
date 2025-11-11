@@ -15,4 +15,13 @@ fi
 echo "Executing: ./build/ProtoVM minimax4004 --load-binary 4004_putchar.bin 0x0 --ticks 20"
 ./build/ProtoVM minimax4004 --load-binary 4004_putchar.bin 0x0 --ticks 20
 
-echo "Simulation completed."
+# Capture the exit code
+exit_code=$?
+
+if [ $exit_code -eq 0 ]; then
+    echo "Simulation completed."
+else
+    echo "Simulation failed with exit code $exit_code."
+fi
+
+exit $exit_code

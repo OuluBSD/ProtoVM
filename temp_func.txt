@@ -1,0 +1,107 @@
+void SetupMiniMax4004(Machine& mach) {
+    Pcb& pcb = mach.AddPcb();
+
+    // Create and configure the 4004 CPU
+    IC4004& cpu = pcb.Add<IC4004>("CPU4004");
+
+    // Create memory components for the 4004 system
+    IC4001& rom = pcb.Add<IC4001>("ROM4001");  // Proper 4001 ROM component
+    IC4002& ram = pcb.Add<IC4002>("RAM4002");  // Proper 4002 RAM component
+
+    // Create bus controller for proper bus arbitration
+    BusController4004& bus_ctrl = pcb.Add<BusController4004>("BUS_CTRL");
+
+    // Create separate buses for address and other signals
+    Bus<12>& addr_bus = pcb.Add<Bus<12>>("ADDR_BUS");
+
+    // Create control pins
+    Pin& clk = pcb.Add<Pin>("CLK").SetReference(1);    // Clock HIGH
+    Pin& reset = pcb.Add<Pin>("RESET").SetReference(0); // Reset LOW
+    Pin& ground = pcb.Add<Pin>("ground").SetReference(0); // Ground
+    Pin& vcc = pcb.Add<Pin>("vcc").SetReference(1);     // VCC
+
+    try {
+        // Connect CPU data pins to bus controller
+        cpu["D0"] >> bus_ctrl["CPU_D0"];
+        cpu["D1"] >> bus_ctrl["CPU_D1"];
+        cpu["D2"] >> bus_ctrl["CPU_D2"];
+        cpu["D3"] >> bus_ctrl["CPU_D3"];
+        
+        // Connect ROM data pins to bus controller
+        rom["D0"] >> bus_ctrl["ROM_D0"];
+        rom["D1"] >> bus_ctrl["ROM_D1"];
+        rom["D2"] >> bus_ctrl["ROM_D2"];
+        rom["D3"] >> bus_ctrl["ROM_D3"];
+        
+        // Connect RAM data pins to bus controller
+        bus_ctrl["RAM_DIN0"] >> ram["D0"];
+        bus_ctrl["RAM_DIN1"] >> ram["D1"];
+        bus_ctrl["RAM_DIN2"] >> ram["D2"];
+        bus_ctrl["RAM_DIN3"] >> ram["D3"];
+        ram["D0"] >> bus_ctrl["RAM_DOUT0"];
+        ram["D1"] >> bus_ctrl["RAM_DOUT1"];
+        ram["D2"] >> bus_ctrl["RAM_DOUT2"];
+        ram["D3"] >> bus_ctrl["RAM_DOUT3"];
+
+        // Connect address bus
+        cpu["A0"] >> addr_bus[0];
+        cpu["A1"] >> addr_bus[1];
+        cpu["A2"] >> addr_bus[2];
+        cpu["A3"] >> addr_bus[3];
+        cpu["A4"] >> addr_bus[4];
+        cpu["A5"] >> addr_bus[5];
+        cpu["A6"] >> addr_bus[6];
+        cpu["A7"] >> addr_bus[7];
+        cpu["A8"] >> addr_bus[8];
+        cpu["A9"] >> addr_bus[9];
+        cpu["A10"] >> addr_bus[10];
+        cpu["A11"] >> addr_bus[11];
+
+        // Connect ROM address pins directly to address bus
+        addr_bus[0] >> rom["A0"];
+        addr_bus[1] >> rom["A1"];
+        addr_bus[2] >> rom["A2"];
+        addr_bus[3] >> rom["A3"];
+        addr_bus[4] >> rom["A4"];
+        addr_bus[5] >> rom["A5"];
+        addr_bus[6] >> rom["A6"];
+        addr_bus[7] >> rom["A7"];
+        addr_bus[8] >> rom["A8"];
+        addr_bus[9] >> rom["A9"];
+
+        // Connect RAM address pins directly to address bus (4-bit address for 4002)
+        addr_bus[0] >> ram["A0"];
+        addr_bus[1] >> ram["A1"];
+        addr_bus[2] >> ram["A2"];
+        addr_bus[3] >> ram["A3"];
+
+        // Connect CPU control signals to bus controller and components
+        clk >> cpu["CM4"];        // Clock to CPU
+        reset >> cpu["RES"];      // Reset to CPU
+
+        // Connect CPU control signals that were unconnected before
+        cpu["CM"] >> ground["0"];   // CPU clock output to ground
+        cpu["BUSY"] >> ground["0"]; // Busy signal to ground
+        cpu["R/W"] >> bus_ctrl["CPU_R/W"]; // Connect to bus controller
+        cpu["MR"] >> bus_ctrl["CPU_MR"];   // Connect to bus controller
+        cpu["MW"] >> bus_ctrl["CPU_MW"];   // Connect to bus controller
+        cpu["SBY"] >> ground["0"];  // System busy to ground
+
+        // Connect bus controller clock signals
+        clk >> bus_ctrl["CPU_CLK"];
+        clk >> bus_ctrl["MEM_CLK"];  // For simplicity, using same clock
+
+        // Connect ROM control signals (active low)
+        vcc["0"] >> rom["~OE"];  // Output enable active
+        vcc["0"] >> rom["~CS"];  // Chip select active
+
+        // Connect RAM control signals (active low CS, active high WE)
+        vcc["0"] >> ram["~CS"];  // Chip select active
+        ground["0"] >> ram["WE"]; // Write enable inactive (0 = read mode)
+
+        LOG("MiniMax4004 system configured with 4004 CPU, 4001 ROM, 4002 RAM, and bus controller");
+    }
+    catch (Exc e) {
+        LOG("Connection error in SetupMiniMax4004: " << e);
+    }
+}

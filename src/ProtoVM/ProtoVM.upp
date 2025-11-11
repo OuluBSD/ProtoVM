@@ -57,6 +57,8 @@ file
 	Chip.h,
 	Bus.h,
 	Bus.cpp,
+	BusController4004.h,
+	BusController4004.cpp,
 	Common.h,
 	Common.cpp,
 	Cli.h,

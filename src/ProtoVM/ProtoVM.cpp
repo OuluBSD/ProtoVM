@@ -82,6 +82,7 @@ void SetupMiniMax4004(Machine& mach) {
 
     try {
         // Connect CPU to buses - following bus-centric approach from 6502 example
+        // Connect bus to device pins (bus is source, device pin is sink)
         data_bus[0] >> cpu["D0"];
         data_bus[1] >> cpu["D1"];
         data_bus[2] >> cpu["D2"];
@@ -124,7 +125,7 @@ void SetupMiniMax4004(Machine& mach) {
         addr_bus[8] >> rom["A8"];
         addr_bus[9] >> rom["A9"];
 
-        // ROM data connections (data bus to ROM)
+        // ROM data connections - using bus-centric approach
         data_bus[0] >> rom["D0"];
         data_bus[1] >> rom["D1"];
         data_bus[2] >> rom["D2"];
@@ -142,10 +143,10 @@ void SetupMiniMax4004(Machine& mach) {
 
         // RAM data connections - connect ram to data bus 
         // (data bus manages bidirectional communication)
-        data_bus[0] >> ram["D0"];  // Data bus to RAM bidirectional pin
-        data_bus[1] >> ram["D1"];
-        data_bus[2] >> ram["D2"];
-        data_bus[3] >> ram["D3"];
+        ram["D0"] >> data_bus[0];
+        ram["D1"] >> data_bus[1];
+        ram["D2"] >> data_bus[2];
+        ram["D3"] >> data_bus[3];
 
         // RAM control signals (active low CS, active high WE)
         vcc["0"] >> ram["~CS"];  // Chip select active

@@ -93,7 +93,8 @@ bool IC4001::Process(ProcessType type, int bytes, int bits, uint16 conn_id, Elec
                 // Only drive the bus when the chip is selected AND output is enabled
                 if (chip_select && output_enable) {  // Only drive output when selected and enabled
                     // Extract the correct bit of data_out
-                    byte bit_val = (data_out >> (conn_id - D0)) & 0x1;
+                    int bit_pos = conn_id - D0;
+                    byte bit_val = (data_out >> bit_pos) & 0x1;
                     return dest.PutRaw(dest_conn_id, &bit_val, 0, 1);
                 }
                 // If not selected or output disabled, don't drive the bus (high-impedance)
@@ -127,6 +128,19 @@ bool IC4001::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
                 byte bit_pos = conn_id - A0;
                 byte mask = 1 << bit_pos;
                 in_addr = (in_addr & ~mask) | ((*data & 1) << bit_pos);
+            }
+            break;
+
+        // Handle bidirectional data pins
+        case D0:
+        case D1:
+        case D2:
+        case D3:
+            if (data_bytes == 0 && data_bits == 1) {  // Single bit input
+                byte bit_pos = conn_id - D0;
+                byte mask = 1 << bit_pos;
+                // This input is used when something else is driving the bus
+                // ROM typically doesn't read from data bus, but we capture the value for completeness
             }
             break;
 

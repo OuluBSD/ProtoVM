@@ -92,18 +92,19 @@ bool IC4002::Process(ProcessType type, int bytes, int bits, uint16 conn_id, Elec
 
     if (type == WRITE) {
         switch (conn_id) {
-            // Handle bidirectional data pins - only drive when in output mode (read operation)
+            // Handle bidirectional data pins - only drive when in read mode
             case D0:
             case D1:
             case D2:
             case D3:
-                // Only drive the bus when the chip is selected AND we're in read mode (not write)
+                // Only drive the output when the chip is selected AND in read mode
                 if (chip_select && !write_enable) {  // Only drive output when selected and in read mode
                     // Extract the correct bit of data_out
-                    byte bit_val = (data_out >> (conn_id - D0)) & 0x1;
+                    int bit_pos = conn_id - D0;
+                    byte bit_val = (data_out >> bit_pos) & 0x1;
                     return dest.PutRaw(dest_conn_id, &bit_val, 0, 1);
                 }
-                // If not selected or in write mode, don't drive the bus (high-impedance)
+                // If not selected or in write mode, don't drive the output (high-impedance)
                 break;
 
             default:

@@ -40,6 +40,7 @@ void Test90_SignalTracing();
 void TestMDS1101SchematicTool();
 void Run4004UnitTests();
 int Run4004OutputTests();
+int Run4004InstructionTests();
 // Character output function
 void OutputCharacter(char c);
 // Helper functions for 4004 memory initialization and debugging
@@ -234,6 +235,7 @@ CONSOLE_APP_MAIN {
 		Cout() << "  minimax     - MiniMax 8085 computer circuit\n";
 		Cout() << "  minimax4004 - MiniMax 4004 computer circuit\n";
 		Cout() << "  test4004output - Run 4004 CPU output functionality tests\n";
+		Cout() << "  test4004instructions - Run 4004 CPU instruction tests\n";
 		Cout() << "  statemachine - State machine test circuit\n";
 		Cout() << "  basiccpu     - Basic 8-bit CPU test circuit\n";
 		Cout() << "  clkdivider   - Clock divider test circuit\n";
@@ -347,6 +349,12 @@ CONSOLE_APP_MAIN {
 			LOG("4004 Output Tests completed with exit code: " << test_result);
 			// For this test circuit, we'll just run the tests and then finish
 			// We'll set max_ticks to 0 to avoid further simulation
+			max_ticks = 0;
+		} else if (circuit_name == "test4004instructions") {
+			LOG("Running 4004 CPU Instruction Tests...");
+			int test_result = Run4004InstructionTests();
+			LOG("4004 Instruction Tests completed with exit code: " << test_result);
+			// For this test circuit, we'll just run the tests and then finish
 			max_ticks = 0;
 		} else if (circuit_name == "statemachine") {
 			Test60_StateMachine();

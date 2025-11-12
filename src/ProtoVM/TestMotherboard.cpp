@@ -1,5 +1,9 @@
 #include "ProtoVM.h"
 #include "ICs.h"
+#include "Helper4004.h"
+
+// Forward declaration of SetupMiniMax4004
+void SetupMiniMax4004(Machine& mach);
 
 /*
  * Dummy chip classes for motherboard testing
@@ -319,6 +323,126 @@ bool TestMixedMotherboard() {
     }
 }
 
+// Test 4004 CPU + Memory interaction
+bool Test4004CPUMemoryInteraction() {
+    LOG("Testing 4004 CPU + Memory interaction...");
+    
+    try {
+        Machine mach;
+        Pcb& pcb = mach.AddPcb();
+        
+        // Add real 4004 CPU and memory components
+        IC4004& cpu = pcb.Add<IC4004>("REAL_CPU4004");
+        IC4001& rom = pcb.Add<IC4001>("REAL_ROM4001");
+        IC4002& ram = pcb.Add<IC4002>("REAL_RAM4002");
+        
+        // Add buses
+        Bus<12>& addr_bus = pcb.Add<Bus<12>>("ADDR_BUS");
+        Bus<4>& data_bus = pcb.Add<Bus<4>>("DATA_BUS");
+        
+        // Add control pins
+        Pin& clk = pcb.Add<Pin>("CLK").SetReference(1);
+        Pin& reset = pcb.Add<Pin>("RESET").SetReference(0); // Initially reset
+        Pin& ground = pcb.Add<Pin>("GROUND").SetReference(0);
+        Pin& vcc = pcb.Add<Pin>("VCC").SetReference(1);
+        
+        // Mark output pins as optional since they go to terminal
+        cpu.NotRequired("OUT0");
+        cpu.NotRequired("OUT1");
+        cpu.NotRequired("OUT2");
+        cpu.NotRequired("OUT3");
+        
+        // Connect CPU to buses and memory
+        for (int i = 0; i < 4; i++) {
+            cpu["D" + AsString(i)] >> data_bus[i];
+            data_bus[i] >> cpu["D" + AsString(i)];
+        }
+        
+        // Connect address bus
+        for (int i = 0; i < 12; i++) {
+            cpu["A" + AsString(i)] >> addr_bus[i];
+        }
+        
+        // Connect control signals
+        clk >> cpu["CM4"];
+        reset >> cpu["RES"];
+        ground >> cpu["SBY"];
+        
+        // Connect ROM and RAM to buses
+        for (int i = 0; i < 4; i++) {
+            rom["D" + AsString(i)] >> data_bus[i];
+            data_bus[i] >> rom["D" + AsString(i)];
+        }
+        
+        for (int i = 0; i < 4; i++) {
+            ram["D" + AsString(i)] >> data_bus[i];
+            data_bus[i] >> ram["D" + AsString(i)];
+        }
+        
+        for (int i = 0; i < 8; i++) {  // 8 address pins for ROM
+            addr_bus[i] >> rom["A" + AsString(i)];
+        }
+        
+        for (int i = 0; i < 4; i++) {  // 4 address pins for RAM
+            addr_bus[i] >> ram["A" + AsString(i)];
+        }
+        
+        // Connect ROM/RAM control signals
+        ground >> rom["~OE"];  // Output enabled
+        ground >> rom["~CS"];  // Chip select active
+        vcc >> ram["~CS"];     // Chip select active
+        ground >> ram["WE"];   // Write enable inactive (read mode)
+        
+        // Initialize memory with a simple program to test CPU-memory interaction
+        // Write a value to memory and read it back through the CPU
+        rom.SetMemory(0x0, 0x5);  // Test value
+        rom.SetMemory(0x1, 0xA);  // Another test value
+        
+        // Release reset and run for a few ticks to allow interaction
+        reset.SetReference(1);  // Deassert reset
+        
+        for (int i = 0; i < 10; i++) {
+            mach.Tick();
+        }
+        
+        LOG("✓ 4004 CPU + Memory interaction test passed");
+        return true;
+    }
+    catch (Exc e) {
+        LOG("Error in Test4004CPUMemoryInteraction: " << e);
+        return false;
+    }
+}
+
+// Test 4004 CPU + Memory + Motherboard interaction (similar to run_4004_program.sh)
+bool Test4004CPUMemoryBoardPutchar() {
+    LOG("Testing 4004 CPU + Memory + Motherboard interaction (putchar simulation)...");
+    
+    try {
+        // Use the same setup as SetupMiniMax4004 to simulate the real environment
+        Machine mach;
+        SetupMiniMax4004(mach);  // This sets up the real circuit
+        
+        // Load the same binary as run_4004_program.sh
+        if (!LoadProgramTo4004ROM(mach, "4004_putchar.bin", 0x0)) {
+            LOG("Error: Could not load 4004_putchar.bin for put character test");
+            return false;
+        }
+        
+        // Run for multiple ticks to execute the program
+        for (int i = 0; i < 50; i++) {
+            mach.Tick();
+        }
+        
+        LOG("✓ 4004 CPU + Memory + Motherboard interaction (putchar) test passed");
+        return true;
+    }
+    catch (Exc e) {
+        LOG("Error in Test4004CPUMemoryBoardPutchar: " << e);
+        return false;
+    }
+}
+
 // Main runner for motherboard tests
 int RunMotherboardTests() {
     LOG("Running Motherboard Tests with Dummy Chips...\n");
@@ -334,6 +458,12 @@ int RunMotherboardTests() {
     
     total++; if (TestMixedMotherboard()) { LOG("✓ TestMixedMotherboard PASSED"); passed++; }
     else { LOG("✗ TestMixedMotherboard FAILED"); }
+    
+    total++; if (Test4004CPUMemoryInteraction()) { LOG("✓ Test4004CPUMemoryInteraction PASSED"); passed++; }
+    else { LOG("✗ Test4004CPUMemoryInteraction FAILED"); }
+    
+    total++; if (Test4004CPUMemoryBoardPutchar()) { LOG("✓ Test4004CPUMemoryBoardPutchar PASSED"); passed++; }
+    else { LOG("✗ Test4004CPUMemoryBoardPutchar FAILED"); }
     
     LOG("\nMotherboard Tests Summary: " << passed << "/" << total << " tests passed");
     

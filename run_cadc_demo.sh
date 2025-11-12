@@ -1,33 +1,26 @@
 #!/bin/bash
 
-# run_cadc_demo.sh - Run the CADC demonstration program
+# Script to run the CADC demonstration simulation
 # Similar to run_4004_demo.sh but for the CADC system
 
-if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
-    echo "Usage: $0 [options]"
-    echo "Run the CADC demonstration program"
-    echo ""
-    echo "Options:"
-    echo "  -v, --verbose    Show verbose output"
-    echo "  -h, --help       Show this help message"
-    exit 0
+echo "Running CADC demonstration simulation..."
+echo "Demonstrating F-14 Central Air Data Computer architecture"
+
+# Build the project if needed
+if [ ! -f "build/ProtoVM" ]; then
+    echo "ProtoVM executable not found. Building project..."
+    ./build.sh
 fi
 
-# Check if we're in the right directory
-if [ ! -f "./build/ProtoVM" ]; then
-    echo "Error: ProtoVM executable not found in ./build/"
-    echo "Please run this script from the ProtoVM project root directory."
-    exit 1
-fi
+# Run the demonstration with appropriate parameters
+echo "Executing: ./build/ProtoVM cadc --ticks 100"
+./build/ProtoVM cadc --ticks 100
 
-echo "Running CADC demonstration..."
-echo "============================="
-
-if [ "$1" = "-v" ] || [ "$1" = "--verbose" ]; then
-    ./build/ProtoVM cadc -v
-else
-    ./build/ProtoVM cadc
-fi
-
+echo "CADC demonstration completed."
 echo ""
-echo "CADC demonstration completed!"
+echo "CADC features demonstrated:"
+echo " - 20-bit word architecture with two's complement"
+echo " - 375 kHz clock frequency operation"
+echo " - Pipeline concurrency with 3 processing modules"
+echo " - Polynomial evaluation capabilities"
+echo " - Air data computation simulation"

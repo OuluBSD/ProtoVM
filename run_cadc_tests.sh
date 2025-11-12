@@ -1,30 +1,40 @@
 #!/bin/bash
 
-# run_cadc_tests.sh - Run CADC-specific tests
-# Similar to run_4004_tests.sh but for the CADC system
+# Test script to run the CADC component and functionality tests
 
-# Check if we're in the right directory
-if [ ! -f "./build/ProtoVM" ]; then
-    echo "Error: ProtoVM executable not found in ./build/"
-    echo "Please run this script from the ProtoVM project root directory."
-    exit 1
+echo "Running CADC Component Tests..."
+echo ""
+
+# Build the project if needed
+if [ ! -f "build/ProtoVM" ]; then
+    echo "ProtoVM executable not found. Building project..."
+    ./build.sh
 fi
 
-echo "Running CADC tests..."
-echo "===================="
+echo "Executing: ./build/ProtoVM cadc (CADC system test)"
+echo ""
 
-# Run the CADC test suite
-echo "Running CADC component tests..."
-./build/ProtoVM unittests 2>&1 | grep -i "cadc\|pmu\|pdu\|slf\|slu\|rom\|ras" || echo "No CADC-specific test results found in general unit tests"
+# Run the CADC system test
+./build/ProtoVM cadc
+cadc_exit_code=$?
 
 echo ""
-echo "Running air data computation simulations..."
-echo "Simulating polynomial evaluation (primary CADC function)..."
-./build/ProtoVM unittests -vv 2>&1 | grep -i "polynomial\|multiply\|divide\|limit" | head -10 || echo "No polynomial-specific results found in verbose output"
+if [ $cadc_exit_code -eq 0 ]; then
+    echo "CADC System Test completed successfully!"
+    echo "Demonstrated: PMU, PDU, SLF pipeline operation"
+else
+    echo "CADC System Test failed with exit code $cadc_exit_code."
+fi
 
 echo ""
-echo "Running timing validation tests..."
-./build/ProtoVM signaltrace -t 100 2>&1 | grep -i "timing\|clock\|tick" | head -5 || echo "Timing validation completed"
+echo "Running general unit tests to check for CADC-specific results..."
+echo ""
+
+# Also run general unit tests to see if CADC components are included
+./build/ProtoVM unittests -vv 2>&1 | grep -i "cadc\|pmu\|pdu\|slf\|polynomial" | head -10 || echo "No CADC-specific test results in general unit tests yet"
 
 echo ""
-echo "CADC tests completed!"
+echo "CADC Test Script completed."
+
+# Exit with overall status
+exit $cadc_exit_code

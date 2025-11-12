@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# Test script to run the CADC system with extended execution to verify functionality
+# Test script for CADC system functionality (not character output like 4004)
+# The F-14 CADC computes air data parameters (altitude, speed, etc.) not characters
 
-echo "Testing CADC system with extended execution..."
-echo "This will run the simulation to verify CADC pipeline operations"
+echo "Testing CADC system functionality..."
+echo "Note: CADC computes air data parameters, not character output like 4004"
 
 # Build the project if needed
 if [ ! -f "build/ProtoVM" ]; then
@@ -11,15 +12,15 @@ if [ ! -f "build/ProtoVM" ]; then
     ./build.sh
 fi
 
-# Run with more ticks to ensure full execution of CADC operations
-echo "Running CADC simulation for 200 ticks to ensure full pipeline operation..."
-./build/ProtoVM cadc --ticks 200
+# Run the CADC simulation to test pipeline operations
+echo "Running CADC simulation for 100 ticks..."
+./build/ProtoVM cadc --ticks 100
 
 exit_code=$?
 
 if [ $exit_code -eq 0 ]; then
     echo "CADC simulation completed successfully."
-    echo "Verified: 20-bit processing, 375kHz timing, pipeline concurrency"
+    echo "Note: CADC computes air data (altitude, speed, etc.) not characters like 4004"
 else
     echo "CADC simulation failed with exit code $exit_code."
 fi

@@ -43,10 +43,10 @@ This document outlines the tasks required to implement a complete CADC (Central 
 - [x] Create create_cadc_binary utility similar to create_4004_binary for generating CADC programs
 
 ### 6. Shell Scripts for CADC
-- [ ] Create run_cadc_demo.sh similar to run_4004_demo.sh
-- [ ] Create run_cadc_program.sh similar to run_4004_program.sh
-- [ ] Create run_cadc_tests.sh similar to run_4004_tests.sh
-- [ ] Create test_cadc_output.sh similar to test_4004_output.sh
+- [x] Create run_cadc_demo.sh similar to run_4004_demo.sh
+- [x] Create run_cadc_program.sh similar to run_4004_program.sh
+- [x] Create run_cadc_tests.sh similar to run_4004_tests.sh
+- [x] Create test_cadc_output.sh (Note: CADC computes air data, not character output like 4004)
 
 ### 7. Documentation and Examples
 - [ ] Update README with CADC information

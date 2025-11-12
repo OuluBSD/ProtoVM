@@ -33,13 +33,14 @@ This document outlines the tasks required to implement a complete CADC (Central 
 - [ ] Validate timing behavior and pipeline operation
 
 ### 5. CADC Binary and Test Programs
-- [ ] Create cadc_putchar.bin example program similar to 4004_putchar.bin
+- [x] Create cadc_putchar.bin example program similar to 4004_putchar.bin
   - Should contain microcode for basic polynomial evaluation: F(X) = a3*x^3 + a2*x^2 + a1*x + a0
   - Should demonstrate PMU (multiplier) and SLF (adder) working in pipeline
   - Should simulate computing basic air data parameter
 - [ ] Implement basic CADC algorithms in microcode
 - [ ] Create test programs for polynomial evaluation
 - [ ] Implement air data computation examples
+- [x] Create create_cadc_binary utility similar to create_4004_binary for generating CADC programs
 
 ### 6. Shell Scripts for CADC
 - [ ] Create run_cadc_demo.sh similar to run_4004_demo.sh

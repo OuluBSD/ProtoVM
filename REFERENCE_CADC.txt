@@ -1,0 +1,24 @@
+# CADC Implementation Reference
+
+## Source Documentation
+- docs/cadc/ap1-26-97_page_*.txt - Original CADC technical paper describing the architecture
+
+## Implementation Files
+- src/ProtoVM/ICcadc.h - Header file defining CADC components (PMU, PDU, SLF, SLU, RAS, ROM)
+- src/ProtoVM/ICcadc.cpp - Implementation of CADC components
+- src/ProtoVM/CadcSystem.h - Header for complete CADC system
+- src/ProtoVM/CadcSystem.cpp - Implementation of CADC system integration
+- src/ProtoVM/TestCadc.cpp - Test suite for CADC functionality
+- src/ProtoVM/DemoCadc.cpp - Demonstration program for CADC
+
+## Scripts
+- run_cadc_demo.sh - Run CADC demonstration
+- run_cadc_program.sh - Run CADC programs
+- run_cadc_tests.sh - Run CADC-specific tests
+- test_cadc_output.sh - Test CADC output functionality
+
+## Binary
+- cadc_putchar.bin - Example CADC binary program
+
+## Task Tracking
+- TASKS_CADC.md - Detailed tasks for CADC implementation

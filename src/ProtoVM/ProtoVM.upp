@@ -101,6 +101,11 @@ file
 	Router readonly separator,
 	Router.h,
 	Router.cpp,
+	ICcadc.h,
+	ICcadc.cpp,
+	CadcSystem.h,
+	CadcSystem.cpp,
+	TestCadc.cpp,
 	_ readonly separator;
 
 mainconfig

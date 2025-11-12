@@ -192,3 +192,15 @@
 - [x] Updated project documentation and task tracking
 - [x] Enhanced 4-bit counter implementation with clock generator
 - [x] Enhanced AND gate test with dynamic inputs- [ ] Fix "trying to connect two sources" error in 4004 CPU simulation
+
+### CADC Implementation (F-14 Central Air Data Computer)
+- [ ] Design and implement CADC chipset components (PMU, PDU, SLF, SLU, RAS, ROM)
+- [ ] Create CADC-specific timing and serialization logic (375 kHz, 20-bit words)
+- [ ] Implement pipeline concurrency for three processing modules
+- [ ] Create MinimaxCADC circuit similar to Minimax4004 but using CADC architecture
+- [ ] Implement polynomial evaluation algorithms optimized for CADC architecture
+- [ ] Add support for air data computation algorithms (altitude, speed, etc.)
+- [ ] Create CADC-specific test programs and binaries
+- [ ] Add CADC to the main executable's circuit selection
+- [ ] Implement CADC-specific CLI commands and debugging tools
+- [ ] Create documentation for CADC architecture and usage

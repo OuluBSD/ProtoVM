@@ -1,0 +1,21 @@
+Enhanced ProtoVM digital logic simulation with convergence algorithm
+
+This major update improves the ProtoVM digital logic simulator to properly handle
+the complexities of real digital circuit behavior:
+
+- Implemented multi-tick convergence algorithm that iterates until signals stabilize
+- Added proper tri-state bus support with driver arbitration
+- Enhanced component change detection to optimize processing
+- Added feedback loop resolution within each tick
+- Implemented oscillation detection to prevent infinite loops
+- Improved state tracking for more accurate simulation
+
+The system now correctly models signal propagation, bus contention, and
+component interactions in a way that closely approximates real hardware behavior,
+making it suitable for simulating moderately complex digital circuits.
+
+Added comprehensive documentation:
+- TASKS.md - Development task tracking
+- QWEN.md - Analysis and recommendations
+- FINAL_SUMMARY.md - Project summary
+- README.IMPROVED.md - Enhanced system documentation

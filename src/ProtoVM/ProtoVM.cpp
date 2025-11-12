@@ -43,6 +43,8 @@ int Run4004OutputTests();
 int Run4004InstructionTests();
 bool TestDummy4004CPU();
 bool TestDummy4004InCircuit();
+int RunChipUnitTests();
+int RunMotherboardTests();
 // Character output function
 void OutputCharacter(char c);
 // Helper functions for 4004 memory initialization and debugging
@@ -239,6 +241,8 @@ CONSOLE_APP_MAIN {
 		Cout() << "  test4004output - Run 4004 CPU output functionality tests\n";
 		Cout() << "  test4004instructions - Run 4004 CPU instruction tests\n";
 		Cout() << "  test4004dummy - Run 4004 dummy CPU test (WR0 output verification)\n";
+		Cout() << "  testchipsunit - Run unit tests for individual chips\n";
+		Cout() << "  testmotherboard - Run motherboard tests with dummy chips\n";
 		Cout() << "  statemachine - State machine test circuit\n";
 		Cout() << "  basiccpu     - Basic 8-bit CPU test circuit\n";
 		Cout() << "  clkdivider   - Clock divider test circuit\n";
@@ -369,6 +373,16 @@ CONSOLE_APP_MAIN {
 				LOG("4004 Dummy CPU Test failed!");
 				max_ticks = 0;
 			}
+		} else if (circuit_name == "testchipsunit") {
+			LOG("Running Chip Unit Tests...");
+			int test_result = RunChipUnitTests();
+			LOG("Chip Unit Tests completed with exit code: " << test_result);
+			max_ticks = 0;
+		} else if (circuit_name == "testmotherboard") {
+			LOG("Running Motherboard Tests with Dummy Chips...");
+			int test_result = RunMotherboardTests();
+			LOG("Motherboard Tests completed with exit code: " << test_result);
+			max_ticks = 0;
 		} else if (circuit_name == "statemachine") {
 			Test60_StateMachine();
 		} else if (circuit_name == "basiccpu") {

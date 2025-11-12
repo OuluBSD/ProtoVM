@@ -8,6 +8,9 @@ package.json
 vgcore.*
 protovalgrind*
 
+create_4004_binary
 create_cadc_binary
+bin/
 *.bin
 !cadc_putchar.bin
+!4004_putchar.bin

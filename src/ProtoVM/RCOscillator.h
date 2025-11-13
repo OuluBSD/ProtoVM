@@ -18,7 +18,14 @@ public:
                  double capacitance = 1e-8,     // 10nF (faster oscillation for testing)
                  double supply_voltage = 5.0);  // 5V supply
     
-    virtual ~RCOscillator() {}
+    virtual ~RCOscillator() {
+        // Clean up allocated analog components
+        delete r1;
+        delete r2;
+        delete c1;
+        delete q1;
+        delete q2;
+    }
     
     virtual bool Tick() override;
     virtual String GetClassName() const override { return "RCOscillator"; }

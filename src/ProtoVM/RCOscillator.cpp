@@ -4,9 +4,9 @@
 RCOscillator::RCOscillator(double resistance1, double resistance2, 
                            double capacitance, double supply_voltage)
     : supply_voltage(supply_voltage),
-      output_voltage(supply_voltage),  // Initialize with supply voltage to start oscillating
+      output_voltage(supply_voltage),  // Initialize with high voltage to start oscillating
       capacitor_voltage(0.1),  // Initialize with a small voltage to kick-start oscillation
-      is_charging(true),
+      is_charging(true),  // Start charging first
       initial_resistance1(resistance1),
       initial_resistance2(resistance2),
       initial_capacitance(capacitance) {

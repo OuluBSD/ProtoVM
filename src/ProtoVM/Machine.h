@@ -228,7 +228,7 @@ public:
 
 	// Mixed-signal simulation support
 private:
-	AnalogSimulation* analog_sim;  // Analog simulation system
+	AnalogSimulation* analog_sim = nullptr;  // Analog simulation system
 	Vector<AnalogNodeBase*> analog_components;  // List of analog components in the system
 
 public:

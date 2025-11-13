@@ -272,3 +272,14 @@ The enhancements ensure that ProtoVM now properly models the complexities of rea
 
 ## Status
 All tasks from TASKS.md have been completed successfully. The ProtoVM digital logic simulator is fully enhanced with all requested features.
+
+## Additional Examples
+
+### Analog Synthesizer (1970s Era)
+A new example demonstrating analog audio synthesis from the 1970s era:
+- VCOs (Voltage Controlled Oscillators) with multiple waveforms (sine, sawtooth, square, triangle)
+- ADSR envelope generator for note shaping
+- Portamento/gliding effect between notes
+- Sequencer that plays random notes at 120 BPM
+- Real-time audio output via PortAudio
+- WAV file export capability

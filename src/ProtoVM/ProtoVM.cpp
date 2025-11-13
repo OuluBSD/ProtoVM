@@ -12,6 +12,7 @@
 #include "Test4004CPU.h"
 #include "ICcadc.h"
 #include "CadcSystem.h"
+#include "SerialOutputDevice.h"
 /*
 LinkBases:
 	- https://github.com/vygr/C-PCB
@@ -72,6 +73,9 @@ void SetupMiniMax4004(Machine& mach) {
 
     // Create bus controller for proper 4004 system bus arbitration
     BusController4004& bus_ctrl = pcb.Add<BusController4004>("BUS_CTRL");
+
+    // Create serial output device to capture CPU output and print to stdout
+    SerialOutputDevice& serial_out = pcb.Add<SerialOutputDevice>("SERIAL_OUT");
 
     // Create buses for the 4004 system
     Bus<12>& addr_bus = pcb.Add<Bus<12>>("ADDR_BUS");
@@ -165,13 +169,13 @@ void SetupMiniMax4004(Machine& mach) {
         vcc["0"] >> ram["~CS"];  // Chip select active
         ground["0"] >> ram["WE"]; // Write enable inactive (0 = read mode)
 
-        // Mark output pins as optional since they go to terminal output
-        cpu.NotRequired("OUT0");
-        cpu.NotRequired("OUT1");
-        cpu.NotRequired("OUT2");
-        cpu.NotRequired("OUT3");
+        // Connect CPU output pins to serial output device to print to stdout
+        cpu["OUT0"] >> serial_out["IN0"];
+        cpu["OUT1"] >> serial_out["IN1"];
+        cpu["OUT2"] >> serial_out["IN2"];
+        cpu["OUT3"] >> serial_out["IN3"];
 
-        LOG("MiniMax4004 system configured with 4004 CPU, 4001 ROM, 4002 RAM, and bus controller");
+        LOG("MiniMax4004 system configured with 4004 CPU, 4001 ROM, 4002 RAM, bus controller and serial output");
     }
     catch (Exc e) {
         LOG("Connection error in SetupMiniMax4004: " << e);

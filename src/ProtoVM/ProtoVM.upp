@@ -7,6 +7,7 @@ uses
 file
 	ProtoVM.h,
 	ProtoVM.cpp,
+	SerialOutputDevice.h,
 	Test00_FlipFlop.cpp,
 	Test01_ANDGate.cpp,
 	Test01.cpp,

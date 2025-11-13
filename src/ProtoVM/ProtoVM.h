@@ -25,6 +25,7 @@ using namespace UPP;
 #include "AnalogSemiconductors.h"
 #include "AnalogSimulation.h"
 #include "RCOscillator.h"
+#include "TubeLogic.h"
 
 
 #endif

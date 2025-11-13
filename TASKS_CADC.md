@@ -53,3 +53,15 @@ This document outlines the tasks required to implement a complete CADC (Central 
 - [ ] Create CADC tutorial documentation
 - [ ] Add CADC examples to the tutorial section
 - [ ] Update API documentation with CADC components
+
+### 8. Completed Tasks
+- [x] Design and implement CADC chipset components (PMU, PDU, SLF, SLU, RAS, ROM)
+- [x] Create CADC-specific timing and serialization logic (375 kHz, 20-bit words)
+- [x] Implement pipeline concurrency for three processing modules
+- [x] Create MinimaxCADC circuit similar to Minimax4004 but using CADC architecture
+- [x] Implement polynomial evaluation algorithms optimized for CADC architecture
+- [x] Add support for air data computation algorithms (altitude, speed, etc.)
+- [x] Create CADC-specific test programs and binaries
+- [x] Add CADC to the main executable's circuit selection
+- [x] Implement CADC-specific CLI commands and debugging tools
+- [x] Create documentation for CADC architecture and usage

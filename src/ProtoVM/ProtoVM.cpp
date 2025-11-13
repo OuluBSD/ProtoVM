@@ -25,6 +25,10 @@
 #include "AnalogSemiconductors.cpp"
 #include "AnalogSimulation.cpp"
 #include "RCOscillator.cpp"
+#include "AnalogResistorTest.cpp"
+#include "AnalogCapacitorTest.cpp"
+#include "AnalogRCTest.cpp"
+#include "AnalogSimulationTest.cpp"
 // AnalogAudioTest.cpp is compiled separately in the .upp file
 /*
 LinkBases:
@@ -40,6 +44,14 @@ void SetupTest4_MuxDemux(Machine& mach);
 void SetupTest5_DecoderEncoder(Machine& mach);
 void SetupAnalogAudioOscillator(Machine& mach);
 void RunAnalogAudioTest();
+void SetupAnalogResistorTest(Machine& mach);
+void RunAnalogResistorTest();
+void SetupAnalogCapacitorTest(Machine& mach);
+void RunAnalogCapacitorTest();
+void SetupAnalogRCTest(Machine& mach);
+void RunAnalogRCTest();
+void SetupAnalogResistorCapacitorSimulation(Machine& mach);
+void RunAnalogResistorCapacitorSimulation();
 void TestBasicLogicGates(Machine& mach);
 void Test4BitRegister(Machine& mach);
 void Test4BitMemory(Machine& mach);
@@ -277,6 +289,10 @@ CONSOLE_APP_MAIN {
 		Cout() << "  cadc         - F-14 CADC system demonstration\n";
 		Cout() << "  analog-audio     - Analog audio oscillator with PortAudio output\n";
 		Cout() << "  analog-oscillator - Same as analog-audio (alias)\n";
+		Cout() << "  analog-resistor   - Analog resistor test demonstrating Ohm's Law\n";
+		Cout() << "  analog-capacitor  - Analog capacitor test demonstrating RC charging\n";
+		Cout() << "  analog-rc         - Analog RC circuit test demonstrating time constants\n";
+		Cout() << "  analog-sim        - Analog simulation test with RC behavior\n";
 		Cout() << "\nExamples:\n";
 		Cout() << "  " << GetExeTitle() << " 6502 -t 1000    # Run 6502 circuit for 1000 ticks\n";
 		Cout() << "  " << GetExeTitle() << " --cli           # Start interactive CLI mode\n";
@@ -429,6 +445,18 @@ CONSOLE_APP_MAIN {
 		} else if (circuit_name == "analog-audio" || circuit_name == "analog-oscillator") {
 			RunAnalogAudioTest();
 			return;  // Return after running the audio test since it's a standalone test
+		} else if (circuit_name == "analog-resistor") {
+			RunAnalogResistorTest();
+			return;  // Return after running the test
+		} else if (circuit_name == "analog-capacitor") {
+			RunAnalogCapacitorTest();
+			return;  // Return after running the test
+		} else if (circuit_name == "analog-rc") {
+			RunAnalogRCTest();
+			return;  // Return after running the test
+		} else if (circuit_name == "analog-sim") {
+			RunAnalogResistorCapacitorSimulation();
+			return;  // Return after running the test
 		} else {
 			Cout() << "Unknown circuit: " << circuit_name << "\n";
 			Cout() << "Run with --help for a list of valid circuits.\n";

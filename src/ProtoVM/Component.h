@@ -328,4 +328,6 @@ public:
 	bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
 };
 
+#include "TubeLogic.h"
+
 #endif

@@ -2,37 +2,67 @@
 
 ## TODO
 
+### Digital Circuit Simulation Enhancements
+- [ ] Fix "trying to connect two sources" error in 4004 CPU simulation
+- [ ] Complete all remaining 4004 circuit connection fixes if not already done
+- [ ] Complete all remaining binary loading and execution tasks if not already done
+- [ ] Complete all remaining 4004 program execution tasks if not already done
+
 ### Schematic Drawing Tools
 - [ ] The MDS-1104 is very early single-transistor calculator from 1950s
+- [ ] The MDS-1104 schematic drawing tools need to be properly implemented (currently marked as done but may need verification)
 
-### 4004 Circuit Connection Fixes
-- [ ] Fix missing connections in MiniMax4004 circuit setup for proper CPU operation
-- [ ] Connect CPU control signals (CM, BUSY, R/W, MR, MW, SBY, CM4, RES) properly
-- [ ] Connect ROM address, data, and control lines (A0-A11, O0-O3, CM4, JAM)
-- [ ] Connect RAM address, data, and control lines (A0-A3, I0-I3, O0-O3, CM4, WM)
-- [ ] Connect I/O shift register data and control lines (SR0, SO0, O0-O3, L0-L3, CM4)
-- [ ] Connect address decoder to proper address lines and chip select outputs
-- [ ] Connect clock generator to CPU and memory components
-- [ ] Connect power-on reset circuit to CPU and other components
-- [ ] Verify all pin connections are properly established in SetupMiniMax4004 function
+### CADC Implementation (F-14 Central Air Data Computer)
+- [ ] Design and implement CADC chipset components (PMU, PDU, SLF, SLU, RAS, ROM)
+- [ ] Create CADC-specific timing and serialization logic (375 kHz, 20-bit words)
+- [ ] Implement pipeline concurrency for three processing modules
+- [ ] Create MinimaxCADC circuit similar to Minimax4004 but using CADC architecture
+- [ ] Implement polynomial evaluation algorithms optimized for CADC architecture
+- [ ] Add support for air data computation algorithms (altitude, speed, etc.)
+- [ ] Create CADC-specific test programs and binaries
+- [ ] Add CADC to the main executable's circuit selection
+- [ ] Implement CADC-specific CLI commands and debugging tools
+- [ ] Create documentation for CADC architecture and usage
 
-### Binary Loading and Execution
-- [ ] Implement proper binary loader for 4004 programs into ROM
-- [ ] Create helper functions for memory initialization and debugging
-- [ ] Add CLI commands for loading and managing 4004 binaries
-- [ ] Implement memory initialization functions to load programs at specific addresses
-- [ ] Create debugging functions to inspect CPU state during execution
-- [ ] Add support for different binary formats (raw, Intel HEX, etc.)
-- [ ] Implement error handling for binary loading operations
-
-### 4004 Program Execution
-- [ ] Fix circuit initialization to allow proper program execution
-- [ ] Configure clock signals for proper 4004 timing
-- [ ] Implement I/O port handling for character output
-- [ ] Test 4004_putchar.bin program execution
-- [ ] Verify that the 'A' character is properly output from the program
-- [ ] Create additional test programs to validate functionality
-- [ ] Document the execution process and troubleshooting steps
+### Analog Synthesizer Tasks
+- [ ] Design analog synthesizer simulation components (VCO, VCF, VCA, LFO, ADSR envelope)
+- [ ] Implement voltage-controlled oscillator (VCO) with multiple waveform generation
+- [ ] Implement voltage-controlled filter (VCF) with classic filter designs (Moog ladder, etc.)
+- [ ] Implement voltage-controlled amplifier (VCA) with linear and exponential response
+- [ ] Create ADSR envelope generator for amplitude and filter modulation
+- [ ] Implement low-frequency oscillator (LFO) for modulation effects
+- [ ] Implement analog signal processing circuits using differential equations
+- [ ] Create virtual analog modeling for classic synthesizer circuits
+- [ ] Develop audio signal path simulation with proper frequency response
+- [ ] Add filter modeling for classic synthesizer filters (Moog, ladder, state-variable, etc.)
+- [ ] Implement modulation matrix for connecting various modulation sources
+- [ ] Create oscillator waveforms (sine, sawtooth, square, triangle, noise)
+- [ ] Add polyphony support for multiple simultaneous voices
+- [ ] Design user interface for controlling analog synthesizer parameters
+- [ ] Implement effects processing (reverb, delay, chorus, phaser, etc.)
+- [ ] Add MIDI input support for playing the virtual analog synthesizer
+- [ ] Create preset system for storing and recalling synthesizer sounds
+- [ ] Implement audio output system with proper sampling rate and bit depth
+- [ ] Add support for classic synthesizer architectures (subtractive, FM, etc.)
+- [ ] Create example patches demonstrating classic synthesizer sounds
+- [ ] Implement anti-aliasing for oscillator waveforms to prevent audio artifacts
+- [ ] Design and implement triode tube models for analog circuit simulation
+- [ ] Add pentode and tetrode tube models for more complex valve circuits
+- [ ] Create tube amplifier circuit simulations with proper distortion modeling
+- [ ] Implement tube-based filter and oscillator circuits
+- [ ] Add proper high-voltage power supply simulation for tube circuits
+- [ ] Model tube-based reverb circuits (spring reverb, plate reverb simulation)
+- [ ] Create tube-based effect circuits (compressors, limiters, phasers)
+- [ ] Implement cathode follower and other common tube circuit topologies
+- [ ] Design tube-based logic gates (NOT, AND, OR, NAND, NOR gates using tubes)
+- [ ] Create tube-based flip-flop circuits for memory elements
+- [ ] Implement tube-based counters and registers
+- [ ] Model early computer tube logic systems (like ENIAC, Colossus, etc.)
+- [ ] Create tube-based arithmetic units (adders, subtractors)
+- [ ] Implement tube-based oscillator circuits for clock generation
+- [ ] Design tube-based multiplexers and demultiplexers
+- [ ] Create library of tube-based standard logic components
+- [ ] Simulate complete tube-based computer systems
 
 ## IN PROGRESS
 
@@ -191,16 +221,4 @@
 - [x] Added interactive CLI mode for circuit debugging
 - [x] Updated project documentation and task tracking
 - [x] Enhanced 4-bit counter implementation with clock generator
-- [x] Enhanced AND gate test with dynamic inputs- [ ] Fix "trying to connect two sources" error in 4004 CPU simulation
-
-### CADC Implementation (F-14 Central Air Data Computer)
-- [ ] Design and implement CADC chipset components (PMU, PDU, SLF, SLU, RAS, ROM)
-- [ ] Create CADC-specific timing and serialization logic (375 kHz, 20-bit words)
-- [ ] Implement pipeline concurrency for three processing modules
-- [ ] Create MinimaxCADC circuit similar to Minimax4004 but using CADC architecture
-- [ ] Implement polynomial evaluation algorithms optimized for CADC architecture
-- [ ] Add support for air data computation algorithms (altitude, speed, etc.)
-- [ ] Create CADC-specific test programs and binaries
-- [ ] Add CADC to the main executable's circuit selection
-- [ ] Implement CADC-specific CLI commands and debugging tools
-- [ ] Create documentation for CADC architecture and usage
+- [x] Enhanced AND gate test with dynamic inputs

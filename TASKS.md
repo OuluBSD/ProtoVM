@@ -2,6 +2,29 @@
 
 ## TODO
 
+### Top Priority: Passive Components Implementation
+- [ ] Design and implement inductor component with proper magnetic field simulation
+- [ ] Design and implement switch component with on/off state control
+- [ ] Design and implement push-switch component (momentary contact)
+- [ ] Design and implement SPDT switch (Single Pole Double Throw)
+- [ ] Design and implement DPDT switch (Double Pole Double Throw)
+- [ ] Design and implement Make-Before-Break-Switch for non-interrupting switching
+- [ ] Design and implement Potentiometer with variable resistance simulation
+- [ ] Design and implement Transformer with turns ratio and coupling coefficient
+- [ ] Design and implement Tapped Transformer with center tap or multiple taps
+- [ ] Design and implement Custom Transformer with configurable parameters
+- [ ] Design and implement Transmission Line with characteristic impedance and propagation delay
+- [ ] Design and implement Relay with coil and contact simulation
+- [ ] Design and implement Relay Coil with inductance and magnetic field
+- [ ] Design and implement Relay Contact with switching behavior
+- [ ] Design and implement Photoresistor (LDR) with light-dependent resistance
+- [ ] Design and implement Thermistor with temperature-dependent resistance
+- [ ] Design and implement Memristor with memory-dependent resistance
+- [ ] Design and implement Spark Gap with breakdown voltage characteristics
+- [ ] Design and implement Fuse with current rating and blow characteristics
+- [ ] Design and implement Crystal oscillator with resonant frequency
+- [ ] Design and implement Cross Switch for telecommunications applications
+
 ### Digital Circuit Simulation Enhancements
 - [ ] Fix "trying to connect two sources" error in 4004 CPU simulation
 - [ ] Complete all remaining 4004 circuit connection fixes if not already done

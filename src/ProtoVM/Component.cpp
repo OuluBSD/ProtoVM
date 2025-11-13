@@ -1092,6 +1092,692 @@ ElcCapacitor::ElcCapacitor() {
 	
 }
 
+ElcInductor::ElcInductor(double L) : inductance(L < 1e-9 ? 1e-9 : L), current(0.0), back_emf(0.0), 
+                                   last_tick_state_A(false), last_tick_state_B(false) {
+	AddBidirectional("A");
+	AddBidirectional("B");
+}
+
+void ElcInductor::SetInductance(double L) {
+	inductance = L < 1e-9 ? 1e-9 : L;  // Minimum inductance to avoid division by zero
+}
+
+bool ElcInductor::Tick() {
+	// In a digital simulation, we'll model the inductor's behavior through state changes
+	
+	// Get current states of terminals
+	bool current_state_A = GetConnector(0).IsConnected() ? true : false;  // A terminal
+	bool current_state_B = GetConnector(1).IsConnected() ? true : false;  // B terminal
+	
+	// Calculate voltage difference across inductor (digital approximation)
+	// In real circuits: V = L * di/dt
+	// For digital: we'll model the resistance to current change
+	
+	// Calculate change in voltage state and use it to model back EMF
+	// For digital simulation, we'll use the state transition to model inductor behavior
+	bool state_A_changed = (current_state_A != last_tick_state_A);
+	bool state_B_changed = (current_state_B != last_tick_state_B);
+	
+	// Update stored states for next tick
+	last_tick_state_A = current_state_A;
+	last_tick_state_B = current_state_B;
+	
+	// Simulate inductor behavior: opposes change in current
+	// In digital terms: creates a delay/reaction to state changes
+	if (state_A_changed || state_B_changed) {
+		// Apply back EMF effect based on inductance
+		back_emf = 0.1 / inductance;  // Simplified back EMF calculation
+	}
+	
+	// In digital simulation, the inductor allows current to continue flowing
+	// in the same direction even when voltage tries to change direction
+	// This is simplified for the digital simulation
+	
+	return ElcBase::Tick();  // Call parent tick
+}
+
+bool ElcInductor::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
+	if (type == ProcessType::TICK) {
+		return Tick();
+	}
+	
+	// For digital inductor simulation, process signals based on inductor behavior
+	if (type == ProcessType::WRITE) {
+		// Handle digital signal flow with inductor's resistance to change
+		byte temp_data[1];
+		if (conn_id == 0) {  // Input from A
+			if (GetConnector(1).IsConnected()) {
+				// Allow signal through with inductive delay simulation
+				// Get signal from A and pass to B
+				// In real terms: inductor allows current to continue but resists changes
+				return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+			}
+		} else if (conn_id == 1) {  // Input from B
+			if (GetConnector(0).IsConnected()) {
+				// Allow signal through with inductive delay simulation
+				// Get signal from B and pass to A
+				return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+			}
+		}
+	}
+	
+	return false;
+}
+
+bool ElcInductor::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+	// This method handles raw data input to the inductor
+	// In digital simulation, we'll use it to model the inductor's behavior
+	if (conn_id == 0) {  // From terminal A
+		// Apply inductor's effect to signal going to terminal B
+		// For now, pass the signal through with a slight delay effect
+		if (GetConnector(1).IsConnected()) {
+			// The inductor resists sudden changes
+			return true;  // Signal successfully received
+		}
+	} else if (conn_id == 1) {  // From terminal B
+		// Apply inductor's effect to signal going to terminal A
+		if (GetConnector(0).IsConnected()) {
+			// The inductor resists sudden changes
+			return true;  // Signal successfully received
+		}
+	}
+	
+	return false;
+}
+
+ElcSwitch::ElcSwitch(bool initial_state) : is_closed(initial_state) {
+	AddBidirectional("A");
+	AddBidirectional("B");
+}
+
+void ElcSwitch::Close() {
+	is_closed = true;
+}
+
+void ElcSwitch::Open() {
+	is_closed = false;
+}
+
+void ElcSwitch::Toggle() {
+	is_closed = !is_closed;
+}
+
+bool ElcSwitch::Tick() {
+	// In a switch, the tick behavior depends on whether it's closed or open
+	// If closed, it allows signals to pass between A and B
+	// If open, it blocks signals between A and B
+	return ElcBase::Tick();  // Call parent tick
+}
+
+bool ElcSwitch::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
+	if (type == ProcessType::TICK) {
+		return Tick();
+	}
+	
+	if (type == ProcessType::WRITE) {
+		// Only allow signal to pass if the switch is closed
+		if (!is_closed) {
+			return false;  // Switch is open, block signal
+		}
+		
+		// Switch is closed, allow signal to pass through
+		if (conn_id == 0) {  // Input from terminal A
+			// Pass signal to terminal B if it's connected
+			if (GetConnector(1).IsConnected()) {
+				// For now, we'll use a temporary array to pass the signal
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					// Simulate passing the signal through the switch
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			}
+		} else if (conn_id == 1) {  // Input from terminal B
+			// Pass signal to terminal A if it's connected
+			if (GetConnector(0).IsConnected()) {
+				// For now, we'll use a temporary array to pass the signal
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					// Simulate passing the signal through the switch
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			}
+		}
+	}
+	
+	return false;
+}
+
+bool ElcSwitch::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+	// Process raw data input based on switch state
+	if (!is_closed) {
+		return false;  // Switch is open, reject any input
+	}
+	
+	// Switch is closed, accept the input and pass it through
+	if (conn_id == 0) {  // Data coming from terminal A
+		// Pass data to terminal B if connected
+		if (GetConnector(1).IsConnected()) {
+			return true;
+		}
+	} else if (conn_id == 1) {  // Data coming from terminal B
+		// Pass data to terminal A if connected
+		if (GetConnector(0).IsConnected()) {
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+ElcPushSwitch::ElcPushSwitch(bool latched) : is_pressed(false), is_latched(latched), was_pressed(false) {
+	AddBidirectional("A");
+	AddBidirectional("B");
+	// Control pin to trigger the switch
+	AddSink("Control");
+}
+
+void ElcPushSwitch::Press() {
+	is_pressed = true;
+}
+
+void ElcPushSwitch::Release() {
+	if (!is_latched) {
+		is_pressed = false;
+	}
+	// If latched, it stays pressed until Reset() is called
+}
+
+void ElcPushSwitch::Reset() {
+	is_pressed = false;
+}
+
+void ElcPushSwitch::Latch() {
+	is_latched = true;
+	is_pressed = true;  // Also press when latching
+}
+
+void ElcPushSwitch::Unlatch() {
+	is_latched = false;
+}
+
+bool ElcPushSwitch::Tick() {
+	// Check the control input to determine if switch should be pressed
+	// If control input is high, press the switch (if not already latched)
+	// If control input is low and not latched, release the switch
+	
+	// For a momentary push switch, it should return to unpressed state 
+	// after each tick unless latched
+	if (!is_latched) {
+		is_pressed = false;  // Momentary switch returns to released state
+	}
+	
+	return ElcBase::Tick();  // Call parent tick
+}
+
+bool ElcPushSwitch::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
+	if (type == ProcessType::TICK) {
+		return Tick();
+	}
+	
+	if (type == ProcessType::WRITE) {
+		// If the control input is triggered, press the switch temporarily
+		if (conn_id == 2) { // Control input
+			// This would be handled by the control pin logic
+			if (!is_latched) {
+				is_pressed = true;  // Press when control is activated
+			}
+			return true;
+		}
+		
+		if (!is_pressed) {
+			return false;  // Switch is not pressed, block signal
+		}
+		
+		// Switch is pressed, allow signal to pass through
+		if (conn_id == 0) {  // Input from terminal A
+			// Pass signal to terminal B if it's connected
+			if (GetConnector(1).IsConnected()) {
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			}
+		} else if (conn_id == 1) {  // Input from terminal B
+			// Pass signal to terminal A if it's connected
+			if (GetConnector(0).IsConnected()) {
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			}
+		}
+	}
+	
+	return false;
+}
+
+bool ElcPushSwitch::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+	// Process raw data input based on switch state
+	if (!is_pressed) {
+		return false;  // Switch is not pressed, reject input
+	}
+	
+	if (conn_id == 0) {  // Data from terminal A
+		if (GetConnector(1).IsConnected()) {
+			return true;
+		}
+	} else if (conn_id == 1) {  // Data from terminal B
+		if (GetConnector(0).IsConnected()) {
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+ElcSPDT::ElcSPDT(bool default_position) : position(default_position), is_centered(false) {
+	AddBidirectional("Common");  // Common terminal
+	AddBidirectional("Output0"); // First output position
+	AddBidirectional("Output1"); // Second output position
+	AddSink("Control");          // Control input to change position
+}
+
+void ElcSPDT::SetPosition(bool pos) {
+	position = pos;
+	is_centered = false;  // No longer centered when set to a position
+}
+
+void ElcSPDT::Toggle() {
+	position = !position;
+	is_centered = false;  // No longer centered when toggled
+}
+
+void ElcSPDT::SetCenter() {
+	is_centered = true;  // In a real SPDT, this would be a third position, but for digital we'll just disconnect
+}
+
+bool ElcSPDT::Tick() {
+	// In SPDT, the connection is based on position and doesn't change unless explicitly controlled
+	// The switch position is set by the control input
+	
+	return ElcBase::Tick();  // Call parent tick
+}
+
+bool ElcSPDT::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
+	if (type == ProcessType::TICK) {
+		return Tick();
+	}
+	
+	if (type == ProcessType::WRITE) {
+		if (conn_id == 3) { // Control input
+			// Change position based on control signal
+			// For digital simulation, we can interpret any signal as a toggle
+			Toggle();
+			return true;
+		}
+		
+		// Handle signal routing based on switch position
+		if (is_centered) {
+			return false;  // If centered, no connection is made
+		}
+		
+		if (conn_id == 0) {  // From Common terminal
+			// Route to the selected output based on position
+			if (position && GetConnector(2).IsConnected()) {  // To Output1
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			} else if (!position && GetConnector(1).IsConnected()) {  // To Output0
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			}
+		} else if (conn_id == 1) {  // From Output0
+			// Only pass through if switch is in position 0
+			if (!position && !is_centered && GetConnector(0).IsConnected()) {  // To Common
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			}
+		} else if (conn_id == 2) {  // From Output1
+			// Only pass through if switch is in position 1
+			if (position && !is_centered && GetConnector(0).IsConnected()) {  // To Common
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			}
+		}
+	}
+	
+	return false;
+}
+
+bool ElcSPDT::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+	if (is_centered) {
+		return false;  // No connection in centered position
+	}
+	
+	if (conn_id == 0) {  // Data from Common
+		// Route to selected output based on position
+		if (position && GetConnector(2).IsConnected()) {
+			return true;  // To Output1
+		} else if (!position && GetConnector(1).IsConnected()) {
+			return true;  // To Output0
+		}
+	} else if (conn_id == 1) {  // Data from Output0
+		if (!position && GetConnector(0).IsConnected()) {
+			return true;  // Only if switch is in position 0
+		}
+	} else if (conn_id == 2) {  // Data from Output1
+		if (position && GetConnector(0).IsConnected()) {
+			return true;  // Only if switch is in position 1
+		}
+	}
+	
+	return false;
+}
+
+ElcDPDT::ElcDPDT(bool default_position) : position(default_position), is_centered(false) {
+	AddBidirectional("Common1");   // First pole common terminal
+	AddBidirectional("Common2");   // Second pole common terminal
+	AddBidirectional("Out1A");     // First pole output A
+	AddBidirectional("Out1B");     // First pole output B
+	AddBidirectional("Out2A");     // Second pole output A
+	AddBidirectional("Out2B");     // Second pole output B
+	AddSink("Control");            // Control input to change position
+}
+
+void ElcDPDT::SetPosition(bool pos) {
+	position = pos;
+	is_centered = false;  // No longer centered when set to a position
+}
+
+void ElcDPDT::Toggle() {
+	position = !position;
+	is_centered = false;  // No longer centered when toggled
+}
+
+void ElcDPDT::SetCenter() {
+	is_centered = true;  // Disconnect both poles (for 3-position version)
+}
+
+bool ElcDPDT::Tick() {
+	// In DPDT, the connection is based on position and doesn't change unless explicitly controlled
+	// The switch position is set by the control input
+	
+	return ElcBase::Tick();  // Call parent tick
+}
+
+bool ElcDPDT::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
+	if (type == ProcessType::TICK) {
+		return Tick();
+	}
+	
+	if (type == ProcessType::WRITE) {
+		if (conn_id == 6) { // Control input
+			// Change position based on control signal
+			// For digital simulation, we can interpret any signal as a toggle
+			Toggle();
+			return true;
+		}
+		
+		// Handle signal routing based on switch position
+		if (is_centered) {
+			return false;  // If centered, no connection is made
+		}
+		
+		// Route signals according to DPDT configuration
+		if (conn_id == 0) {  // From Common1
+			// Route to the selected output based on position
+			if (position && GetConnector(3).IsConnected()) {  // To Out1B
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			} else if (!position && GetConnector(2).IsConnected()) {  // To Out1A
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			}
+		} else if (conn_id == 1) {  // From Common2
+			// Route to the selected output based on position
+			if (position && GetConnector(5).IsConnected()) {  // To Out2B
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			} else if (!position && GetConnector(4).IsConnected()) {  // To Out2A
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			}
+		} 
+		// Also handle reverse directions - from outputs to commons
+		else if (conn_id == 2) {  // From Out1A
+			if (!position && !is_centered && GetConnector(0).IsConnected()) {  // To Common1
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			}
+		} else if (conn_id == 3) {  // From Out1B
+			if (position && !is_centered && GetConnector(0).IsConnected()) {  // To Common1
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			}
+		} else if (conn_id == 4) {  // From Out2A
+			if (!position && !is_centered && GetConnector(1).IsConnected()) {  // To Common2
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			}
+		} else if (conn_id == 5) {  // From Out2B
+			if (position && !is_centered && GetConnector(1).IsConnected()) {  // To Common2
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			}
+		}
+	}
+	
+	return false;
+}
+
+bool ElcDPDT::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+	if (is_centered) {
+		return false;  // No connection in centered position
+	}
+	
+	// Route signals according to DPDT configuration
+	if (conn_id == 0) {  // Data from Common1
+		if (position && GetConnector(3).IsConnected()) {
+			return true;  // To Out1B
+		} else if (!position && GetConnector(2).IsConnected()) {
+			return true;  // To Out1A
+		}
+	} else if (conn_id == 1) {  // Data from Common2
+		if (position && GetConnector(5).IsConnected()) {
+			return true;  // To Out2B
+		} else if (!position && GetConnector(4).IsConnected()) {
+			return true;  // To Out2A
+		}
+	} else if (conn_id == 2) {  // Data from Out1A
+		if (!position && GetConnector(0).IsConnected()) {
+			return true;  // To Common1
+		}
+	} else if (conn_id == 3) {  // Data from Out1B
+		if (position && GetConnector(0).IsConnected()) {
+			return true;  // To Common1
+		}
+	} else if (conn_id == 4) {  // Data from Out2A
+		if (!position && GetConnector(1).IsConnected()) {
+			return true;  // To Common2
+		}
+	} else if (conn_id == 5) {  // Data from Out2B
+		if (position && GetConnector(1).IsConnected()) {
+			return true;  // To Common2
+		}
+	}
+	
+	return false;
+}
+
+ElcMakeBeforeBreakSwitch::ElcMakeBeforeBreakSwitch(bool initial_position, int transition_ticks) 
+	: current_position(initial_position), target_position(initial_position), 
+	  transition_count(0), transition_duration(transition_ticks) {
+	AddBidirectional("Common");   // Common terminal
+	AddBidirectional("Output0");  // First output position
+	AddBidirectional("Output1");  // Second output position
+	AddSink("Control");           // Control input to change position
+}
+
+void ElcMakeBeforeBreakSwitch::SetPosition(bool pos) {
+	// In a make-before-break switch, we first establish connection to the new position
+	// then break connection to the old position - this prevents interruption
+	target_position = pos;
+	
+	// Start the transition process
+	transition_count = 0;
+}
+
+void ElcMakeBeforeBreakSwitch::ImmediateSet(bool pos) {
+	// Immediately change switch position without transition behavior
+	current_position = pos;
+	target_position = pos;
+	transition_count = 0;
+}
+
+bool ElcMakeBeforeBreakSwitch::Tick() {
+	// Handle the make-before-break transition logic
+	if (current_position != target_position) {
+		transition_count++;
+		
+		// In make-before-break, we briefly connect to both positions during transition
+		if (transition_count >= transition_duration) {
+			// Transition complete - now only connect to the new position
+			current_position = target_position;
+			transition_count = 0;
+		}
+	}
+	
+	return ElcBase::Tick();  // Call parent tick
+}
+
+bool ElcMakeBeforeBreakSwitch::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
+	if (type == ProcessType::TICK) {
+		return Tick();
+	}
+	
+	if (type == ProcessType::WRITE) {
+		if (conn_id == 3) { // Control input
+			// Change target position based on control signal
+			// For simulation, we'll toggle when signal is received
+			SetPosition(!target_position);
+			return true;
+		}
+		
+		// Handle signal routing based on switch state
+		if (conn_id == 0) {  // From Common terminal
+			// During transition in make-before-break, we may be connected to both outputs briefly
+			if (transition_count > 0 && transition_count < transition_duration) {
+				// In transition state - potentially connected to both outputs
+				// For simulation purposes, we'll route to both
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					// Route to both outputs during transition
+					if (GetConnector(1).IsConnected()) {
+						dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+					}
+					if (GetConnector(2).IsConnected()) {
+						dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+					}
+					return true;
+				}
+			} else {
+				// Not in transition - route to current active output
+				if (current_position && GetConnector(2).IsConnected()) {  // To Output1
+					byte temp_data[1] = {0};
+					if (bytes > 0) {
+						return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+					}
+				} else if (!current_position && GetConnector(1).IsConnected()) {  // To Output0
+					byte temp_data[1] = {0};
+					if (bytes > 0) {
+						return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+					}
+				}
+			}
+		} else if (conn_id == 1) {  // From Output0
+			// Only pass through if switch is in position 0 or in transition
+			if ((!current_position || 
+				(transition_count > 0 && transition_count < transition_duration)) && 
+				GetConnector(0).IsConnected()) {  // To Common
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			}
+		} else if (conn_id == 2) {  // From Output1
+			// Only pass through if switch is in position 1 or in transition
+			if ((current_position || 
+				(transition_count > 0 && transition_count < transition_duration)) && 
+				GetConnector(0).IsConnected()) {  // To Common
+				byte temp_data[1] = {0};
+				if (bytes > 0) {
+					return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+				}
+			}
+		}
+	}
+	
+	return false;
+}
+
+bool ElcMakeBeforeBreakSwitch::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+	// During transition, the make-before-break switch might be connected to both outputs briefly
+	if (conn_id == 0) {  // Data from Common
+		// Route to the appropriate output based on position
+		if (transition_count > 0 && transition_count < transition_duration) {
+			// During transition - connected to both outputs
+			if (GetConnector(1).IsConnected() || GetConnector(2).IsConnected()) {
+				return true;
+			}
+		} else {
+			// Not in transition - connected to specific output
+			if (current_position && GetConnector(2).IsConnected()) {
+				return true;  // To Output1
+			} else if (!current_position && GetConnector(1).IsConnected()) {
+				return true;  // To Output0
+			}
+		}
+	} else if (conn_id == 1) {  // Data from Output0
+		if ((!current_position || 
+			(transition_count > 0 && transition_count < transition_duration)) && 
+			GetConnector(0).IsConnected()) {
+			return true;  // Only if switch is in position 0 or in transition
+		}
+	} else if (conn_id == 2) {  // Data from Output1
+		if ((current_position || 
+			(transition_count > 0 && transition_count < transition_duration)) && 
+			GetConnector(0).IsConnected()) {
+			return true;  // Only if switch is in position 1 or in transition
+		}
+	}
+	
+	return false;
+}
+
+
 Register4Bit::Register4Bit() {
 	// Add sinks for 4-bit data input (D3, D2, D1, D0)
 	AddSink("D3");

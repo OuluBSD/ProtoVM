@@ -13,6 +13,19 @@
 #include "ICcadc.h"
 #include "CadcSystem.h"
 #include "SerialOutputDevice.h"
+#include "AnalogCommon.h"
+#include "AnalogComponents.h"
+#include "AnalogSemiconductors.h"
+#include "AnalogSimulation.h"
+#include "RCOscillator.h"
+
+// Include the implementation files to be compiled as part of the main module
+#include "AnalogCommon.cpp"
+#include "AnalogComponents.cpp"
+#include "AnalogSemiconductors.cpp"
+#include "AnalogSimulation.cpp"
+#include "RCOscillator.cpp"
+// AnalogAudioTest.cpp is compiled separately in the .upp file
 /*
 LinkBases:
 	- https://github.com/vygr/C-PCB
@@ -25,6 +38,8 @@ void SetupTest4_6502(Machine& mach);
 void SetupTest3_BasicLogicGates(Machine& mach);
 void SetupTest4_MuxDemux(Machine& mach);
 void SetupTest5_DecoderEncoder(Machine& mach);
+void SetupAnalogAudioOscillator(Machine& mach);
+void RunAnalogAudioTest();
 void TestBasicLogicGates(Machine& mach);
 void Test4BitRegister(Machine& mach);
 void Test4BitMemory(Machine& mach);
@@ -231,11 +246,11 @@ CONSOLE_APP_MAIN {
 		Cout() << "  --cli          Start in interactive CLI mode\n";
 		Cout() << "  --load-binary <file> [addr]  Load binary program file into memory at specified address\n";
 		Cout() << "Circuits:\n";
-		Cout() << "  flipflop    - Simple flip-flop test circuit\n";
-		Cout() << "  andgate     - Simple AND gate test circuit\n";
-		Cout() << "  counter     - 4-bit counter test circuit\n";
-		Cout() << "  memory      - Memory test circuit\n";
-		Cout() << "  6502        - 6502 CPU test circuit\n";
+		Cout() << "  flipflop         - Simple flip-flop test circuit\n";
+		Cout() << "  andgate          - Simple AND gate test circuit\n";
+		Cout() << "  counter          - 4-bit counter test circuit\n";
+		Cout() << "  memory           - Memory test circuit\n";
+		Cout() << "  6502             - 6502 CPU test circuit\n";
 		Cout() << "  basiclogic  - Basic logic gates test circuit\n";
 		Cout() << "  test4bit    - 4-bit register test circuit\n";
 		Cout() << "  test4bitmemory - 4-bit memory test circuit\n";
@@ -260,6 +275,8 @@ CONSOLE_APP_MAIN {
 		Cout() << "  signaltrace  - Signal tracing functionality test circuit\n";
 		Cout() << "  mds1101      - MDS-1101 schematic tool demonstration\n";
 		Cout() << "  cadc         - F-14 CADC system demonstration\n";
+		Cout() << "  analog-audio     - Analog audio oscillator with PortAudio output\n";
+		Cout() << "  analog-oscillator - Same as analog-audio (alias)\n";
 		Cout() << "\nExamples:\n";
 		Cout() << "  " << GetExeTitle() << " 6502 -t 1000    # Run 6502 circuit for 1000 ticks\n";
 		Cout() << "  " << GetExeTitle() << " --cli           # Start interactive CLI mode\n";
@@ -409,6 +426,9 @@ CONSOLE_APP_MAIN {
 			TestMDS1101SchematicTool();
 		} else if (circuit_name == "cadc") {
 			TestCadcSystem();
+		} else if (circuit_name == "analog-audio" || circuit_name == "analog-oscillator") {
+			RunAnalogAudioTest();
+			return;  // Return after running the audio test since it's a standalone test
 		} else {
 			Cout() << "Unknown circuit: " << circuit_name << "\n";
 			Cout() << "Run with --help for a list of valid circuits.\n";

@@ -17,6 +17,10 @@ struct DelayedEvent {
 	}
 };
 
+// Forward declarations for analog components
+class AnalogSimulation;
+class AnalogNodeBase;
+
 class Machine {
 public:
 	Array<Pcb> pcbs;
@@ -221,6 +225,27 @@ public:
 	void ReportProfilingResults();   // Report profiling results
 	void ResetProfilingData();       // Reset all profiling data
 	void AddProfilingSample(const String& component_name, int64 duration); // Add a profiling sample
+
+	// Mixed-signal simulation support
+private:
+	AnalogSimulation* analog_sim;  // Analog simulation system
+	Vector<AnalogNodeBase*> analog_components;  // List of analog components in the system
+
+public:
+	// Initialize analog simulation
+	void InitAnalogSimulation();
+	
+	// Register an analog component
+	void RegisterAnalogComponent(AnalogNodeBase* component);
+	
+	// Accessor for analog simulation
+	AnalogSimulation* GetAnalogSimulation() { return analog_sim; }
+	
+	// Run the analog portion of the simulation during each tick
+	bool RunAnalogSimulation();
+	
+	// Methods for mixed-signal interactions
+	void HandleAnalogDigitalInterface();
 };
 
 

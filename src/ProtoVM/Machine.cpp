@@ -223,6 +223,12 @@ bool Machine::Tick() {
 		CheckClockDomainCrossings();
 	}
 	
+	// Run the analog simulation first to update analog voltages
+	if (!RunAnalogSimulation()) {
+		LOG("Error: Analog simulation failed at tick " << current_tick);
+		return false;
+	}
+	
 	// Implement convergence-based simulation to handle feedback loops and signal propagation
 	bool changed = true;
 	int iteration = 0;
@@ -283,6 +289,9 @@ bool Machine::Tick() {
 			LogAllSignalTransitions();  // Log all transitions from the current tick
 		}
 	}
+	
+	// Handle analog-digital interface interactions
+	HandleAnalogDigitalInterface();
 	
 	return true;
 }
@@ -1261,4 +1270,49 @@ void Machine::SetGlobalClockMultiplier(double multiplier) {
             }
         }
     }
+}
+
+void Machine::InitAnalogSimulation() {
+    // Initialize the analog simulation system
+    if (!analog_sim) {
+        analog_sim = new AnalogSimulation();
+        LOG("Analog simulation initialized");
+    }
+}
+
+void Machine::RegisterAnalogComponent(AnalogNodeBase* component) {
+    if (!analog_sim) {
+        InitAnalogSimulation();
+    }
+    
+    // Add to the list of analog components
+    analog_components.Add(component);
+    if (analog_sim) {
+        analog_sim->RegisterAnalogComponent(component);
+    }
+    
+    LOG("Registered analog component: " << component->GetClassName());
+}
+
+bool Machine::RunAnalogSimulation() {
+    if (!analog_sim || analog_components.IsEmpty()) {
+        // No analog components, so simulation step successful by default
+        return true;
+    }
+    
+    // Run the analog simulation for this tick
+    return analog_sim->Tick();
+}
+
+void Machine::HandleAnalogDigitalInterface() {
+    // Handle any interfaces between analog and digital components
+    // For example, ADCs, DACs, comparators, etc.
+    // In this implementation, we'll look for components that may need
+    // analog values to drive digital behavior or vice versa
+    
+    LOG("Handling analog-digital interface");
+    
+    // In a complete implementation, this would identify and handle
+    // components that bridge analog and digital domains
+    // For example, a comparator that converts an analog value to a digital output
 }

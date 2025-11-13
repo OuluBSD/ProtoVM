@@ -109,6 +109,13 @@ file
 	CadcSystem.h,
 	CadcSystem.cpp,
 	TestCadc.cpp,
+	AnalogCommon.h,
+	AnalogComponents.h,
+	AnalogSemiconductors.h,
+	AnalogSimulation.h,
+	RCOscillator.h,
+	AnalogAudioTest.h readonly separator,
+	AnalogAudioTest.cpp,
 	_ readonly separator;
 
 mainconfig

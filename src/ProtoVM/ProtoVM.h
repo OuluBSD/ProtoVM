@@ -20,6 +20,11 @@ using namespace UPP;
 #include "Machine.h"
 #include "Generic.h"
 #include "Router.h"
+#include "AnalogCommon.h"
+#include "AnalogComponents.h"
+#include "AnalogSemiconductors.h"
+#include "AnalogSimulation.h"
+#include "RCOscillator.h"
 
 
 #endif

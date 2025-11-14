@@ -45,7 +45,7 @@
 - [x] Create CADC-specific test programs and binaries
 - [x] Add CADC to the main executable's circuit selection
 - [x] Implement CADC-specific CLI commands and debugging tools
-- [ ] Create documentation for CADC architecture and usage
+- [x] Create documentation for CADC architecture and usage
 
 ### Analog Synthesizer Tasks
 - [ ] Design analog synthesizer simulation components (VCO, VCF, VCA, LFO, ADSR envelope)

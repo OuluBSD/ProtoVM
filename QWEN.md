@@ -12,6 +12,15 @@ Note: The project uses U++ (ultimate++). The build script has been updated to us
 - Build script: `build.sh` uses `$HOME/Topside/uppsrc` as the U++ source path
 - To build: `./build.sh`
 
+## Project Development Best Practices
+
+### Commit and Task Management
+- Always commit your changes to git after completing a task
+- Update the TASKS.md file to mark completed tasks as [x]
+- Maintain a consistent workflow: plan → implement → test → commit → update tasks
+- Write descriptive commit messages that explain what was implemented
+- Follow the trunk-based development approach with frequent small commits
+
 ## Current State Analysis
 
 ### System Architecture

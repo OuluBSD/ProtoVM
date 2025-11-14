@@ -13,38 +13,38 @@
 - [x] Design and implement Transformer with turns ratio and coupling coefficient
 - [x] Design and implement Tapped Transformer with center tap or multiple taps
 - [x] Design and implement Custom Transformer with configurable parameters
-- [ ] Design and implement Transmission Line with characteristic impedance and propagation delay
+- [x] Design and implement Transmission Line with characteristic impedance and propagation delay
 - [x] Design and implement Relay with coil and contact simulation
 - [x] Design and implement Relay Coil with inductance and magnetic field
 - [x] Design and implement Relay Contact with switching behavior
 - [x] Design and implement Photoresistor (LDR) with light-dependent resistance
 - [x] Design and implement Thermistor with temperature-dependent resistance
 - [x] Design and implement Memristor with memory-dependent resistance
-- [ ] Design and implement Spark Gap with breakdown voltage characteristics
-- [ ] Design and implement Fuse with current rating and blow characteristics
+- [x] Design and implement Spark Gap with breakdown voltage characteristics
+- [x] Design and implement Fuse with current rating and blow characteristics
 - [x] Design and implement Crystal oscillator with resonant frequency
 - [x] Design and implement Cross Switch for telecommunications applications
 
 ### Digital Circuit Simulation Enhancements
-- [ ] Fix "trying to connect two sources" error in 4004 CPU simulation
-- [ ] Complete all remaining 4004 circuit connection fixes if not already done
-- [ ] Complete all remaining binary loading and execution tasks if not already done
-- [ ] Complete all remaining 4004 program execution tasks if not already done
+- [x] Fix "trying to connect two sources" error in 4004 CPU simulation
+- [x] Complete all remaining 4004 circuit connection fixes if not already done
+- [x] Complete all remaining binary loading and execution tasks if not already done
+- [x] Complete all remaining 4004 program execution tasks if not already done
 
 ### Schematic Drawing Tools
 - [ ] The MDS-1104 is very early single-transistor calculator from 1950s
 - [ ] The MDS-1104 schematic drawing tools need to be properly implemented (currently marked as done but may need verification)
 
 ### CADC Implementation (F-14 Central Air Data Computer)
-- [ ] Design and implement CADC chipset components (PMU, PDU, SLF, SLU, RAS, ROM)
-- [ ] Create CADC-specific timing and serialization logic (375 kHz, 20-bit words)
-- [ ] Implement pipeline concurrency for three processing modules
-- [ ] Create MinimaxCADC circuit similar to Minimax4004 but using CADC architecture
-- [ ] Implement polynomial evaluation algorithms optimized for CADC architecture
-- [ ] Add support for air data computation algorithms (altitude, speed, etc.)
-- [ ] Create CADC-specific test programs and binaries
-- [ ] Add CADC to the main executable's circuit selection
-- [ ] Implement CADC-specific CLI commands and debugging tools
+- [x] Design and implement CADC chipset components (PMU, PDU, SLF, SLU, RAS, ROM)
+- [x] Create CADC-specific timing and serialization logic (375 kHz, 20-bit words)
+- [x] Implement pipeline concurrency for three processing modules
+- [x] Create MinimaxCADC circuit similar to Minimax4004 but using CADC architecture
+- [x] Implement polynomial evaluation algorithms optimized for CADC architecture
+- [x] Add support for air data computation algorithms (altitude, speed, etc.)
+- [x] Create CADC-specific test programs and binaries
+- [x] Add CADC to the main executable's circuit selection
+- [x] Implement CADC-specific CLI commands and debugging tools
 - [ ] Create documentation for CADC architecture and usage
 
 ### Analog Synthesizer Tasks

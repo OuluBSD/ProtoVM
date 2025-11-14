@@ -25,6 +25,7 @@
 #include "AnalogSemiconductors.cpp"
 #include "AnalogSimulation.cpp"
 #include "RCOscillator.cpp"
+#include "MinimaxCADC.cpp"
 #include "AnalogResistorTest.cpp"
 #include "AnalogCapacitorTest.cpp"
 #include "AnalogRCTest.cpp"
@@ -442,6 +443,9 @@ CONSOLE_APP_MAIN {
 			TestMDS1101SchematicTool();
 		} else if (circuit_name == "cadc") {
 			TestCadcSystem();
+		} else if (circuit_name == "minimaxcadc") {
+			SetupMiniMaxCADC(mach);
+			LOG("Loaded MiniMaxCADC circuit");
 		} else if (circuit_name == "analog-audio" || circuit_name == "analog-oscillator") {
 			RunAnalogAudioTest();
 			return;  // Return after running the audio test since it's a standalone test

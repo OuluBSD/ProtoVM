@@ -26,6 +26,11 @@ using namespace UPP;
 #include "AnalogSimulation.h"
 #include "RCOscillator.h"
 #include "TubeLogic.h"
+#include "TransmissionLine.h"
+#include "SparkGap.h"
+#include "Fuse.h"
+#include "CadcSystem.h"
+#include "MinimaxCADC.h"
 
 
 #endif

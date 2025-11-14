@@ -59,6 +59,8 @@ file
 	MDS1101SchematicTool.cpp,
 	MDS1104SchematicTool.h,
 	MDS1104SchematicTool.cpp,
+	TriodeTubeModel.h,
+	TriodeTubeModel.cpp,
 	ICRamRom.h,
 	ICRamRom.cpp,
 	D8A16.inl highlight cpp,

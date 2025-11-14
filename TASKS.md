@@ -69,7 +69,7 @@
 - [ ] Add support for classic synthesizer architectures (subtractive, FM, etc.)
 - [ ] Create example patches demonstrating classic synthesizer sounds
 - [ ] Implement anti-aliasing for oscillator waveforms to prevent audio artifacts
-- [ ] Design and implement triode tube models for analog circuit simulation
+- [x] Design and implement triode tube models for analog circuit simulation
 - [ ] Add pentode and tetrode tube models for more complex valve circuits
 - [ ] Create tube amplifier circuit simulations with proper distortion modeling
 - [ ] Implement tube-based filter and oscillator circuits

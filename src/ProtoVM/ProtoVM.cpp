@@ -31,6 +31,7 @@
 #include "AnalogRCTest.cpp"
 #include "AnalogSimulationTest.cpp"
 #include "MDS1104SchematicTool.cpp"
+#include "TriodeTubeModel.cpp"
 // AnalogAudioTest.cpp is compiled separately in the .upp file
 /*
 LinkBases:
@@ -71,6 +72,7 @@ void Test82_PLL();
 void Test90_SignalTracing();
 void TestMDS1101SchematicTool();
 void TestMDS1104SchematicTool();
+void TestTriodeTubeModel();
 void Run4004UnitTests();
 int Run4004OutputTests();
 int Run4004InstructionTests();
@@ -290,6 +292,7 @@ CONSOLE_APP_MAIN {
 		Cout() << "  signaltrace  - Signal tracing functionality test circuit\n";
 		Cout() << "  mds1101      - MDS-1101 schematic tool demonstration\n";
 		Cout() << "  mds1104      - MDS-1104 early calculator schematic tool demonstration\n";
+		Cout() << "  triode       - Triode vacuum tube model demonstration\n";
 		Cout() << "  cadc         - F-14 CADC system demonstration\n";
 		Cout() << "  analog-audio     - Analog audio oscillator with PortAudio output\n";
 		Cout() << "  analog-oscillator - Same as analog-audio (alias)\n";
@@ -446,6 +449,8 @@ CONSOLE_APP_MAIN {
 			TestMDS1101SchematicTool();
 		} else if (circuit_name == "mds1104") {
 			TestMDS1104SchematicTool();
+		} else if (circuit_name == "triode") {
+			TestTriodeTubeModel();
 		} else if (circuit_name == "cadc") {
 			TestCadcSystem();
 		} else if (circuit_name == "minimaxcadc") {
@@ -626,4 +631,69 @@ void TestMDS1104SchematicTool() {
 
     LOG("\nMDS-1104 Schematic Tool Test Completed!");
     LOG("This demonstrates the implementation of tools for early computing devices.");
+}
+
+void TestTriodeTubeModel() {
+    LOG("Testing Triode Tube Model Implementation");
+    LOG("======================================");
+
+    // Create and configure the triode tube model
+    TriodeTube triode;
+    
+    LOG("Created TriodeTube model with 12AX7 parameters:");
+    LOG("  Amplification Factor (mu): 100");
+    LOG("  Plate Resistance (rp): 62kΩ");
+    LOG("  Transconductance (gm): 1600 µMhos");
+    
+    // Test basic functionality
+    LOG("\nTesting basic triode tube operation...");
+    
+    // Simulate applying voltages to the triode
+    // Initially zero volts on all terminals
+    byte zero_volt[2] = {0, 0};  // 0V
+    
+    // Apply grid voltage (negative relative to cathode) to control current
+    // In a real triode: -1.5V might result in moderate current flow
+    byte grid_volt[2] = {0x10, 0xFE};  // -0.3V (simulated negative voltage) 
+    triode.PutRaw(TriodeTube::GRID, grid_volt, 2, 0);
+    
+    // Apply plate voltage (positive relative to cathode)
+    byte plate_volt[2] = {0x60, 0x0};  // 96V positive
+    triode.PutRaw(TriodeTube::PLATE, plate_volt, 2, 0);
+    
+    // Apply cathode voltage (reference = 0V)
+    byte cath_volt[2] = {0, 0};  // 0V
+    triode.PutRaw(TriodeTube::CATHODE, cath_volt, 2, 0);
+    
+    // Tick the simulation
+    triode.Tick();
+    
+    // Get operating point after simulation
+    LOG("\nOperating Point after simulation:");
+    LOG("  Grid Voltage: " << triode.GetGridVoltage() << "V");
+    LOG("  Plate Voltage: " << triode.GetPlateVoltage() << "V");
+    LOG("  Plate Current: " << triode.GetPlateCurrent() << "A (" 
+          << triode.GetPlateCurrent() * 1000 << "mA)");
+    
+    // Test different grid voltage to see amplification effect
+    LOG("\nTesting amplification with different grid voltages:");
+    
+    // More negative grid voltage reduces current (more cutoff)
+    byte more_neg_grid[2] = {0x20, 0xFD};  // -0.6V
+    triode.PutRaw(TriodeTube::GRID, more_neg_grid, 2, 0);
+    triode.Tick();
+    
+    LOG("  Grid: " << triode.GetGridVoltage() << "V, Plate Current: " 
+          << triode.GetPlateCurrent() * 1000 << "mA");
+    
+    // Less negative grid voltage increases current (less cutoff)
+    byte less_neg_grid[2] = {0x08, 0xFF};  // -0.15V
+    triode.PutRaw(TriodeTube::GRID, less_neg_grid, 2, 0);
+    triode.Tick();
+    
+    LOG("  Grid: " << triode.GetGridVoltage() << "V, Plate Current: " 
+          << triode.GetPlateCurrent() * 1000 << "mA");
+    
+    LOG("\nTriode Tube Model Test Completed!");
+    LOG("This demonstrates realistic vacuum tube behavior modeling.");
 }

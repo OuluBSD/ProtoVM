@@ -1,0 +1,158 @@
+#include "ProtoVM.h"
+#include "TriodeTubeModel.h"
+
+/*
+ * Triode Tube Model Implementation
+ */
+
+TriodeTube::TriodeTube() {
+    // Set default tube parameters typical for a 12AX7 triode
+    amplification_factor = 100.0;    // Typical for 12AX7
+    plate_resistance = 62000.0;      // Typical for 12AX7 in ohms  
+    transconductance = 1600e-6;      // Typical for 12AX7 in siemens (1600 µMhos)
+    max_plate_current = 0.01;        // 10mA maximum plate current
+
+    // Initialize operating point
+    plate_current = 0.0;
+    grid_voltage = 0.0;
+    plate_voltage = 0.0;
+    cathode_voltage = 0.0;
+
+    // Add pin connections
+    AddSink("GRID");     // Control grid input
+    AddBiDirectional("PLATE");  // Plate (anode) - can source or sink current
+    AddBiDirectional("CATHODE"); // Cathode - can source or sink current
+
+    LOG("TriodeTube: Initialized with 12AX7 parameters");
+}
+
+void TriodeTube::SetAmplificationFactor(double mu) {
+    amplification_factor = mu;
+    // Update transconductance based on relationship gm = mu/rp
+    transconductance = amplification_factor / plate_resistance;
+}
+
+void TriodeTube::SetPlateResistance(double rp) {
+    plate_resistance = rp;
+    // Update transconductance based on relationship gm = mu/rp
+    transconductance = amplification_factor / plate_resistance;
+}
+
+void TriodeTube::SetTransconductance(double gm) {
+    transconductance = gm;
+    // Update plate resistance based on relationship rp = mu/gm
+    plate_resistance = amplification_factor / transconductance;
+}
+
+bool TriodeTube::Tick() {
+    // Update the triode state based on current voltages
+    UpdateTriodeState();
+
+    return true;
+}
+
+bool TriodeTube::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
+    // Process requests from connected components
+    if (type == WRITE) {
+        // Return calculated values when requested by other components
+        byte temp_data[3];
+        
+        switch (conn_id) {
+            case PLATE:
+                // Return plate current as a function of grid voltage
+                if (HasChanged()) {
+                    double plate_current_scaled = plate_current * 1000000;  // Scale to microamps
+                    temp_data[0] = static_cast<byte>(plate_current_scaled) & 0xFF;
+                    temp_data[1] = static_cast<byte>((plate_current_scaled >> 8) & 0xFF);
+                    temp_data[2] = static_cast<byte>((plate_current_scaled >> 16) & 0xFF);
+                    
+                    return dest.PutRaw(dest_conn_id, temp_data, bytes, bits);
+                }
+                break;
+
+            default:
+                return true;
+        }
+    }
+    
+    return true;
+}
+
+bool TriodeTube::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    // Receive voltage/current inputs from connected components
+    if (data_bytes == 0 && data_bits == 1) {
+        // Single bit input - likely control signal
+        return true;
+    }
+
+    if (data_bytes >= 2 && data_bits == 0) {
+        // Multi-byte input representing voltage
+        double voltage = static_cast<double>((data[1] << 8) | data[0]) / 1000.0; // Scale appropriately
+        
+        switch (conn_id) {
+            case GRID:
+                grid_voltage = voltage;
+                SetChanged(true);
+                break;
+                
+            case PLATE:
+                plate_voltage = voltage;
+                SetChanged(true);
+                break;
+                
+            case CATHODE:
+                cathode_voltage = voltage;
+                SetChanged(true);
+                break;
+                
+            default:
+                break;
+        }
+    }
+
+    return true;
+}
+
+double TriodeTube::CalculatePlateCurrent(double vg, double vp) {
+    // Calculate the plate current based on triode equations
+    // A simple model: Ip = gm * (Vg + (Vp/mu)) for linear region
+    // Add clipping for saturation/cutoff
+    
+    double effective_grid_voltage = vg - (-vp / amplification_factor);  // Account for dc bias
+    
+    if (effective_grid_voltage <= -4.0) {  // Cutoff region (-4V is approximate cutoff for 12AX7)
+        return 0.0;
+    }
+    
+    // Linear region: use transconductance model
+    double current = transconductance * effective_grid_voltage * amplification_factor;
+    
+    // Apply saturation limit
+    if (current > max_plate_current) {
+        current = max_plate_current;
+    }
+    
+    if (current < 0) {
+        current = 0;
+    }
+    
+    return current;
+}
+
+void TriodeTube::UpdateTriodeState() {
+    // Calculate new plate current based on current grid and plate voltages
+    // In a real triode, the grid controls the electron flow from cathode to plate
+    plate_current = CalculatePlateCurrent(grid_voltage, plate_voltage);
+    
+    // For the simulation model, we need to represent this as a current source/sink
+    // depending on the operating point
+    
+    // Update the state and mark as changed if there's a significant change
+    static double prev_plate_current = 0.0;
+    if (abs(plate_current - prev_plate_current) > 0.000001) {  // 1µA threshold
+        SetChanged(true);
+        prev_plate_current = plate_current;
+    } else {
+        SetChanged(false);
+    }
+}

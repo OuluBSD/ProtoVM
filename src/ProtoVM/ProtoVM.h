@@ -31,6 +31,8 @@ using namespace UPP;
 #include "Fuse.h"
 #include "CadcSystem.h"
 #include "MinimaxCADC.h"
+#include "MDS1104SchematicTool.h"
+#include "TriodeTubeModel.h"
 
 
 #endif

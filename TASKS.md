@@ -32,8 +32,8 @@
 - [x] Complete all remaining 4004 program execution tasks if not already done
 
 ### Schematic Drawing Tools
-- [ ] The MDS-1104 is very early single-transistor calculator from 1950s
-- [ ] The MDS-1104 schematic drawing tools need to be properly implemented (currently marked as done but may need verification)
+- [x] The MDS-1104 is very early single-transistor calculator from 1950s
+- [x] The MDS-1104 schematic drawing tools need to be properly implemented (currently marked as done but may need verification)
 
 ### CADC Implementation (F-14 Central Air Data Computer)
 - [x] Design and implement CADC chipset components (PMU, PDU, SLF, SLU, RAS, ROM)

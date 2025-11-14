@@ -52,7 +52,7 @@ bool MDS1104SchematicTool::AnalyzeDesign() {
     return VerifySchematic();
 }
 
-Schematic MDS1104SchematicTool::GenerateSchematic() {
+MDS1104Schematic MDS1104SchematicTool::GenerateSchematic() {
     MDS1104_LOG("Generating MDS-1104 schematic from internal representation");
 
     // Create schematic from internally stored components and connections

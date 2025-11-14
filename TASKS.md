@@ -48,12 +48,12 @@
 - [x] Create documentation for CADC architecture and usage
 
 ### Analog Synthesizer Tasks
-- [ ] Design analog synthesizer simulation components (VCO, VCF, VCA, LFO, ADSR envelope)
-- [ ] Implement voltage-controlled oscillator (VCO) with multiple waveform generation
-- [ ] Implement voltage-controlled filter (VCF) with classic filter designs (Moog ladder, etc.)
-- [ ] Implement voltage-controlled amplifier (VCA) with linear and exponential response
-- [ ] Create ADSR envelope generator for amplitude and filter modulation
-- [ ] Implement low-frequency oscillator (LFO) for modulation effects
+- [x] Design analog synthesizer simulation components (VCO, VCF, VCA, LFO, ADSR envelope)
+- [x] Implement voltage-controlled oscillator (VCO) with multiple waveform generation
+- [x] Implement voltage-controlled filter (VCF) with classic filter designs (Moog ladder, etc.)
+- [x] Implement voltage-controlled amplifier (VCA) with linear and exponential response
+- [x] Create ADSR envelope generator for amplitude and filter modulation
+- [x] Implement low-frequency oscillator (LFO) for modulation effects
 - [ ] Implement analog signal processing circuits using differential equations
 - [ ] Create virtual analog modeling for classic synthesizer circuits
 - [ ] Develop audio signal path simulation with proper frequency response

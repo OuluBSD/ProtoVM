@@ -12,12 +12,12 @@ namespace Upp {
 }
 
 // Full definitions of helper classes needed for the schematic tool
-class Image {
+class MDS1104Image {
 public:
     std::string path;
     int width, height;
 
-    Image() : width(0), height(0) {}
+    MDS1104Image() : width(0), height(0) {}
 
     bool Load(const std::string& file_path) {
         path = file_path;
@@ -28,37 +28,37 @@ public:
     }
 };
 
-class Component {
+class MDS1104Component {
 public:
     std::string type;      // e.g., "transistor", "resistor", "capacitor", "diode", etc.
     std::string name;      // Reference designator
     float x, y;            // Position on PCB
     std::string value;     // Component value (e.g., resistance, capacitance)
 
-    Component(const std::string& t, const std::string& n, float posx, float posy, const std::string& val = "")
+    MDS1104Component(const std::string& t, const std::string& n, float posx, float posy, const std::string& val = "")
         : type(t), name(n), x(posx), y(posy), value(val) {}
 };
 
-class Connection {
+class MDS1104Connection {
 public:
     std::string from_component;  // Reference designator of source
     std::string to_component;    // Reference designator of destination
     std::vector<std::pair<float, float>> path;  // Path coordinates
 
-    Connection(const std::string& from, const std::string& to)
+    MDS1104Connection(const std::string& from, const std::string& to)
         : from_component(from), to_component(to) {}
 };
 
-class Schematic {
+class MDS1104Schematic {
 public:
-    std::vector<Component> components;
-    std::vector<Connection> connections;
+    std::vector<MDS1104Component> components;
+    std::vector<MDS1104Connection> connections;
 
-    void AddComponent(const Component& comp) {
+    void AddComponent(const MDS1104Component& comp) {
         components.push_back(comp);
     }
 
-    void AddConnection(const Connection& conn) {
+    void AddConnection(const MDS1104Connection& conn) {
         connections.push_back(conn);
     }
 
@@ -111,9 +111,9 @@ public:
  */
 class MDS1104SchematicTool {
 private:
-    std::vector<Component> mds1104_components;   // Components of the MDS-1104 calculator
-    std::vector<Connection> mds1104_connections; // Connections of the MDS-1104 calculator
-    Schematic mds1104_schematic;                 // Generated MDS-1104 schematic representation
+    std::vector<MDS1104Component> mds1104_components;   // Components of the MDS-1104 calculator
+    std::vector<MDS1104Connection> mds1104_connections; // Connections of the MDS-1104 calculator
+    MDS1104Schematic mds1104_schematic;                 // Generated MDS-1104 schematic representation
 
 public:
     MDS1104SchematicTool();
@@ -126,7 +126,7 @@ public:
     bool AnalyzeDesign();
 
     // Generate schematic from internal representation
-    Schematic GenerateSchematic();
+    MDS1104Schematic GenerateSchematic();
 
     // Export to ProtoVM format
     bool ExportToProtoVM(const std::string& filename);
@@ -135,7 +135,7 @@ public:
     void RenderSchematic();
 
     // Get the schematic for further processing
-    const Schematic& GetSchematic() const { return mds1104_schematic; }
+    const MDS1104Schematic& GetSchematic() const { return mds1104_schematic; }
 
 private:
     // Helper methods to create different aspects of the MDS-1104

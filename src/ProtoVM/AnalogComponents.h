@@ -2,6 +2,9 @@
 #define _ProtoVM_AnalogComponents_h_
 
 #include "AnalogCommon.h"
+#include "TransmissionLine.h"
+#include "SparkGap.h"
+#include "Fuse.h"
 
 // Analog Resistor component
 class AnalogResistor : public AnalogNodeBase {

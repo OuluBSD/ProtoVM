@@ -611,7 +611,7 @@ void TestMDS1104SchematicTool() {
             LOG("MDS-1104 design analysis completed successfully!");
             
             // Get and display the schematic
-            const Schematic& schematic = mds1104_tool.GetSchematic();
+            const MDS1104Schematic& schematic = mds1104_tool.GetSchematic();
             LOG("\nMDS-1104 Schematic contains:");
             LOG("  Components: " << schematic.components.size());
             LOG("  Connections: " << schematic.connections.size());

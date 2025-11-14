@@ -18,7 +18,7 @@ endif()
 add_executable(analog_synth
     main.cpp
     Oscillator.cpp
-    ADSR.cpp
+    AnalogSynthADSR.cpp
     Portamento.cpp
     Sequencer.cpp
     Synthesizer.cpp

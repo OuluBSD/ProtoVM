@@ -18,7 +18,7 @@
  * For small signal analysis, transconductance gm and plate resistance rp are used.
  */
 
-class TriodeTube : public AnalogComponent {
+class TriodeTube : public AnalogNodeBase {
 public:
     TriodeTube();
     virtual ~TriodeTube() {}

@@ -2,7 +2,7 @@
 #define SYNTHESIZER_H
 
 #include "Oscillator.h"
-#include "ADSR.h"
+#include "AnalogSynthADSR.h"
 #include "Portamento.h"
 #include "Sequencer.h"
 

@@ -1,4 +1,4 @@
-#include "ADSR.h"
+#include "AnalogSynthADSR.h"
 
 ADSR::ADSR() : 
     attackTime(0.1), 

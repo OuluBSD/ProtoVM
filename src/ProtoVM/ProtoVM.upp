@@ -57,6 +57,8 @@ file
 	PowerOnReset4004.cpp,
 	MDS1101SchematicTool.h,
 	MDS1101SchematicTool.cpp,
+	MDS1104SchematicTool.h,
+	MDS1104SchematicTool.cpp,
 	ICRamRom.h,
 	ICRamRom.cpp,
 	D8A16.inl highlight cpp,

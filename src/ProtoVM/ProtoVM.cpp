@@ -30,6 +30,7 @@
 #include "AnalogCapacitorTest.cpp"
 #include "AnalogRCTest.cpp"
 #include "AnalogSimulationTest.cpp"
+#include "MDS1104SchematicTool.cpp"
 // AnalogAudioTest.cpp is compiled separately in the .upp file
 /*
 LinkBases:
@@ -69,6 +70,7 @@ void Test81_ClockGate();
 void Test82_PLL();
 void Test90_SignalTracing();
 void TestMDS1101SchematicTool();
+void TestMDS1104SchematicTool();
 void Run4004UnitTests();
 int Run4004OutputTests();
 int Run4004InstructionTests();
@@ -287,6 +289,7 @@ CONSOLE_APP_MAIN {
 		Cout() << "  pll          - Phase-locked loop test circuit\n";
 		Cout() << "  signaltrace  - Signal tracing functionality test circuit\n";
 		Cout() << "  mds1101      - MDS-1101 schematic tool demonstration\n";
+		Cout() << "  mds1104      - MDS-1104 early calculator schematic tool demonstration\n";
 		Cout() << "  cadc         - F-14 CADC system demonstration\n";
 		Cout() << "  analog-audio     - Analog audio oscillator with PortAudio output\n";
 		Cout() << "  analog-oscillator - Same as analog-audio (alias)\n";
@@ -441,6 +444,8 @@ CONSOLE_APP_MAIN {
 			Test90_SignalTracing();
 		} else if (circuit_name == "mds1101") {
 			TestMDS1101SchematicTool();
+		} else if (circuit_name == "mds1104") {
+			TestMDS1104SchematicTool();
 		} else if (circuit_name == "cadc") {
 			TestCadcSystem();
 		} else if (circuit_name == "minimaxcadc") {
@@ -574,4 +579,51 @@ void TestCadcSystem() {
     LOG("- Optimized for real-time flight control computations");
     LOG("- Pipelined architecture for improved throughput");
     LOG("- Specialized for polynomial evaluations and data limiting");
+}
+
+void TestMDS1104SchematicTool() {
+    LOG("Testing MDS-1104 Schematic Tool Implementation");
+    LOG("==========================================");
+
+    // Create the MDS-1104 schematic tool
+    MDS1104SchematicTool mds1104_tool;
+    
+    LOG("Created MDS-1104 Schematic Tool for early single-transistor calculator");
+    
+    LOG("\nMDS-1104 Architecture Features:");
+    LOG("- Single-transistor logic design");
+    LOG("- Early calculator from 1950s era");
+    LOG("- Basic input/output mechanisms");
+    LOG("- Simple timing and control systems");
+
+    LOG("\nCreating MDS-1104 schematic...");
+    
+    if (mds1104_tool.CreateSchematic()) {
+        LOG("MDS-1104 schematic created successfully!");
+        
+        // Analyze the design
+        if (mds1104_tool.AnalyzeDesign()) {
+            LOG("MDS-1104 design analysis completed successfully!");
+            
+            // Get and display the schematic
+            const Schematic& schematic = mds1104_tool.GetSchematic();
+            LOG("\nMDS-1104 Schematic contains:");
+            LOG("  Components: " << schematic.components.size());
+            LOG("  Connections: " << schematic.connections.size());
+            
+            // Render the schematic
+            mds1104_tool.RenderSchematic();
+            
+            // Export the schematic to ProtoVM format
+            mds1104_tool.ExportToProtoVM("MDS1104_Schematic.txt");
+            LOG("MDS-1104 schematic exported to MDS1104_Schematic.txt");
+        } else {
+            LOG("MDS-1104 design analysis failed!");
+        }
+    } else {
+        LOG("Failed to create MDS-1104 schematic!");
+    }
+
+    LOG("\nMDS-1104 Schematic Tool Test Completed!");
+    LOG("This demonstrates the implementation of tools for early computing devices.");
 }

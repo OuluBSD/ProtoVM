@@ -81,6 +81,7 @@ bool TestDummy4004InCircuit();
 int RunChipUnitTests();
 int RunMotherboardTests();
 void TestCadcSystem();
+void TestVoltageSources(Machine& mach);
 // Character output function
 void OutputCharacter(char c);
 // Helper functions for 4004 memory initialization and debugging
@@ -300,6 +301,7 @@ CONSOLE_APP_MAIN {
 		Cout() << "  analog-capacitor  - Analog capacitor test demonstrating RC charging\n";
 		Cout() << "  analog-rc         - Analog RC circuit test demonstrating time constants\n";
 		Cout() << "  analog-sim        - Analog simulation test with RC behavior\n";
+		Cout() << "  voltagesources    - Voltage sources and input components test\n";
 		Cout() << "\nExamples:\n";
 		Cout() << "  " << GetExeTitle() << " 6502 -t 1000    # Run 6502 circuit for 1000 ticks\n";
 		Cout() << "  " << GetExeTitle() << " --cli           # Start interactive CLI mode\n";
@@ -470,6 +472,9 @@ CONSOLE_APP_MAIN {
 			return;  // Return after running the test
 		} else if (circuit_name == "analog-sim") {
 			RunAnalogResistorCapacitorSimulation();
+			return;  // Return after running the test
+		} else if (circuit_name == "voltagesources") {
+			TestVoltageSources(mach);
 			return;  // Return after running the test
 		} else {
 			Cout() << "Unknown circuit: " << circuit_name << "\n";

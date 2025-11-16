@@ -24,6 +24,13 @@ add_executable(analog_synth
     Synthesizer.cpp
     PortAudioWrapper.cpp
     WavWriter.cpp
+    LFO.cpp
+    Filter.cpp
+    ModulationMatrix.cpp
+    PresetManager.cpp
+    AudioEngine.cpp
+    SynthArchitectures.cpp
+    # Note: SynthArchAdapter.cpp is header-only
 )
 
 # Link PortAudio

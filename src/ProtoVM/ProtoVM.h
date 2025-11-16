@@ -33,6 +33,8 @@ using namespace UPP;
 #include "MinimaxCADC.h"
 #include "MDS1104SchematicTool.h"
 #include "TriodeTubeModel.h"
+#include "VoltageSources.h"
+#include "AdditionalSources.h"
 
 
 #endif

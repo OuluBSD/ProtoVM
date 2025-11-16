@@ -85,6 +85,7 @@ file
 	TestALU.cpp,
 	TestStateMachine.cpp,
 	TestSignalTracing.cpp,
+	TestVoltageSources.cpp,
 	Basic8BitCPU.h,
 	Basic8BitCPU.cpp,
 	TestBasic8BitCPU.cpp,
@@ -118,6 +119,10 @@ file
 	AnalogSemiconductors.h,
 	AnalogSimulation.h,
 	RCOscillator.h,
+	VoltageSources.h,
+	VoltageSources.cpp,
+	AdditionalSources.h,
+	AdditionalSources.cpp,
 	AnalogAudioTest.h readonly separator,
 	AnalogAudioTest.cpp,
 	_ readonly separator;

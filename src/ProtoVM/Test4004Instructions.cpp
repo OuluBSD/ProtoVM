@@ -57,7 +57,7 @@ Machine Create4004TestCircuit() {
     // Data bus connects bidirectionally with the CPU, ROM, and RAM
     // The bus component handles tri-state logic internally
     for (int i = 0; i < 4; i++) {
-        data_bus[i] << rom["D" + AsString(i)];      // ROM drives data bus when enabled
+        data_bus[i] >> rom["D" + AsString(i)];      // ROM drives data bus when enabled
     }
 
     for (int i = 0; i < 8; i++) {  // 8 address pins for ROM
@@ -65,7 +65,7 @@ Machine Create4004TestCircuit() {
     }
 
     for (int i = 0; i < 4; i++) {
-        data_bus[i] << ram["D" + AsString(i)];      // RAM drives data bus when enabled
+        data_bus[i] >> ram["D" + AsString(i)];      // RAM drives data bus when enabled
     }
 
     for (int i = 0; i < 4; i++) {  // 4 address pins for RAM

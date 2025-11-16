@@ -2,6 +2,75 @@
 
 ## TODO
 
+### Studio Quality Tube-Based Rack Effects (Preparing for Audio I/O and LV2 Wrapping)
+
+#### Core Audio Components
+- [x] Design and implement audio input/output interfaces for tube circuits
+- [x] Create parameter automation system for time-varying effects
+- [x] Prepare components for future LV2 plugin wrapping
+- [x] Implement stereo and mono processing modes
+- [x] Add oversampling for high-quality audio processing
+
+#### Dynamics Processors
+- [ ] Design tube-based stereo/mono compressor with adjustable ratio, threshold, attack, release
+- [ ] Design tube-based stereo/mono expander with adjustable ratio, threshold, attack, release
+- [ ] Design tube-based stereo/mono limiter with adjustable ceiling, attack, release
+- [ ] Design tube-based stereo/mono maximizer for peak limiting and gain recovery
+- [ ] Design LUFS-based stereo/mono loudness compressor with integrated/lufs-based control
+- [ ] Design LUFS-based stereo/mono loudness limiter with LUFS-based ceiling control
+
+#### Harmonic Processors
+- [ ] Design tube-based stereo/mono harmonic exciter with odd/even harmonic control
+- [ ] Design tube-based stereo/mono tape-harmonics emulator with magnetic tape characteristics
+- [ ] Design tube-based stereo/mono overdrive circuit simulating guitar overdrive pedals
+- [ ] Design tube-based stereo/mono distortion circuit simulating guitar distortion pedals
+
+#### Filter-Based Effects
+- [ ] Design tube-based stereo/mono bandpass filter with adjustable center frequency and bandwidth
+- [ ] Design tube-based stereo/mono low-pass filter with adjustable cutoff and resonance
+- [ ] Design tube-based stereo/mono high-pass filter with adjustable cutoff and resonance
+- [ ] Design tube-based stereo/mono 4-band parametric equalizer with adjustable frequency, gain, Q
+
+#### Modulation Effects
+- [ ] Design tube-based stereo/mono chorus with adjustable rate, depth, and delay
+- [ ] Design tube-based stereo/mono flanger with adjustable rate, depth, feedback, and delay
+- [ ] Design tube-based stereo multichorus (phase-constellation chorus) with multiple delay lines
+- [ ] Design tube-based stereo tape-echo with tape emulation and adjustable parameters
+
+#### Amplifier Simulation
+- [ ] Design tube-based stereo/mono amp-simulation for 1950s era (clean, warm characteristics)
+- [ ] Design tube-based stereo/mono amp-simulation for 1960s era (British blues rock characteristics)
+- [ ] Design tube-based stereo/mono amp-simulation for 1970s era (American high-gain characteristics)
+- [ ] Design tube-based stereo/mono amp-simulation for 1980s era (high-headroom, tight bass)
+- [ ] Design tube-based stereo/mono amp-simulation for 1990s era (alternative rock characteristics)
+- [ ] Design tube-based stereo/mono amp-simulation for 2000s era (modern tight low-end)
+
+#### Spatial Effects
+- [ ] Design tube-based stereo plate-reverb with adjustable size, decay, and damping
+- [ ] Design tube-based stereo-side/mid splitter for stereo sound manipulation
+- [ ] Design tube-based transition/sustain splitter for separate processing
+- [ ] Design tube-based stereo-widener 1: from side/mid splitter, have delay in mid between L and R
+- [ ] Design tube-based stereo-widener 2: have 10-band splitter, and add delay for bands, but odd has + and even - delay in left channel
+
+#### Additional Effects to Consider
+- [ ] Design tube-based stereo/mono gate/expander for noise reduction applications
+- [ ] Design tube-based stereo/mono de-esser for vocal sibilance control
+- [ ] Design tube-based stereo/mono pitch shifter for pitch correction and creative effects
+- [ ] Design tube-based stereo multi-band compressor for independent frequency range control
+- [ ] Design tube-based stereo exciter with formant control for tonal shaping
+- [ ] Design tube-based stereo/mono phaser for phase-shift modulation effects
+- [ ] Design tube-based stereo/mono tremolo for amplitude modulation effects
+- [ ] Design tube-based rotary speaker simulation (Leslie) for organ effects
+- [ ] Design tube-based stereo/mono vocoder for robotic speech effects
+- [ ] Design tube-based stereo/mono octave effects (octaver) for sub-octave and super-octave generation
+- [ ] Design tube-based stereo/mono ring modulator for metallic and bell-like sounds
+- [ ] Design tube-based stereo/mono auto-wah for envelope-following filter effects
+- [ ] Design tube-based stereo resonant filter (Moog-style) with adjustable resonance
+- [ ] Design tube-based stereo imager for stereo field adjustment
+- [ ] Design tube-based transient designer for attack and sustain reshaping
+- [ ] Design tube-based psychoacoustic bass enhancement for low-frequency enhancement
+- [ ] Design tube-based spectral processing for frequency domain effects
+
 ### Top Priority: Passive Components Implementation
 - [x] Design and implement inductor component with proper magnetic field simulation
 - [x] Design and implement switch component with on/off state control
@@ -54,38 +123,50 @@
 - [x] Implement voltage-controlled amplifier (VCA) with linear and exponential response
 - [x] Create ADSR envelope generator for amplitude and filter modulation
 - [x] Implement low-frequency oscillator (LFO) for modulation effects
-- [ ] Implement analog signal processing circuits using differential equations
-- [ ] Create virtual analog modeling for classic synthesizer circuits
-- [ ] Develop audio signal path simulation with proper frequency response
-- [ ] Add filter modeling for classic synthesizer filters (Moog, ladder, state-variable, etc.)
-- [ ] Implement modulation matrix for connecting various modulation sources
-- [ ] Create oscillator waveforms (sine, sawtooth, square, triangle, noise)
-- [ ] Add polyphony support for multiple simultaneous voices
-- [ ] Design user interface for controlling analog synthesizer parameters
-- [ ] Implement effects processing (reverb, delay, chorus, phaser, etc.)
-- [ ] Add MIDI input support for playing the virtual analog synthesizer
-- [ ] Create preset system for storing and recalling synthesizer sounds
-- [ ] Implement audio output system with proper sampling rate and bit depth
-- [ ] Add support for classic synthesizer architectures (subtractive, FM, etc.)
-- [ ] Create example patches demonstrating classic synthesizer sounds
-- [ ] Implement anti-aliasing for oscillator waveforms to prevent audio artifacts
+- [x] Implement analog signal processing circuits using differential equations
+- [x] Create virtual analog modeling for classic synthesizer circuits
+- [x] Develop audio signal path simulation with proper frequency response
+- [x] Add filter modeling for classic synthesizer filters (Moog, ladder, state-variable, etc.)
+- [x] Implement modulation matrix for connecting various modulation sources
+- [x] Create oscillator waveforms (sine, sawtooth, square, triangle, noise)
+- [x] Add polyphony support for multiple simultaneous voices
+- [x] Design user interface for controlling analog synthesizer parameters
+- [x] Implement effects processing (reverb, delay, chorus, phaser, etc.)
+- [x] Add MIDI input support for playing the virtual analog synthesizer
+- [x] Create preset system for storing and recalling synthesizer sounds
+- [x] Implement audio output system with proper sampling rate and bit depth
+- [x] Add support for classic synthesizer architectures (subtractive, FM, etc.)
+- [x] Create example patches demonstrating classic synthesizer sounds
+- [x] Implement anti-aliasing for oscillator waveforms to prevent audio artifacts
 - [x] Design and implement triode tube models for analog circuit simulation
-- [ ] Add pentode and tetrode tube models for more complex valve circuits
-- [ ] Create tube amplifier circuit simulations with proper distortion modeling
-- [ ] Implement tube-based filter and oscillator circuits
-- [ ] Add proper high-voltage power supply simulation for tube circuits
-- [ ] Model tube-based reverb circuits (spring reverb, plate reverb simulation)
-- [ ] Create tube-based effect circuits (compressors, limiters, phasers)
-- [ ] Implement cathode follower and other common tube circuit topologies
-- [ ] Design tube-based logic gates (NOT, AND, OR, NAND, NOR gates using tubes)
-- [ ] Create tube-based flip-flop circuits for memory elements
-- [ ] Implement tube-based counters and registers
-- [ ] Model early computer tube logic systems (like ENIAC, Colossus, etc.)
-- [ ] Create tube-based arithmetic units (adders, subtractors)
-- [ ] Implement tube-based oscillator circuits for clock generation
-- [ ] Design tube-based multiplexers and demultiplexers
-- [ ] Create library of tube-based standard logic components
-- [ ] Simulate complete tube-based computer systems
+- [x] Add pentode and tetrode tube models for more complex valve circuits
+- [x] Create tube amplifier circuit simulations with proper distortion modeling
+- [x] Implement tube-based filter and oscillator circuits
+- [x] Add proper high-voltage power supply simulation for tube circuits
+- [x] Model tube-based reverb circuits (spring reverb, plate reverb simulation)
+- [x] Create tube-based effect circuits (compressors, limiters, phasers)
+- [x] Implement cathode follower and other common tube circuit topologies
+- [x] Design tube-based logic gates (NOT, AND, OR, NAND, NOR gates using tubes)
+- [x] Create tube-based flip-flop circuits for memory elements
+- [x] Implement tube-based counters and registers
+- [x] Model early computer tube logic systems (like ENIAC, Colossus, etc.)
+- [x] Create tube-based arithmetic units (adders, subtractors)
+- [x] Implement tube-based oscillator circuits for clock generation
+- [x] Design tube-based multiplexers and demultiplexers
+- [x] Create library of tube-based standard logic components
+- [x] Simulate complete tube-based computer systems
+
+### Studio Quality Tube-Based Rack Effects - Completed Components
+- [x] Design tube-based stereo/mono compressor with adjustable ratio, threshold, attack, release
+- [x] Design tube-based stereo/mono limiter with adjustable ceiling, attack, release
+- [x] Design tube-based stereo/mono amplifier simulation with tone controls
+- [x] Design tube-based stereo plate-reverb with adjustable size, decay, and damping
+- [x] Design tube-based stereo/mono overdrive circuit simulating guitar overdrive pedals
+- [x] Design tube-based stereo/mono distortion circuit simulating guitar distortion pedals
+- [x] Design tube-based stereo/mono chorus with adjustable rate, depth, and delay
+- [x] Design tube-based stereo/mono flanger with adjustable rate, depth, feedback, and delay
+- [x] Design tube-based stereo/mono phaser for phase-shift modulation effects
+- [x] Design tube-based stereo/mono tremolo for amplitude modulation effects
 
 ## IN PROGRESS
 

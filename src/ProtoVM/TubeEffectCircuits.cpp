@@ -4788,6 +4788,291 @@ void TubeBassEnhancer::setReleaseTime(double time) {
 }
 
 
+// TubeSpectralProcessor implementation
+TubeSpectralProcessor::TubeSpectralProcessor(SpectralMode mode) : spectralMode(mode) {
+    initializeProcessor(mode);
+}
+
+void TubeSpectralProcessor::initializeProcessor(SpectralMode mode) {
+    spectralMode = mode;
+    
+    switch (spectralMode) {
+        case FFT_BASED:
+            amount = 0.6;
+            resolution = 512;
+            shiftAmount = 0.0;
+            timeRatio = 1.0;
+            harmonicPreservation = 0.7;
+            tubeWarmth = 0.5;
+            break;
+            
+        case FILTER_BANK:
+            amount = 0.5;
+            resolution = 256;
+            shiftAmount = 0.0;
+            timeRatio = 1.0;
+            harmonicPreservation = 0.6;
+            tubeWarmth = 0.4;
+            break;
+            
+        case PITCH_SHIFT:
+            amount = 0.7;
+            resolution = 512;
+            shiftAmount = 0.0;  // Will be set by user
+            timeRatio = 1.0;
+            harmonicPreservation = 0.8;
+            tubeWarmth = 0.6;
+            break;
+            
+        case SPECTRAL_MORPH:
+            amount = 0.8;
+            resolution = 1024;
+            shiftAmount = 0.0;
+            timeRatio = 1.0;
+            harmonicPreservation = 0.5;
+            tubeWarmth = 0.7;
+            break;
+    }
+    
+    // Initialize buffers
+    inputBuffer.resize(resolution, 0.0);
+    outputBuffer.resize(resolution, 0.0);
+    processBuffer.resize(resolution, 0.0);
+    magnitudes.resize(resolution/2, 0.0);
+    phases.resize(resolution/2, 0.0);
+    
+    // Calculate hop size (quarter of resolution for overlap-add)
+    hopSize = resolution / 4;
+}
+
+bool TubeSpectralProcessor::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (op == OP_READ) {
+        return GetRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_WRITE) {
+        return PutRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_TICK) {
+        return Tick();
+    }
+    return false;
+}
+
+bool TubeSpectralProcessor::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == inputPin && data_bytes == sizeof(double)) {
+        memcpy(&inputSignal, data, sizeof(double));
+        return true;
+    } else if (conn_id == controlPin && data_bytes == sizeof(double)) {
+        memcpy(&controlSignal, data, sizeof(double));
+        setAmount(amount + 0.3 * controlSignal); // Modulate amount
+        return true;
+    }
+    return false;
+}
+
+bool TubeSpectralProcessor::GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == outputPin && data_bytes == sizeof(double)) {
+        memcpy(data, &outputSignal, sizeof(double));
+        return true;
+    }
+    return false;
+}
+
+bool TubeSpectralProcessor::Tick() {
+    processSignal();
+    return true;
+}
+
+void TubeSpectralProcessor::updateSpectralData() {
+    // Add current input to the buffer
+    inputBuffer[bufferIndex] = inputSignal;
+    
+    // If buffer is full, process it
+    if (bufferIndex == resolution - 1) {
+        // Apply a window function to reduce spectral leakage
+        for (int i = 0; i < resolution; i++) {
+            // Apply Hanning window
+            double window = 0.5 * (1.0 - cos(2.0 * M_PI * i / (resolution - 1)));
+            processBuffer[i] = inputBuffer[i] * window;
+        }
+        
+        // Calculate magnitudes and phases (simplified approach using bandpass filters)
+        // For a complete implementation, we would do a real FFT, but that's complex to implement
+        for (int bin = 0; bin < resolution/2; bin++) {
+            // Calculate frequency for this bin
+            double freq = bin * sampleRate / resolution;
+            
+            // Estimate magnitude using a bandpass filter approach
+            double omega = 2.0 * M_PI * freq / sampleRate;
+            
+            // For each sample in the buffer, calculate its contribution to this frequency bin
+            double realSum = 0.0;
+            double imagSum = 0.0;
+            
+            for (int n = 0; n < resolution; n++) {
+                realSum += processBuffer[n] * cos(omega * n);
+                imagSum += processBuffer[n] * sin(omega * n);
+            }
+            
+            magnitudes[bin] = sqrt(realSum*realSum + imagSum*imagSum) / resolution;
+            phases[bin] = atan2(imagSum, realSum);
+        }
+    }
+    
+    bufferIndex = (bufferIndex + 1) % resolution;
+}
+
+void TubeSpectralProcessor::applySpectralProcessing() {
+    // Apply different processing based on mode
+    switch (spectralMode) {
+        case FFT_BASED:
+            // Simply pass through with amount control
+            for (int i = 0; i < resolution/2; i++) {
+                magnitudes[i] *= (1.0 - amount * 0.5) + amount * 0.5; // Simple scaling
+            }
+            break;
+            
+        case FILTER_BANK:
+            // Apply selective filtering
+            for (int i = 0; i < resolution/2; i++) {
+                // Emphasize or de-emphasize based on frequency
+                double freqRatio = static_cast<double>(i) / (resolution/2);
+                double gain = 1.0 + amount * (freqRatio - 0.5);  // Vary by frequency
+                magnitudes[i] *= gain;
+            }
+            break;
+            
+        case PITCH_SHIFT:
+            // Simulate pitch shifting by scaling magnitudes
+            for (int i = 0; i < resolution/2; i++) {
+                int shiftedIndex = static_cast<int>(i * (1.0 + shiftAmount));
+                if (shiftedIndex >= 0 && shiftedIndex < resolution/2) {
+                    // Apply harmonic preservation
+                    double preserved = magnitudes[i] * harmonicPreservation;
+                    double shifted = magnitudes[shiftedIndex] * (1.0 - harmonicPreservation);
+                    magnitudes[i] = preserved + shifted;
+                }
+            }
+            break;
+            
+        case SPECTRAL_MORPH:
+            // Apply morphing (simplified - just adjust overall spectral shape)
+            for (int i = 0; i < resolution/2; i++) {
+                // Shape the spectrum based on position
+                double positionRatio = static_cast<double>(i) / (resolution/2);
+                double morphFactor = 1.0 + amount * sin(M_PI * positionRatio);
+                magnitudes[i] *= morphFactor;
+            }
+            break;
+    }
+}
+
+void TubeSpectralProcessor::processToTimeDomain() {
+    // Convert back to time domain (simplified approach)
+    for (int i = 0; i < resolution; i++) {
+        // Reconstruct signal from magnitudes and phases
+        double reconstructed = 0.0;
+        
+        for (int bin = 0; bin < resolution/2; bin++) {
+            double omega = 2.0 * M_PI * bin * i / resolution;
+            reconstructed += magnitudes[bin] * cos(omega + phases[bin]);
+        }
+        
+        outputBuffer[i] = reconstructed;
+    }
+    
+    // Apply overlap-add to the output
+    // This is a simplified version - proper STFT would use overlap-add more carefully
+    if (bufferIndex == resolution - 1) {
+        // When buffer is full, output the processed samples
+    }
+}
+
+void TubeSpectralProcessor::processSignal() {
+    // Update spectral data
+    updateSpectralData();
+    
+    // Process every hopSize samples
+    if (bufferIndex % hopSize == 0 && bufferIndex > 0) {
+        applySpectralProcessing();
+        processToTimeDomain();
+    }
+    
+    // Determine output sample based on buffer position
+    if (bufferIndex < resolution / 2) {
+        // Use input for first half of buffer (latency compensation)
+        outputSignal = inputSignal;
+    } else {
+        // Use processed output
+        int outputIndex = bufferIndex - resolution / 2;
+        if (outputIndex < resolution) {
+            outputSignal = outputBuffer[outputIndex];
+        } else {
+            outputSignal = inputSignal; // Use input if out of range
+        }
+    }
+    
+    // Apply tube characteristics if enabled
+    if (tubeCharacteristicsEnabled) {
+        // Apply soft saturation to simulate tube warmth
+        double saturation = 0.7 + 0.3 * (1.0 - tubeWarmth); // Lower warmth = higher saturation capability
+        
+        if (outputSignal > saturation) {
+            outputSignal = saturation + (1 - saturation) * tanh((outputSignal - saturation) / (1 - saturation));
+        } else if (outputSignal < -saturation) {
+            outputSignal = -saturation + (1 - saturation) * tanh((outputSignal + saturation) / (1 - saturation));
+        }
+        
+        // Add harmonic content characteristic of tube circuits
+        double harmonic = tubeWarmth * 0.05 * outputSignal * outputSignal * (outputSignal > 0 ? 1 : -1);
+        outputSignal = outputSignal * (1.0 - 0.025 * tubeWarmth) + harmonic * 0.025 * tubeWarmth;
+    }
+    
+    // Apply gentle limiting to prevent clipping after processing
+    if (outputSignal > 0.95) outputSignal = 0.95 + 0.05 * tanh((outputSignal - 0.95) / 0.05);
+    if (outputSignal < -0.95) outputSignal = -0.95 + 0.05 * tanh((outputSignal + 0.95) / 0.05);
+}
+
+void TubeSpectralProcessor::setAmount(double amount) {
+    this->amount = std::max(0.0, std::min(1.0, amount));
+}
+
+void TubeSpectralProcessor::setResolution(int resolution) {
+    int newResolution = std::max(64, std::min(1024, resolution));
+    // Ensure resolution is a power of 2 for FFT efficiency
+    int pow2 = 64;
+    while (pow2 < newResolution) {
+        pow2 *= 2;
+    }
+    newResolution = pow2;
+    
+    if (newResolution != this->resolution) {
+        this->resolution = newResolution;
+        inputBuffer.resize(resolution, 0.0);
+        outputBuffer.resize(resolution, 0.0);
+        processBuffer.resize(resolution, 0.0);
+        magnitudes.resize(resolution/2, 0.0);
+        phases.resize(resolution/2, 0.0);
+        hopSize = resolution / 4;
+    }
+}
+
+void TubeSpectralProcessor::setMode(SpectralMode mode) {
+    this->spectralMode = mode;
+    initializeProcessor(mode);
+}
+
+void TubeSpectralProcessor::setShiftAmount(double shift) {
+    this->shiftAmount = std::max(-1.0, std::min(1.0, shift));
+}
+
+void TubeSpectralProcessor::setTimeRatio(double ratio) {
+    this->timeRatio = std::max(0.5, std::min(2.0, ratio));
+}
+
+void TubeSpectralProcessor::setHarmonicPreservation(double preserve) {
+    this->harmonicPreservation = std::max(0.0, std::min(1.0, preserve));
+}
+
+
 // TubeFlanger implementation
 TubeFlanger::TubeFlanger() {
     initializeFlanger();

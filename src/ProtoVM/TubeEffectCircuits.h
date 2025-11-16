@@ -1873,6 +1873,96 @@ private:
     void updateFilterCoefficients();
 };
 
+// Class for tube-based spectral processing circuits
+class TubeSpectralProcessor : public ElectricNodeBase {
+public:
+    enum SpectralMode {
+        FFT_BASED,           // FFT-based frequency domain processing
+        FILTER_BANK,         // Filter bank-based processing
+        PITCH_SHIFT,         // Pitch shifting in frequency domain
+        SPECTRAL_MORPH       // Morphing between spectral signatures
+    };
+
+    TubeSpectralProcessor(SpectralMode mode = FFT_BASED);
+    virtual ~TubeSpectralProcessor() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure spectral processing parameters
+    void setAmount(double amount);              // 0.0 to 1.0, amount of spectral processing
+    void setResolution(int resolution);         // Spectral resolution (64 to 1024)
+    void setMode(SpectralMode mode);            // Set processing mode
+    void setShiftAmount(double shift);          // Pitch shift amount (-1.0 to 1.0)
+    void setTimeRatio(double ratio);            // Time stretching ratio (0.5 to 2.0)
+    void setHarmonicPreservation(double preserve); // How much to preserve harmonics (0.0 to 1.0)
+
+    // Get parameters
+    double getAmount() const { return amount; }
+    int getResolution() const { return resolution; }
+    SpectralMode getMode() const { return spectralMode; }
+    double getShiftAmount() const { return shiftAmount; }
+    double getTimeRatio() const { return timeRatio; }
+    double getHarmonicPreservation() const { return harmonicPreservation; }
+
+    // Enable/disable features
+    void enableTubeCharacteristics(bool enable) { tubeCharacteristicsEnabled = enable; }
+    void setTubeWarmth(double warmth) { tubeWarmth = std::max(0.0, std::min(1.0, warmth)); }
+
+private:
+    SpectralMode spectralMode;
+
+    // Spectral processing parameters
+    double amount = 0.5;                // Amount of spectral processing
+    int resolution = 256;               // Spectral resolution (buffer size)
+    double shiftAmount = 0.0;           // Pitch shift amount (-1.0 to 1.0)
+    double timeRatio = 1.0;             // Time stretching ratio
+    double harmonicPreservation = 0.6;  // Harmonic preservation (0.0 - 1.0)
+    double tubeWarmth = 0.4;            // Tube warmth amount
+
+    // Spectral processing buffers
+    std::vector<double> inputBuffer;    // Input buffer for spectral processing
+    std::vector<double> outputBuffer;   // Output buffer
+    std::vector<double> processBuffer;  // Buffer for processing
+    std::vector<double> magnitudes;     // Frequency bin magnitudes
+    std::vector<double> phases;         // Frequency bin phases
+    int bufferIndex = 0;                // Current position in buffer
+    int hopSize = 128;                  // Hop size for overlap-add
+    int overlapIndex = 0;               // Overlap-add index
+
+    // Processing parameters
+    bool tubeCharacteristicsEnabled = true;
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections
+    int inputPin = 0;
+    int outputPin = 1;
+    int controlPin = 2;                 // For external control of processing
+
+    double inputSignal = 0.0;
+    double outputSignal = 0.0;
+    double controlSignal = 0.0;
+
+    // Initialize processor based on mode
+    void initializeProcessor(SpectralMode mode);
+
+    // Process signal through spectral processing algorithm
+    void processSignal();
+
+    // Update spectral data (simplified approach without full FFT)
+    void updateSpectralData();
+
+    // Apply spectral processing
+    void applySpectralProcessing();
+
+    // Convert processed spectral data back to time domain
+    void processToTimeDomain();
+};
+
 // Class for tube-based flanger circuits
 class TubeFlanger : public ElectricNodeBase {
 public:

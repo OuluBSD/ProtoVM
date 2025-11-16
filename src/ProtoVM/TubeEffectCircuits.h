@@ -260,6 +260,728 @@ private:
     double processDelayLine(int voice, double input);
 };
 
+// Class for tube-based expander circuits
+class TubeExpander : public ElectricNodeBase {
+public:
+    enum ExpanderType {
+        GATE,              // Noise gate expander
+        BAND_GATE,         // Multiband expander
+        DOWNWARD_EXPANDER, // Downward expander with ratio < 1
+        UPWARD_EXPANDER    // Upward expander
+    };
+
+    TubeExpander(ExpanderType type = GATE);
+    virtual ~TubeExpander() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure expander parameters
+    void setThreshold(double threshold);     // in dB
+    void setRatio(double ratio);             // expansion ratio (e.g., 2.0 for 2:1)
+    void setAttackTime(double time);         // in seconds
+    void setReleaseTime(double time);        // in seconds
+    void setMakeupGain(double gain);         // in dB
+    void setKneeWidth(double width);         // for soft knee expansion
+    void setRange(double range);             // Maximum amount of gain reduction
+
+    // Get parameters
+    double getThreshold() const { return threshold; }
+    double getRatio() const { return ratio; }
+    double getAttackTime() const { return attackTime; }
+    double getReleaseTime() const { return releaseTime; }
+    double getMakeupGain() const { return makeupGain; }
+    double getRange() const { return range; }
+
+    // Enable/disable features
+    void enableSoftKnee(bool enable) { softKneeEnabled = enable; }
+    void enableAutoMakeup(bool enable) { autoMakeupEnabled = enable; }
+
+private:
+    ExpanderType expanderType;
+
+    // Expansion parameters
+    double threshold = -30.0;     // Threshold in dB (typically lower than compression)
+    double ratio = 2.0;           // Expansion ratio (e.g., 2:1) - values < 1 would be upward expansion
+    double attackTime = 0.005;    // Attack time in seconds (faster than compression)
+    double releaseTime = 0.15;    // Release time in seconds (slower than compression)
+    double makeupGain = 0.0;      // Makeup gain in dB
+    double kneeWidth = 3.0;       // Width of soft knee transition
+    double range = -24.0;         // Maximum gain reduction in dB
+
+    // Tube-specific parameters
+    double tubeGain = 20.0;       // Base tube gain
+    double tubeExpansionFactor;   // How much the tube's characteristics contribute
+    double sidechainCoupling = 0.8; // How much signal goes to sidechain
+
+    // Dynamic parameters
+    double detectorLevel = 0.0;   // Detected level for expansion
+    double expanderGain = 1.0;    // Current gain reduction
+    double attackCoeff = 0.0;     // Coefficient for attack calculation
+    double releaseCoeff = 0.0;    // Coefficient for release calculation
+
+    // Circuit type parameters
+    bool softKneeEnabled = true;
+    bool autoMakeupEnabled = false;
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections
+    int inputPin = 0;
+    int outputPin = 1;
+    int controlPin = 2;           // For external control of expansion
+    int sidechainPin = 3;         // For external sidechain input
+
+    double inputSignal = 0.0;
+    double outputSignal = 0.0;
+    double controlSignal = 0.0;
+    double sidechainSignal = 0.0;
+
+    // Initialize expander based on type
+    void initializeExpander(ExpanderType type);
+
+    // Process signal through expansion algorithm
+    void processSignal();
+
+    // Calculate expansion gain based on input level
+    double calculateExpansionGain(double inputLevel);
+
+    // Update the detector level
+    void updateDetector();
+};
+
+// Class for tube-based maximizer circuits
+class TubeMaximizer : public ElectricNodeBase {
+public:
+    enum MaximizerType {
+        PEEK_MAXIMIZER,      // Peak maximizer with fast attack
+        RMS_MAXIMIZER,       // RMS-based maximizer for loudness
+        INTEGRAL_MAXIMIZER,  // Integral-based using gain recovery
+        DUAL_STAGE_MAXIMIZER // Two-stage maximizer (soft clip + hard limit)
+    };
+
+    TubeMaximizer(MaximizerType type = PEEK_MAXIMIZER);
+    virtual ~TubeMaximizer() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure maximizer parameters
+    void setCeiling(double ceiling);           // Ceiling in dB (e.g., -0.1, -1.0)
+    void setAttackTime(double time);          // Attack time in seconds (very fast)
+    void setReleaseTime(double time);         // Release time in seconds (adaptive)
+    void setMakeupGain(double gain);          // Makeup gain in dB
+    void setAdaptiveRelease(bool adaptive);   // Enable adaptive release
+    void setLookAheadTime(double time);       // Look-ahead time in seconds (0.001-0.01)
+    void setHarmonicContent(double content);  // Amount of harmonic content to add
+
+    // Get parameters
+    double getCeiling() const { return ceiling; }
+    double getAttackTime() const { return attackTime; }
+    double getReleaseTime() const { return releaseTime; }
+    double getMakeupGain() const { return makeupGain; }
+    bool getAdaptiveRelease() const { return adaptiveRelease; }
+    double getLookAheadTime() const { return lookAheadTime; }
+    double getHarmonicContent() const { return harmonicContent; }
+
+    // Enable/disable features
+    void enableSoftClipping(bool enable) { softClippingEnabled = enable; }
+    void enableGainRecovery(bool enable) { gainRecoveryEnabled = enable; }
+
+private:
+    MaximizerType maximizerType;
+
+    // Maximization parameters
+    double ceiling = -0.1;              // Ceiling in dB (slightly below 0dBFS)
+    double attackTime = 0.0005;         // Very fast attack (0.5ms) to catch peaks
+    double releaseTime = 0.05;          // 50ms release (adaptive)
+    double makeupGain = 0.0;            // Makeup gain in dB
+    bool adaptiveRelease = true;        // Enable adaptive release
+    double lookAheadTime = 0.002;       // 2ms look-ahead
+    double harmonicContent = 0.1;       // Amount of harmonic content to add
+    
+    // Gain recovery parameters
+    double gainRecoverySpeed = 0.995;   // Rate of gain recovery (slower = more gentle)
+
+    // Tube-specific parameters
+    double tubeGain = 20.0;             // Base tube gain
+    double tubeMaximizationFactor;      // How much the tube's characteristics contribute
+
+    // Dynamic parameters
+    double currentGain = 1.0;           // Current gain applied
+    double peakDetector = 0.0;          // Peak detection for limiting
+    double gainRecoveryFactor = 1.0;    // Factor for gain recovery
+    double attackCoeff = 0.0;           // Coefficient for attack calculation
+    double releaseCoeff = 0.0;          // Coefficient for release calculation
+
+    // Look-ahead delay buffer
+    std::vector<double> delayBuffer;
+    int delayBufferSize = 0;
+    int delayWritePosition = 0;
+
+    // Circuit type parameters
+    bool softClippingEnabled = true;
+    bool gainRecoveryEnabled = true;
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections
+    int inputPin = 0;
+    int outputPin = 1;
+    int controlPin = 2;                 // For external control of maximization
+    int sidechainPin = 3;               // For external sidechain input
+
+    double inputSignal = 0.0;
+    double outputSignal = 0.0;
+    double controlSignal = 0.0;
+    double sidechainSignal = 0.0;
+
+    // Initialize maximizer based on type
+    void initializeMaximizer(MaximizerType type);
+
+    // Process signal through maximization algorithm
+    void processSignal();
+
+    // Calculate limiting gain based on peak detection
+    double calculateLimitingGain(double inputLevel);
+
+    // Update gain recovery
+    void updateGainRecovery();
+
+    // Process look-ahead buffer
+    double getLookAheadSignal();
+};
+
+// Class for LUFS-based loudness compressor circuits
+class TubeLoudnessCompressor : public ElectricNodeBase {
+public:
+    enum LoudnessCompressorType {
+        INTEGRATED_ONLY,      // Only integrated loudness control
+        SHORT_TERM,           // Includes short-term loudness control
+        MOMENTARY,            // Includes momentary loudness control
+        TRUE_PEAK            // Includes True Peak limiting
+    };
+
+    TubeLoudnessCompressor(LoudnessCompressorType type = INTEGRATED_ONLY);
+    virtual ~TubeLoudnessCompressor() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure loudness parameters
+    void setIntegratedTarget(double lufs);      // Target loudness in LUFS (e.g., -16, -14, -12)
+    void setRange(double range);                // Dynamic range in LU
+    void setLRA(double lra);                    // Loudness Range in LU (1.0 to 20.0)
+    void setTruePeakCeiling(double ceiling);    // True peak ceiling in dBTP
+    void setOversampling(int factor);          // Oversampling factor (2, 4, 8)
+
+    // Get parameters
+    double getIntegratedTarget() const { return integratedTarget; }
+    double getRange() const { return range; }
+    double getLRA() const { return lra; }
+    double getTruePeakCeiling() const { return truePeakCeiling; }
+    int getOversampling() const { return oversamplingFactor; }
+
+    // Get loudness measurements
+    double getIntegratedLoudness() const { return integratedLoudness; }
+    double getShortTermLoudness() const { return shortTermLoudness; }
+    double getMomentaryLoudness() const { return momentaryLoudness; }
+    
+    // Enable/disable features
+    void enableTruePeakLimiter(bool enable) { truePeakLimiterEnabled = enable; }
+    void enableLoudnessNormalization(bool enable) { loudnessNormalizationEnabled = enable; }
+
+private:
+    LoudnessCompressorType compressorType;
+
+    // Loudness parameters
+    double integratedTarget = -14.0;    // Target integrated loudness in LUFS
+    double range = 7.0;                 // Dynamic range in LU
+    double lra = 7.0;                   // Loudness Range in LU (1.0 to 20.0)
+    double truePeakCeiling = -1.0;      // True peak ceiling in dBTP
+    int oversamplingFactor = 4;         // For accurate peak detection
+    
+    // Loudness measurement windows (in samples)
+    int integratedWindow = 44100 * 3;   // 3 seconds for integrated (at 44.1kHz)
+    int shortTermWindow = 44100 * 3;    // 3 seconds for short-term
+    int momentaryWindow = 44100 * 0.4;  // 0.4 seconds for momentary
+    
+    // Filter parameters for K-filter (simulates human hearing)
+    double kFilter_a1 = 0.0, kFilter_a2 = 0.0, kFilter_b0 = 0.0, kFilter_b1 = 0.0, kFilter_b2 = 0.0;
+    
+    // Loudness measurements
+    double integratedLoudness = -70.0;    // Current integrated loudness in LUFS
+    double shortTermLoudness = -70.0;     // Current short-term loudness in LUFS
+    double momentaryLoudness = -70.0;     // Current momentary loudness in LUFS
+    
+    // Gain control
+    double currentGain = 1.0;             // Current gain applied
+    double targetGain = 1.0;              // Target gain based on loudness
+    double smoothGain = 1.0;              // Smoothed gain
+    
+    // Processing buffers and states
+    std::vector<double> signalBuffer;     // Buffer for loudness measurement
+    std::vector<double> kFilteredBuffer;  // K-filtered buffer
+    int bufferWritePos = 0;
+    std::vector<double> kFilterState;     // State for K-filter (2 elements for biquad)
+    int kFilterStateIndex = 0;
+    
+    // True peak detection and limiting
+    std::vector<double> oversampledBuffer; // Buffer for oversampled processing
+    int oversampledIndex = 0;
+    bool truePeakLimiterEnabled = true;
+    bool loudnessNormalizationEnabled = true;
+    
+    // Tube-specific parameters
+    double tubeGain = 20.0;               // Base tube gain
+    double tubeLoudnessFactor;            // How much the tube's characteristics contribute
+    
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+    double effectiveSampleRate = 44100.0; // Sample rate including oversampling
+
+    // Pin connections
+    int inputPin = 0;
+    int outputPin = 1;
+    int controlPin = 2;                   // For external control
+    int targetPin = 3;                    // For target loudness control
+
+    double inputSignal = 0.0;
+    double outputSignal = 0.0;
+    double controlSignal = 0.0;
+    double targetSignal = 0.0;
+
+    // Initialize compressor based on type
+    void initializeCompressor(LoudnessCompressorType type);
+
+    // Process signal through loudness algorithm
+    void processSignal();
+
+    // Calculate K-weighted loudness
+    double calculateKWeightedLoudness(const std::vector<double>& buffer, int start, int length);
+
+    // Update loudness measurements
+    void updateLoudnessMeasurements();
+
+    // Calculate target gain based on loudness difference
+    double calculateTargetGain();
+
+    // Apply K-filter to simulate human hearing
+    double applyKFilter(double input);
+
+    // Calculate true peak
+    double calculateTruePeak(const std::vector<double>& buffer, int start, int length);
+};
+
+// Class for LUFS-based loudness limiter circuits
+class TubeLoudnessLimiter : public ElectricNodeBase {
+public:
+    enum LoudnessLimiterType {
+        INTEGRATED_LIMITER,    // Limit based on integrated loudness
+        SHORT_TERM_LIMITER,    // Include short-term loudness limiting
+        MOMENTARY_LIMITER,     // Include momentary loudness limiting
+        TRUE_PEAK_LIMITER      // True peak limiting
+    };
+
+    TubeLoudnessLimiter(LoudnessLimiterType type = INTEGRATED_LIMITER);
+    virtual ~TubeLoudnessLimiter() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure loudness limiter parameters
+    void setLUFSCeiling(double lufs);          // Loudness ceiling in LUFS
+    void setTruePeakCeiling(double ceiling);   // True peak ceiling in dBTP
+    void setOversampling(int factor);          // Oversampling factor (2, 4, 8)
+    void setLimiterAttack(double time);        // Attack time (very fast for limiting)
+    void setLimiterRelease(double time);       // Release time (adaptive)
+
+    // Get parameters
+    double getLUFSCeiling() const { return lufsCeiling; }
+    double getTruePeakCeiling() const { return truePeakCeiling; }
+    int getOversampling() const { return oversamplingFactor; }
+    double getLimiterAttack() const { return attackTime; }
+    double getLimiterRelease() const { return releaseTime; }
+
+    // Get loudness measurements
+    double getIntegratedLoudness() const { return integratedLoudness; }
+    double getShortTermLoudness() const { return shortTermLoudness; }
+    double getMomentaryLoudness() const { return momentaryLoudness; }
+    
+    // Enable/disable features
+    void enableTruePeakLimiter(bool enable) { truePeakLimiterEnabled = enable; }
+    void enableAdaptiveRelease(bool enable) { adaptiveReleaseEnabled = enable; }
+
+private:
+    LoudnessLimiterType limiterType;
+
+    // Loudness parameters
+    double lufsCeiling = -1.0;        // Loudness ceiling in LUFS (relative to target)
+    double integratedTarget = -23.0;  // Target integrated loudness in LUFS (EBU R128 standard)
+    double truePeakCeiling = -1.0;    // True peak ceiling in dBTP
+    int oversamplingFactor = 4;       // For accurate peak detection
+    double attackTime = 0.0005;       // Very fast attack (0.5ms) for limiting
+    double releaseTime = 0.1;         // 100ms release (adaptive)
+    
+    // Loudness measurement windows (in samples)
+    int integratedWindow = static_cast<int>(44100 * 3);    // 3 seconds for integrated
+    int shortTermWindow = static_cast<int>(44100 * 3);     // 3 seconds for short-term
+    int momentaryWindow = static_cast<int>(44100 * 0.4);   // 0.4 seconds for momentary
+    
+    // Filter parameters for K-filter (simulates human hearing)
+    double kFilter_a1 = 0.0, kFilter_a2 = 0.0, kFilter_b0 = 0.0, kFilter_b1 = 0.0, kFilter_b2 = 0.0;
+    
+    // Loudness measurements
+    double integratedLoudness = -70.0;    // Current integrated loudness in LUFS
+    double shortTermLoudness = -70.0;     // Current short-term loudness in LUFS
+    double momentaryLoudness = -70.0;     // Current momentary loudness in LUFS
+    
+    // Gain control
+    double currentGain = 1.0;             // Current gain applied
+    double maxGainReduction = 1.0;        // Maximum gain reduction applied
+    double attackCoeff = 0.0;             // Attack coefficient
+    double releaseCoeff = 0.0;            // Release coefficient
+    
+    // Processing buffers and states
+    std::vector<double> signalBuffer;     // Buffer for loudness measurement
+    std::vector<double> kFilteredBuffer;  // K-filtered buffer
+    int bufferWritePos = 0;
+    std::vector<double> kFilterState;     // State for K-filter (2 elements for biquad)
+    int kFilterStateIndex = 0;
+    
+    // True peak detection and limiting
+    std::vector<double> oversampledBuffer; // Buffer for oversampled processing
+    int oversampledIndex = 0;
+    bool truePeakLimiterEnabled = true;
+    bool adaptiveReleaseEnabled = true;
+    
+    // Tube-specific parameters
+    double tubeGain = 20.0;               // Base tube gain
+    double tubeLoudnessFactor;            // How much the tube's characteristics contribute
+    
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+    double effectiveSampleRate = 44100.0; // Sample rate including oversampling
+
+    // Pin connections
+    int inputPin = 0;
+    int outputPin = 1;
+    int controlPin = 2;                   // For external control
+    int ceilingPin = 3;                   // For ceiling control
+
+    double inputSignal = 0.0;
+    double outputSignal = 0.0;
+    double controlSignal = 0.0;
+    double ceilingSignal = 0.0;
+
+    // Initialize limiter based on type
+    void initializeLimiter(LoudnessLimiterType type);
+
+    // Process signal through loudness limiting algorithm
+    void processSignal();
+
+    // Calculate K-weighted loudness
+    double calculateKWeightedLoudness(const std::vector<double>& buffer, int start, int length);
+
+    // Update loudness measurements
+    void updateLoudnessMeasurements();
+
+    // Calculate required gain reduction based on loudness
+    double calculateLimiterGain();
+
+    // Apply K-filter to simulate human hearing
+    double applyKFilter(double input);
+
+    // Calculate true peak
+    double calculateTruePeak(const std::vector<double>& buffer, int start, int length);
+};
+
+// Class for dedicated tube-based limiter circuits
+class TubeLimiter : public ElectricNodeBase {
+public:
+    enum LimiterType {
+        PLAIN_LIMITER,      // Simple peak limiter
+        DEESSING_LIMITER,   // Limiter with de-essing capabilities
+        RMS_LIMITER,        // RMS-based limiter
+        VARI_MU_LIMITER     // Variable-Mu style limiter
+    };
+
+    TubeLimiter(LimiterType type = PLAIN_LIMITER);
+    virtual ~TubeLimiter() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure limiter parameters
+    void setThreshold(double threshold);    // in dB (typically close to 0dB)
+    void setCeiling(double ceiling);        // in dB (hard limit - typically -0.1 to -1.0)
+    void setAttackTime(double time);        // in seconds (very fast for limiting)
+    void setReleaseTime(double time);       // in seconds (adaptive for natural sound)
+    void setMakeupGain(double gain);        // in dB
+    void setSoftKnee(double kneeWidth);     // width of soft knee transition
+    void setOvershootProtection(bool enable); // Enable overshoot protection
+
+    // Get parameters
+    double getThreshold() const { return threshold; }
+    double getCeiling() const { return ceiling; }
+    double getAttackTime() const { return attackTime; }
+    double getReleaseTime() const { return releaseTime; }
+    double getMakeupGain() const { return makeupGain; }
+    double getSoftKnee() const { return kneeWidth; }
+    bool getOvershootProtection() const { return overshootProtection; }
+
+    // Enable/disable features
+    void enableAutoRelease(bool enable) { autoReleaseEnabled = enable; }
+    void enableSoftClipping(bool enable) { softClippingEnabled = enable; }
+
+private:
+    LimiterType limiterType;
+
+    // Limiting parameters
+    double threshold = -0.5;        // Threshold in dB (close to 0dB)
+    double ceiling = -0.1;          // Ceiling in dB (hard limit)
+    double attackTime = 0.0005;     // Very fast attack (0.5ms)
+    double releaseTime = 0.05;      // 50ms release (adaptive)
+    double makeupGain = 0.0;        // Makeup gain in dB
+    double kneeWidth = 1.0;         // Width of soft knee transition
+    bool overshootProtection = true; // Enable overshoot protection
+
+    // Tube-specific parameters
+    double tubeGain = 25.0;         // Higher tube gain for limiter
+    double tubeLimitingFactor;      // How much the tube's characteristics contribute
+    double sidechainCoupling = 0.9; // Higher coupling for limiter
+
+    // Dynamic parameters
+    double detectorLevel = 0.0;     // Detected level for limiting
+    double limiterGain = 1.0;       // Current gain reduction
+    double attackCoeff = 0.0;       // Coefficient for attack calculation
+    double releaseCoeff = 0.0;      // Coefficient for release calculation
+
+    // Circuit type parameters
+    bool autoReleaseEnabled = true; // Adaptive release
+    bool softClippingEnabled = true; // Soft clipping post-limiting
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections
+    int inputPin = 0;
+    int outputPin = 1;
+    int controlPin = 2;             // For external control of limiting
+    int sidechainPin = 3;           // For external sidechain input
+
+    double inputSignal = 0.0;
+    double outputSignal = 0.0;
+    double controlSignal = 0.0;
+    double sidechainSignal = 0.0;
+
+    // Initialize limiter based on type
+    void initializeLimiter(LimiterType type);
+
+    // Process signal through limiting algorithm
+    void processSignal();
+
+    // Calculate limiting gain based on input level
+    double calculateLimitingGain(double inputLevel);
+
+    // Update the detector level
+    void updateDetector();
+};
+
+// Class for tube-based harmonic exciter circuits
+class TubeHarmonicExciter : public ElectricNodeBase {
+public:
+    enum ExciterType {
+        ODD_HARMONIC,          // Emphasizes odd harmonics (rich, warm)
+        EVEN_HARMONIC,         // Emphasizes even harmonics (sweet, musical)
+        BALANCED_HARMONIC,     // Balanced mix of odd and even
+        FORMANT_EXCITER        // Exciter with formant control for tonal shaping
+    };
+
+    TubeHarmonicExciter(ExciterType type = ODD_HARMONIC);
+    virtual ~TubeHarmonicExciter() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure exciter parameters
+    void setAmount(double amount);              // 0.0 to 1.0, amount of harmonic excitation
+    void setOddEvenBalance(double balance);     // -1.0 to 1.0, -1 = all odd, 1 = all even
+    void setFrequencyRange(double low, double high); // Frequency range in Hz
+    void setHarmonicOrder(int order);           // Maximum harmonic order to generate
+    void setToneControl(double tone);           // Tone shaping parameter
+    void setFormantFrequency(double freq);      // Formant frequency (for FORMANT_EXCITER type)
+
+    // Get parameters
+    double getAmount() const { return amount; }
+    double getOddEvenBalance() const { return oddEvenBalance; }
+    double getLowFrequency() const { return lowFrequency; }
+    double getHighFrequency() const { return highFrequency; }
+    int getHarmonicOrder() const { return harmonicOrder; }
+    double getToneControl() const { return toneControl; }
+    double getFormantFrequency() const { return formantFreq; }
+
+    // Enable/disable features
+    void enableTubeSaturation(bool enable) { tubeSaturationEnabled = enable; }
+    void enableAdaptiveExcitation(bool enable) { adaptiveExcitationEnabled = enable; }
+
+private:
+    ExciterType exciterType;
+
+    // Exciter parameters
+    double amount = 0.3;                // Amount of harmonic excitation (0.0 to 1.0)
+    double oddEvenBalance = 0.0;        // Balance between odd/even harmonics (-1.0 to 1.0)
+    double lowFrequency = 100.0;        // Low frequency of range to excite (Hz)
+    double highFrequency = 8000.0;      // High frequency of range to excite (Hz)
+    int harmonicOrder = 7;              // Maximum harmonic order to generate
+    double toneControl = 0.5;           // Tone shaping parameter
+    double formantFreq = 1000.0;        // Formant frequency (for formant exciter)
+
+    // Internal state
+    double previousInput = 0.0;
+    double previousOutput = 0.0;
+    double adaptiveGain = 1.0;          // Adaptive gain based on signal characteristics
+    double harmonicResonance = 0.8;     // Resonance of harmonic generation
+
+    // Processing parameters
+    bool tubeSaturationEnabled = true;
+    bool adaptiveExcitationEnabled = true;
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections
+    int inputPin = 0;
+    int outputPin = 1;
+    int amountPin = 2;                  // For external amount control
+    int balancePin = 3;                 // For external balance control
+
+    double inputSignal = 0.0;
+    double outputSignal = 0.0;
+    double amountControl = 0.0;
+    double balanceControl = 0.0;
+
+    // Initialize exciter based on type
+    void initializeExciter(ExciterType type);
+
+    // Process signal through excitation algorithm
+    void processSignal();
+
+    // Generate harmonics for the input signal
+    double generateHarmonics(double input, double freq);
+
+    // Calculate frequency of the input signal (simplified)
+    double estimateFrequency();
+};
+
+// Class for tube-based tape-harmonics emulator circuits
+class TubeTapeHarmonics : public ElectricNodeBase {
+public:
+    enum TapeType {
+        FERRIC_456,           // Ampex 456, 3M/Scotch 112, Quantegy 400
+        FERRIC_911,           // Ampex 911, 3M/Scotch 114, Quantegy 450
+        CHROME_TYPE_2,        // Chrome Type II (more highs)
+        METAL_TYPE_4,         // Metal Type IV (highest highs)
+        VINTAGE_REEL_TO_REEL  // Vintage reel-to-reel sound
+    };
+
+    TubeTapeHarmonics(TapeType type = FERRIC_456);
+    virtual ~TubeTapeHarmonics() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure tape parameters
+    void setAmount(double amount);              // 0.0 to 1.0, amount of tape effect
+    void setBias(double bias);                  // Bias level (0.0 to 1.0)
+    void setSpeed(double speed);                // Tape speed factor (0.5 to 2.0)
+    void setNoiseLevel(double noise);           // Noise level (0.0 to 1.0)
+    void setCompression(double compression);    // Magnetic compression (0.0 to 1.0)
+    void setWowFlutter(double wow);             // Wow and flutter amount (0.0 to 1.0)
+
+    // Get parameters
+    double getAmount() const { return amount; }
+    double getBias() const { return bias; }
+    double getSpeed() const { return speed; }
+    double getNoiseLevel() const { return noiseLevel; }
+    double getCompression() const { return compression; }
+    double getWowFlutter() const { return wowFlutter; }
+
+    // Enable/disable features
+    void enableTapeCompression(bool enable) { tapeCompressionEnabled = enable; }
+    void enableNoise(bool enable) { noiseEnabled = enable; }
+    void enableWowFlutter(bool enable) { wowFlutterEnabled = enable; }
+
+private:
+    TapeType tapeType;
+
+    // Tape parameters
+    double amount = 0.4;                // Amount of tape effect (0.0 to 1.0)
+    double bias = 0.7;                  // Bias level (controls harmonic content)
+    double speed = 1.0;                 // Tape speed factor (affects frequency response)
+    double noiseLevel = 0.02;           // Noise level (0.0 to 1.0)
+    double compression = 0.3;           // Magnetic compression (0.0 to 1.0)
+    double wowFlutter = 0.05;           // Wow and flutter amount (0.0 to 1.0)
+
+    // Internal state
+    double previousInput = 0.0;
+    double previousOutput = 0.0;
+    double tapeHeadPosition = 0.0;      // For simulating tape head position
+    double wowPhase = 0.0;              // Phase for wow and flutter
+    double noiseBuffer[10] = {0.0};     // Buffer for noise generation
+    int noiseIndex = 0;
+
+    // Processing parameters
+    bool tapeCompressionEnabled = true;
+    bool noiseEnabled = true;
+    bool wowFlutterEnabled = true;
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections
+    int inputPin = 0;
+    int outputPin = 1;
+    int amountPin = 2;                  // For external amount control
+    int biasPin = 3;                    // For external bias control
+
+    double inputSignal = 0.0;
+    double outputSignal = 0.0;
+    double amountControl = 0.0;
+    double biasControl = 0.0;
+
+    // Initialize tape simulator based on type
+    void initializeTape(TapeType type);
+
+    // Process signal through tape algorithm
+    void processSignal();
+
+    // Apply tape compression
+    double applyTapeCompression(double input);
+
+    // Generate tape noise
+    double generateTapeNoise();
+
+    // Apply wow and flutter
+    double applyWowFlutter(double input, double phase);
+};
+
 // Class for tube-based flanger circuits
 class TubeFlanger : public ElectricNodeBase {
 public:

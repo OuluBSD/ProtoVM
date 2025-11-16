@@ -5073,6 +5073,279 @@ void TubeSpectralProcessor::setHarmonicPreservation(double preserve) {
 }
 
 
+// TubeVocoder implementation
+TubeVocoder::TubeVocoder(VocoderType type) : vocoderType(type) {
+    initializeVocoder(type);
+}
+
+void TubeVocoder::initializeVocoder(VocoderType type) {
+    vocoderType = type;
+    
+    switch (vocoderType) {
+        case ANALOG_STYLE:
+            carrierAmount = 0.8;
+            modulatorAmount = 0.9;
+            bandCount = 16;
+            formantShift = 0.0;
+            resonance = 0.6;
+            articulation = 0.7;
+            tubeWarmth = 0.4;
+            break;
+            
+        case TUBE_ANALOG:
+            carrierAmount = 0.7;
+            modulatorAmount = 0.8;
+            bandCount = 12;  // Fewer bands for more authentic analog sound
+            formantShift = 0.1;
+            resonance = 0.7;
+            articulation = 0.6;
+            tubeWarmth = 0.7;
+            break;
+            
+        case DIGITAL_HARMONIC:
+            carrierAmount = 0.9;
+            modulatorAmount = 0.95;
+            bandCount = 24;  // More bands for cleaner digital sound
+            formantShift = 0.0;
+            resonance = 0.5;
+            articulation = 0.8;
+            tubeWarmth = 0.3;
+            break;
+            
+        case FORMANT_SHIFT:
+            carrierAmount = 0.6;
+            modulatorAmount = 0.7;
+            bandCount = 20;
+            formantShift = 0.0;  // Will be set by user
+            resonance = 0.8;
+            articulation = 0.9;
+            tubeWarmth = 0.5;
+            break;
+    }
+    
+    // Initialize filter bank
+    analysisBands.resize(bandCount, 0.0);
+    synthesisBands.resize(bandCount, 0.0);
+    bandCenters.resize(bandCount);
+    bandCoeffs.resize(bandCount);
+    
+    // Initialize analysis and synthesis filters
+    analysisFilters.resize(bandCount, std::vector<double>(4, 0.0)); // 4 coefficients per filter
+    synthesisFilters.resize(bandCount, std::vector<double>(4, 0.0));
+    
+    // Calculate band center frequencies (logarithmic spacing from 100Hz to 5000Hz)
+    double minFreq = 100.0;
+    double maxFreq = 5000.0;
+    for (int i = 0; i < bandCount; i++) {
+        bandCenters[i] = minFreq * pow(maxFreq/minFreq, static_cast<double>(i)/(bandCount-1));
+        // Calculate coefficients for bandpass filter
+        double omega = 2.0 * M_PI * bandCenters[i] / sampleRate;
+        bandCoeffs[i] = omega; // Store for later use
+    }
+}
+
+bool TubeVocoder::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (op == OP_READ) {
+        return GetRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_WRITE) {
+        return PutRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_TICK) {
+        return Tick();
+    }
+    return false;
+}
+
+bool TubeVocoder::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == carrierInput && data_bytes == sizeof(double)) {
+        memcpy(&carrierSignal, data, sizeof(double));
+        return true;
+    } else if (conn_id == modulatorInput && data_bytes == sizeof(double)) {
+        memcpy(&modulatorSignal, data, sizeof(double));
+        return true;
+    } else if (conn_id == formantShiftPin && data_bytes == sizeof(double)) {
+        memcpy(&formantControl, data, sizeof(double));
+        setFormantShift(formantShift + 0.5 * formantControl); // Modulate formant shift
+        return true;
+    }
+    return false;
+}
+
+bool TubeVocoder::GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == outputPin && data_bytes == sizeof(double)) {
+        memcpy(data, &outputSignal, sizeof(double));
+        return true;
+    }
+    return false;
+}
+
+bool TubeVocoder::Tick() {
+    processSignal();
+    return true;
+}
+
+void TubeVocoder::analyzeModulator() {
+    // Process modulator signal through analysis filter bank
+    for (int band = 0; band < bandCount; band++) {
+        // Calculate filter coefficients for bandpass filter
+        double omega = 2.0 * M_PI * bandCenters[band] / sampleRate;
+        double Q = 5.0; // Quality factor
+        double alpha = sin(omega) / (2.0 * Q);
+        
+        // Bandpass filter coefficients (constant skirt gain)
+        double b0 = alpha;
+        double b1 = 0.0;
+        double b2 = -alpha;
+        double a0 = 1.0 + alpha;
+        double a1 = -2.0 * cos(omega);
+        double a2 = 1.0 - alpha;
+        
+        // Normalize
+        b0 /= a0; b1 /= a0; b2 /= a0;
+        a1 /= a0; a2 /= a0;
+        
+        // Apply filter to modulator signal
+        double input = modulatorSignal;
+        double output = b0 * input + b1 * analysisFilters[band][0] + b2 * analysisFilters[band][1] 
+                      - a1 * analysisFilters[band][2] - a2 * analysisFilters[band][3];
+        
+        // Update filter state
+        analysisFilters[band][1] = analysisFilters[band][0]; analysisFilters[band][0] = input;
+        analysisFilters[band][3] = analysisFilters[band][2]; analysisFilters[band][2] = output;
+        
+        // Calculate band magnitude (apply articulation parameter)
+        double magnitude = std::abs(output) * (0.5 + 0.5 * articulation);
+        
+        // Smooth the envelope to prevent artifacts
+        analysisBands[band] = analysisBands[band] * 0.7 + magnitude * 0.3;
+    }
+}
+
+void TubeVocoder::processCarrier() {
+    // Process carrier through each band, modulated by analysis bands
+    double output = 0.0;
+    
+    for (int band = 0; band < bandCount; band++) {
+        // Calculate shifted center frequency based on formant shift
+        double shiftedFreq = bandCenters[band] * (1.0 + formantShift * 0.5);
+        shiftedFreq = std::max(50.0, std::min(8000.0, shiftedFreq));
+        
+        // Calculate filter coefficients for synthesis bandpass filter
+        double omega = 2.0 * M_PI * shiftedFreq / sampleRate;
+        double Q = resonance * 8.0; // Higher Q with resonance
+        double alpha = sin(omega) / (2.0 * Q);
+        
+        // Bandpass filter coefficients (constant skirt gain)
+        double b0 = alpha;
+        double b1 = 0.0;
+        double b2 = -alpha;
+        double a0 = 1.0 + alpha;
+        double a1 = -2.0 * cos(omega);
+        double a2 = 1.0 - alpha;
+        
+        // Normalize
+        b0 /= a0; b1 /= a0; b2 /= a0;
+        a1 /= a0; a2 /= a0;
+        
+        // Apply filter to carrier signal
+        double input = carrierSignal;
+        double filtered = b0 * input + b1 * synthesisFilters[band][0] + b2 * synthesisFilters[band][1]
+                        - a1 * synthesisFilters[band][2] - a2 * synthesisFilters[band][3];
+        
+        // Update filter state
+        synthesisFilters[band][1] = synthesisFilters[band][0]; synthesisFilters[band][0] = input;
+        synthesisFilters[band][3] = synthesisFilters[band][2]; synthesisFilters[band][2] = filtered;
+        
+        // Modulate the filtered carrier with the analysis band magnitude
+        double modulated = filtered * analysisBands[band];
+        synthesisBands[band] = modulated;
+        
+        // Add to total output
+        output += modulated;
+    }
+    
+    // Apply overall gains
+    outputSignal = output * carrierAmount * modulatorAmount / bandCount;
+}
+
+void TubeVocoder::applyTubeCharacteristics() {
+    if (!tubeCharacteristicsEnabled) return;
+    
+    // Apply soft saturation to simulate tube warmth
+    double saturation = 0.7 + 0.3 * (1.0 - tubeWarmth); // Lower warmth = higher saturation capability
+    
+    if (outputSignal > saturation) {
+        outputSignal = saturation + (1 - saturation) * tanh((outputSignal - saturation) / (1 - saturation));
+    } else if (outputSignal < -saturation) {
+        outputSignal = -saturation + (1 - saturation) * tanh((outputSignal + saturation) / (1 - saturation));
+    }
+    
+    // Add harmonic content characteristic of tube circuits
+    double harmonic = tubeWarmth * 0.08 * outputSignal * outputSignal * (outputSignal > 0 ? 1 : -1);
+    outputSignal = outputSignal * (1.0 - 0.04 * tubeWarmth) + harmonic * 0.04 * tubeWarmth;
+}
+
+void TubeVocoder::processSignal() {
+    // Analyze the modulator signal (typically the voice)
+    analyzeModulator();
+    
+    // Process the carrier signal through the modulated filter bank
+    processCarrier();
+    
+    // Apply tube characteristics if enabled
+    applyTubeCharacteristics();
+    
+    // Apply gentle limiting to prevent clipping
+    if (outputSignal > 0.9) outputSignal = 0.9 + 0.1 * tanh((outputSignal - 0.9) / 0.1);
+    if (outputSignal < -0.9) outputSignal = -0.9 + 0.1 * tanh((outputSignal + 0.9) / 0.1);
+}
+
+void TubeVocoder::setCarrierAmount(double amount) {
+    this->carrierAmount = std::max(0.0, std::min(1.0, amount));
+}
+
+void TubeVocoder::setModulatorAmount(double amount) {
+    this->modulatorAmount = std::max(0.0, std::min(1.0, amount));
+}
+
+void TubeVocoder::setBandCount(int count) {
+    int newCount = std::max(8, std::min(32, count));
+    if (newCount != this->bandCount) {
+        this->bandCount = newCount;
+        analysisBands.resize(bandCount, 0.0);
+        synthesisBands.resize(bandCount, 0.0);
+        bandCenters.resize(bandCount);
+        bandCoeffs.resize(bandCount);
+        analysisFilters.resize(bandCount, std::vector<double>(4, 0.0));
+        synthesisFilters.resize(bandCount, std::vector<double>(4, 0.0));
+        
+        // Recalculate band center frequencies
+        double minFreq = 100.0;
+        double maxFreq = 5000.0;
+        for (int i = 0; i < bandCount; i++) {
+            bandCenters[i] = minFreq * pow(maxFreq/minFreq, static_cast<double>(i)/(bandCount-1));
+            bandCoeffs[i] = 2.0 * M_PI * bandCenters[i] / sampleRate;
+        }
+    }
+}
+
+void TubeVocoder::setFormantShift(double shift) {
+    this->formantShift = std::max(-1.0, std::min(1.0, shift));
+}
+
+void TubeVocoder::setSynthesisType(VocoderType type) {
+    this->vocoderType = type;
+    initializeVocoder(type);
+}
+
+void TubeVocoder::setResonance(double resonance) {
+    this->resonance = std::max(0.0, std::min(1.0, resonance));
+}
+
+void TubeVocoder::setArticulation(double articulation) {
+    this->articulation = std::max(0.0, std::min(1.0, articulation));
+}
+
+
 // TubeFlanger implementation
 TubeFlanger::TubeFlanger() {
     initializeFlanger();

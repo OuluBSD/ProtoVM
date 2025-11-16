@@ -1963,6 +1963,193 @@ private:
     void processToTimeDomain();
 };
 
+// Class for tube-based rotary speaker simulation (Leslie) circuits
+class TubeRotarySpeaker : public ElectricNodeBase {
+public:
+    enum SpeakerType {
+        LESLIE_16,           // 16" rotating drum speaker
+        LESLIE_18,           // 18" rotating drum speaker
+        LESLIE_33,           // 33" rotating drum with 15" woofer
+        TUBE_ROTARY          // Tube-driven rotary effect
+    };
+
+    TubeRotarySpeaker(SpeakerType type = LESLIE_16);
+    virtual ~TubeRotarySpeaker() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure rotary speaker parameters
+    void setSpeed(double speed);                // 0.0 to 1.0, rotation speed (0=slow, 1=fast)
+    void setAcceleration(double accel);         // Acceleration factor (0.0 to 1.0)
+    void setSlowSpeed(double speed);            // Slow speed ratio (0.1 to 0.5)
+    void setFastSpeed(double speed);            // Fast speed ratio (0.5 to 2.0)
+    void setDistance(double dist);              // Virtual distance (0.0 to 1.0)
+    void setDopplerEffect(double doppler);      // Doppler effect intensity (0.0 to 1.0)
+    void setSpeakerType(SpeakerType type);      // Set speaker type
+
+    // Get parameters
+    double getSpeed() const { return speed; }
+    double getAcceleration() const { return acceleration; }
+    double getSlowSpeed() const { return slowSpeed; }
+    double getFastSpeed() const { return fastSpeed; }
+    double getDistance() const { return distance; }
+    double getDopplerEffect() const { return dopplerEffect; }
+    SpeakerType getSpeakerType() const { return speakerType; }
+
+    // Enable/disable features
+    void enableTubeCharacteristics(bool enable) { tubeCharacteristicsEnabled = enable; }
+    void setTubeWarmth(double warmth) { tubeWarmth = std::max(0.0, std::min(1.0, warmth)); }
+
+private:
+    SpeakerType speakerType;
+
+    // Rotary speaker parameters
+    double speed = 0.3;                 // Current rotation speed
+    double acceleration = 0.1;          // Acceleration factor
+    double slowSpeed = 0.2;             // Slow rotation speed
+    double fastSpeed = 1.0;             // Fast rotation speed
+    double distance = 0.5;              // Virtual distance effect
+    double dopplerEffect = 0.7;         // Doppler effect intensity
+    double tubeWarmth = 0.4;            // Tube warmth amount
+
+    // Rotation state
+    double rotationPhase = 0.0;         // Current rotation phase
+    double targetSpeed = 0.3;           // Target rotation speed
+    double phaseOffset = 0.0;           // Phase offset between high and low speakers
+    double tremoloDepth = 0.3;          // Tremolo depth from rotation
+    double chorusDepth = 0.2;           // Chorus depth from rotation
+    
+    // Delay line for doppler effect simulation
+    std::vector<double> delayBuffer;    // Buffer for delay effect
+    int delayBufferSize = 2048;         // Size of delay buffer
+    int writePosition = 0;
+
+    // Processing parameters
+    bool tubeCharacteristicsEnabled = true;
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections (stereo in/out)
+    int inputPin = 0;
+    int outputPin = 1;
+    int speedPin = 2;                   // For external speed control
+    int accelerationPin = 3;            // For external acceleration control
+
+    double inputSignal = 0.0;
+    double outputSignal = 0.0;
+    double speedControl = 0.0;
+    double accelerationControl = 0.0;
+
+    // Initialize rotary speaker based on type
+    void initializeRotarySpeaker(SpeakerType type);
+
+    // Process signal through rotary speaker algorithm
+    void processSignal();
+
+    // Update rotation parameters based on current speed
+    void updateRotation();
+
+    // Apply doppler delay effect
+    double applyDopplerEffect(double input);
+};
+
+// Class for tube-based vocoder circuits
+class TubeVocoder : public ElectricNodeBase {
+public:
+    enum VocoderType {
+        ANALOG_STYLE,        // Classic analog-style vocoder
+        TUBE_ANALOG,         // Tube-based analog sound
+        DIGITAL_HARMONIC,    // Digital with harmonic enhancement
+        FORMANT_SHIFT        // Formant-shifting vocoder
+    };
+
+    TubeVocoder(VocoderType type = ANALOG_STYLE);
+    virtual ~TubeVocoder() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure vocoder parameters
+    void setCarrierAmount(double amount);       // 0.0 to 1.0, amount of carrier
+    void setModulatorAmount(double amount);     // 0.0 to 1.0, amount of modulator
+    void setBandCount(int count);               // Number of frequency bands (8 to 32)
+    void setFormantShift(double shift);         // Formant shift (-1.0 to 1.0)
+    void setSynthesisType(VocoderType type);    // Set synthesis type
+    void setResonance(double resonance);        // Resonance of voice (0.0 to 1.0)
+    void setArticulation(double articulation);  // Articulation (0.0 to 1.0)
+
+    // Get parameters
+    double getCarrierAmount() const { return carrierAmount; }
+    double getModulatorAmount() const { return modulatorAmount; }
+    int getBandCount() const { return bandCount; }
+    double getFormantShift() const { return formantShift; }
+    VocoderType getSynthesisType() const { return vocoderType; }
+    double getResonance() const { return resonance; }
+    double getArticulation() const { return articulation; }
+
+    // Enable/disable features
+    void enableTubeCharacteristics(bool enable) { tubeCharacteristicsEnabled = enable; }
+    void setTubeWarmth(double warmth) { tubeWarmth = std::max(0.0, std::min(1.0, warmth)); }
+
+private:
+    VocoderType vocoderType;
+
+    // Vocoder parameters
+    double carrierAmount = 0.8;         // Amount of carrier signal
+    double modulatorAmount = 0.9;       // Amount of modulator signal
+    int bandCount = 16;                 // Number of frequency bands
+    double formantShift = 0.0;          // Formant shift amount
+    double resonance = 0.6;             // Resonance of the voice
+    double articulation = 0.7;          // Articulation of the voice
+    double tubeWarmth = 0.5;            // Tube warmth amount
+
+    // Filter bank for analysis and synthesis
+    std::vector<std::vector<double>> analysisFilters; // Bandpass filters for analysis
+    std::vector<std::vector<double>> synthesisFilters; // Bandpass filters for synthesis
+    std::vector<double> analysisBands;  // Magnitude of each analysis band
+    std::vector<double> synthesisBands; // Magnitude of each synthesis band
+    std::vector<double> bandCenters;    // Center frequencies for each band
+    std::vector<double> bandCoeffs;     // Coefficients for each band filter
+
+    // Processing parameters
+    bool tubeCharacteristicsEnabled = true;
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections (dual input: carrier + modulator)
+    int carrierInput = 0;               // Carrier signal (e.g., synth)
+    int modulatorInput = 1;             // Modulator signal (e.g., voice)
+    int outputPin = 2;                  // Vocoder output
+    int formantShiftPin = 3;            // For external formant control
+
+    double carrierSignal = 0.0;
+    double modulatorSignal = 0.0;
+    double outputSignal = 0.0;
+    double formantControl = 0.0;
+
+    // Initialize vocoder based on type
+    void initializeVocoder(VocoderType type);
+
+    // Process signal through vocoding algorithm
+    void processSignal();
+
+    // Analyze the modulator signal into frequency bands
+    void analyzeModulator();
+
+    // Process carrier signal through modulated bands
+    void processCarrier();
+
+    // Apply tube characteristics to the vocoded signal
+    void applyTubeCharacteristics();
+};
+
 // Class for tube-based flanger circuits
 class TubeFlanger : public ElectricNodeBase {
 public:

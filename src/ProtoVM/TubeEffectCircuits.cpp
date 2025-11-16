@@ -2420,6 +2420,721 @@ void TubeTapeHarmonics::setWowFlutter(double wow) {
 }
 
 
+// TubeParametricEQ implementation
+TubeParametricEQ::TubeParametricEQ(int numBands) {
+    initializeEQ(numBands);
+}
+
+void TubeParametricEQ::initializeEQ(int numBands) {
+    this->numBands = std::max(1, std::min(10, numBands));  // Limit to 1-10 bands
+    bands.resize(this->numBands);
+    
+    // Default band configuration (4 bands: low shelf, 2 peaking, high shelf)
+    if (this->numBands >= 1) {
+        bands[0].type = LOW_SHELF;
+        bands[0].frequency = 100.0;   // Low frequencies
+        bands[0].gain = 0.0;
+        bands[0].q = 0.707;
+    }
+    
+    if (this->numBands >= 2) {
+        bands[1].type = PEAKING;
+        bands[1].frequency = 500.0;   // Low-mid frequencies
+        bands[1].gain = 0.0;
+        bands[1].q = 1.0;
+    }
+    
+    if (this->numBands >= 3) {
+        bands[2].type = PEAKING;
+        bands[2].frequency = 2000.0;  // High-mid frequencies
+        bands[2].gain = 0.0;
+        bands[2].q = 1.0;
+    }
+    
+    if (this->numBands >= 4) {
+        bands[3].type = HIGH_SHELF;
+        bands[3].frequency = 10000.0; // High frequencies
+        bands[3].gain = 0.0;
+        bands[3].q = 0.707;
+    }
+    
+    // Initialize filter coefficients for all bands
+    for (int i = 0; i < static_cast<int>(bands.size()); i++) {
+        calculateFilterCoefficients(i);
+    }
+}
+
+bool TubeParametricEQ::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (op == OP_READ) {
+        return GetRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_WRITE) {
+        return PutRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_TICK) {
+        return Tick();
+    }
+    return false;
+}
+
+bool TubeParametricEQ::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == inputPin && data_bytes == sizeof(double)) {
+        memcpy(&inputSignal, data, sizeof(double));
+        return true;
+    }
+    return false;
+}
+
+bool TubeParametricEQ::GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == outputPin && data_bytes == sizeof(double)) {
+        memcpy(data, &outputSignal, sizeof(double));
+        return true;
+    }
+    return false;
+}
+
+bool TubeParametricEQ::Tick() {
+    processSignal();
+    return true;
+}
+
+void TubeParametricEQ::calculateFilterCoefficients(int bandIndex) {
+    if (bandIndex < 0 || bandIndex >= static_cast<int>(bands.size())) return;
+    
+    auto& band = bands[bandIndex];
+    
+    // Normalize frequency to pi
+    double w0 = 2 * M_PI * band.frequency / sampleRate;
+    double cos_w0 = cos(w0);
+    double sin_w0 = sin(w0);
+    double A = pow(10.0, band.gain / 40.0);  // For peak/shelf filters
+    
+    switch (band.type) {
+        case LOW_SHELF: {
+            double alpha = sin_w0 / 2.0 * sqrt((A + 1/A) * (1/band.q - 1) + 2);
+            double temp = 2 * sqrt(A) * alpha;
+            
+            band.b0 = A * ((A + 1) - (A - 1) * cos_w0 + temp);
+            band.b1 = 2 * A * ((A - 1) - (A + 1) * cos_w0);
+            band.b2 = A * ((A + 1) - (A - 1) * cos_w0 - temp);
+            band.a0 = (A + 1) + (A - 1) * cos_w0 + temp;
+            band.a1 = -2 * ((A - 1) + (A + 1) * cos_w0);
+            band.a2 = (A + 1) + (A - 1) * cos_w0 - temp;
+            break;
+        }
+        
+        case HIGH_SHELF: {
+            double alpha = sin_w0 / 2.0 * sqrt((A + 1/A) * (1/band.q - 1) + 2);
+            double temp = 2 * sqrt(A) * alpha;
+            
+            band.b0 = A * ((A + 1) + (A - 1) * cos_w0 + temp);
+            band.b1 = -2 * A * ((A - 1) + (A + 1) * cos_w0);
+            band.b2 = A * ((A + 1) + (A - 1) * cos_w0 - temp);
+            band.a0 = (A + 1) - (A - 1) * cos_w0 + temp;
+            band.a1 = 2 * ((A - 1) - (A + 1) * cos_w0);
+            band.a2 = (A + 1) - (A - 1) * cos_w0 - temp;
+            break;
+        }
+        
+        case PEAKING: {
+            double alpha = sin_w0 / (2.0 * band.q);
+            
+            band.b0 = 1 + alpha * A;
+            band.b1 = -2 * cos_w0;
+            band.b2 = 1 - alpha * A;
+            band.a0 = 1 + alpha / A;
+            band.a1 = -2 * cos_w0;
+            band.a2 = 1 - alpha / A;
+            break;
+        }
+        
+        case LOW_PASS: {
+            double alpha = sin_w0 / (2.0 * band.q);
+            
+            band.b0 = (1 - cos_w0) / 2;
+            band.b1 = 1 - cos_w0;
+            band.b2 = (1 - cos_w0) / 2;
+            band.a0 = 1 + alpha;
+            band.a1 = -2 * cos_w0;
+            band.a2 = 1 - alpha;
+            break;
+        }
+        
+        case HIGH_PASS: {
+            double alpha = sin_w0 / (2.0 * band.q);
+            
+            band.b0 = (1 + cos_w0) / 2;
+            band.b1 = -(1 + cos_w0);
+            band.b2 = (1 + cos_w0) / 2;
+            band.a0 = 1 + alpha;
+            band.a1 = -2 * cos_w0;
+            band.a2 = 1 - alpha;
+            break;
+        }
+        
+        case BAND_PASS: {
+            double alpha = sin_w0 / (2.0 * band.q);
+            
+            band.b0 = alpha;
+            band.b1 = 0;
+            band.b2 = -alpha;
+            band.a0 = 1 + alpha;
+            band.a1 = -2 * cos_w0;
+            band.a2 = 1 - alpha;
+            break;
+        }
+    }
+    
+    // Normalize coefficients
+    if (band.a0 != 0) {
+        band.b0 /= band.a0;
+        band.b1 /= band.a0;
+        band.b2 /= band.a0;
+        band.a1 /= band.a0;
+        band.a2 /= band.a0;
+        // band.a0 is normalized to 1.0
+    }
+}
+
+double TubeParametricEQ::processBand(int bandIndex, double input) {
+    if (bandIndex < 0 || bandIndex >= static_cast<int>(bands.size()) || !bands[bandIndex].enabled) {
+        return input;
+    }
+    
+    auto& band = bands[bandIndex];
+    
+    // Direct Form II implementation of biquad filter
+    double output = band.b0 * input + band.x1 * band.b1 + band.x2 * band.b2 
+                              - band.y1 * band.a1 - band.y2 * band.a2;
+    
+    // Update filter state
+    band.x2 = band.x1;
+    band.x1 = input;
+    band.y2 = band.y1;
+    band.y1 = output;
+    
+    return output;
+}
+
+void TubeParametricEQ::processSignal() {
+    // Start with the input signal
+    double signal = inputSignal;
+    
+    // Process through each enabled band in sequence
+    for (auto& band : bands) {
+        if (band.enabled) {
+            signal = processBand(static_cast<int>(&band - &bands[0]), signal);
+        }
+    }
+    
+    // Apply tube characteristics if enabled
+    if (tubeCharacteristicsEnabled) {
+        // Apply soft saturation to simulate tube warmth
+        double saturation = 0.7 + 0.3 * tubeSaturation; // Adjust saturation based on setting
+        if (signal > saturation) {
+            signal = saturation + (1 - saturation) * tanh((signal - saturation) / (1 - saturation));
+        } else if (signal < -saturation) {
+            signal = -saturation + (1 - saturation) * tanh((signal + saturation) / (1 - saturation));
+        }
+        
+        // Add subtle harmonic content
+        double harmonic = 0.05 * tubeSaturation * signal * signal * (signal > 0 ? 1 : -1);
+        signal = signal * (1.0 - 0.1 * tubeSaturation) + harmonic * 0.1 * tubeSaturation;
+    }
+    
+    outputSignal = signal;
+}
+
+void TubeParametricEQ::setNumBands(int numBands) {
+    int oldNumBands = this->numBands;
+    this->numBands = std::max(1, std::min(10, numBands));
+    
+    if (this->numBands > oldNumBands) {
+        // Add new bands with default settings
+        for (int i = oldNumBands; i < this->numBands; i++) {
+            EQBand newBand;
+            newBand.type = PEAKING;
+            newBand.frequency = 1000.0 * pow(2.0, (i - 2));  // Doubling frequency for each band
+            newBand.gain = 0.0;
+            newBand.q = 1.0;
+            bands.push_back(newBand);
+        }
+    }
+    
+    bands.resize(this->numBands);
+    
+    // Recalculate coefficients for all bands
+    for (int i = 0; i < static_cast<int>(bands.size()); i++) {
+        calculateFilterCoefficients(i);
+    }
+}
+
+void TubeParametricEQ::setBandType(int bandIndex, EQBandType type) {
+    if (bandIndex >= 0 && bandIndex < static_cast<int>(bands.size())) {
+        bands[bandIndex].type = type;
+        calculateFilterCoefficients(bandIndex);
+    }
+}
+
+void TubeParametricEQ::setBandFrequency(int bandIndex, double freq) {
+    if (bandIndex >= 0 && bandIndex < static_cast<int>(bands.size())) {
+        bands[bandIndex].frequency = std::max(20.0, std::min(20000.0, freq));
+        calculateFilterCoefficients(bandIndex);
+    }
+}
+
+void TubeParametricEQ::setBandGain(int bandIndex, double gain) {
+    if (bandIndex >= 0 && bandIndex < static_cast<int>(bands.size())) {
+        bands[bandIndex].gain = std::max(-20.0, std::min(20.0, gain));
+        calculateFilterCoefficients(bandIndex);
+    }
+}
+
+void TubeParametricEQ::setBandQ(int bandIndex, double q) {
+    if (bandIndex >= 0 && bandIndex < static_cast<int>(bands.size())) {
+        bands[bandIndex].q = std::max(0.1, std::min(10.0, q));
+        calculateFilterCoefficients(bandIndex);
+    }
+}
+
+void TubeParametricEQ::enableBand(int bandIndex, bool enable) {
+    if (bandIndex >= 0 && bandIndex < static_cast<int>(bands.size())) {
+        bands[bandIndex].enabled = enable;
+    }
+}
+
+
+// TubeStereoWidener implementation
+TubeStereoWidener::TubeStereoWidener(WidenerType type) : widenerType(type) {
+    initializeWidener(type);
+    
+    // Initialize delay buffers based on maximum delay time
+    delayBufferSize = static_cast<int>(0.010 * sampleRate); // 10ms max delay
+    leftDelayBuffer.resize(delayBufferSize, 0.0);
+    rightDelayBuffer.resize(delayBufferSize, 0.0);
+    
+    // Initialize band frequencies for band-based widener
+    bandFrequencies.resize(bandCount);
+    for (int i = 0; i < bandCount; i++) {
+        // Logarithmic spacing from 100Hz to 10kHz
+        bandFrequencies[i] = 100.0 * pow(10000.0 / 100.0, static_cast<double>(i) / (bandCount - 1));
+    }
+}
+
+void TubeStereoWidener::initializeWidener(WidenerType type) {
+    switch (type) {
+        case MID_SIDE_WIDENER:
+            amount = 0.6;           // Moderate widening
+            delayTimeMs = 1.2;      // 1.2ms delay
+            width = 1.4;            // Increased width
+            midSideRatio = 0.7;     // Emphasize side information
+            break;
+            
+        case BAND_PASS_WIDENER:
+            amount = 0.5;           // Balanced amount
+            delayTimeMs = 0.8;      // 0.8ms delay
+            width = 1.5;            // High width
+            midSideRatio = 0.5;     // Balanced mid-side
+            bandCount = 10;         // 10 bands as required
+            break;
+            
+        case ALL_PASS_WIDENER:
+            amount = 0.7;           // High widening
+            delayTimeMs = 0.5;      // 0.5ms delay
+            width = 1.7;            // Very wide
+            midSideRatio = 0.3;     // More side processing
+            break;
+            
+        case PHASE_WIDENER:
+            amount = 0.4;           // Moderate widening
+            delayTimeMs = 2.0;      // 2.0ms delay
+            width = 1.3;            // Moderate width
+            midSideRatio = 0.8;     // More mid processing
+            break;
+    }
+}
+
+bool TubeStereoWidener::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (op == OP_READ) {
+        return GetRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_WRITE) {
+        return PutRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_TICK) {
+        return Tick();
+    }
+    return false;
+}
+
+bool TubeStereoWidener::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == leftInput && data_bytes == sizeof(double)) {
+        memcpy(&leftInputSignal, data, sizeof(double));
+        return true;
+    } else if (conn_id == rightInput && data_bytes == sizeof(double)) {
+        memcpy(&rightInputSignal, data, sizeof(double));
+        return true;
+    } else if (conn_id == controlInput && data_bytes == sizeof(double)) {
+        memcpy(&controlSignal, data, sizeof(double));
+        setAmount(amount + 0.3 * controlSignal); // Modulate around current setting
+        return true;
+    }
+    return false;
+}
+
+bool TubeStereoWidener::GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == leftOutput && data_bytes == sizeof(double)) {
+        memcpy(data, &leftOutputSignal, sizeof(double));
+        return true;
+    } else if (conn_id == rightOutput && data_bytes == sizeof(double)) {
+        memcpy(data, &rightOutputSignal, sizeof(double));
+        return true;
+    }
+    return false;
+}
+
+bool TubeStereoWidener::Tick() {
+    processSignal();
+    return true;
+}
+
+void TubeStereoWidener::stereoToMidSide(double left, double right, double& mid, double& side) {
+    mid = (left + right) * 0.5;
+    side = (left - right) * 0.5;
+}
+
+void TubeStereoWidener::midSideToStereo(double mid, double side, double& left, double& right) {
+    left = mid + side;
+    right = mid - side;
+}
+
+void TubeStereoWidener::processFrequencyBands(double& left, double& right) {
+    if (widenerType != BAND_PASS_WIDENER) return;
+    
+    // For the band-based widener, we apply different delays to odd/even bands
+    // This follows the specification in the task: "odd has + and even - delay in left channel"
+    
+    double originalLeft = left;
+    double originalRight = right;
+    
+    // Process through each band
+    for (int band = 0; band < bandCount; band++) {
+        // Calculate filter coefficients for this band
+        double omega = 2.0 * M_PI * bandFrequencies[band] / sampleRate;
+        double sin_omega = sin(omega);
+        double cos_omega = cos(omega);
+        double alpha = sin_omega / 2.0;  // Low Q for broad bands
+        
+        // Simplified bandpass filter coefficients
+        double a0 = 1.0 + alpha;
+        double a1 = -2.0 * cos_omega;
+        double a2 = 1.0 - alpha;
+        double b0 = alpha;
+        double b1 = 0.0;
+        double b2 = -alpha;
+        
+        // Normalize
+        b0 /= a0;
+        b1 /= a0;
+        b2 /= a0;
+        a1 /= a0;
+        a2 /= a0;
+        
+        // Apply bandpass filter to both channels
+        static double lx1 = 0.0, lx2 = 0.0, ly1 = 0.0, ly2 = 0.0;  // Left filter state
+        static double rx1 = 0.0, rx2 = 0.0, ry1 = 0.0, ry2 = 0.0;  // Right filter state
+        
+        double l_filtered = b0 * originalLeft + b1 * lx1 + b2 * lx2 - a1 * ly1 - a2 * ly2;
+        double r_filtered = b0 * originalRight + b1 * rx1 + b2 * rx2 - a1 * ry1 - a2 * ry2;
+        
+        // Update filter states
+        lx2 = lx1; lx1 = originalLeft; ly2 = ly1; ly1 = l_filtered;
+        rx2 = rx1; rx1 = originalRight; ry2 = ry1; ry1 = r_filtered;
+        
+        // Apply different delays based on band number (odd/even)
+        int delay_samples = static_cast<int>((delayTimeMs / 1000.0) * sampleRate);
+        if (band % 2 == 0) {
+            // Even band: add positive delay to left
+            int left_delay_pos = (leftWritePos - delay_samples + delayBufferSize) % delayBufferSize;
+            left_delay_pos = (left_delay_pos + delayBufferSize) % delayBufferSize;
+            
+            left += l_filtered * amount * 0.1;  // Add with positive delay to left
+        } else {
+            // Odd band: add negative delay (advance) to left, or delay to right
+            int right_delay_pos = (rightWritePos - delay_samples + delayBufferSize) % delayBufferSize;
+            right_delay_pos = (right_delay_pos + delayBufferSize) % delayBufferSize;
+            
+            right += r_filtered * amount * 0.1;  // Add with delay to right
+        }
+    }
+}
+
+void TubeStereoWidener::processSignal() {
+    // Convert to mid-side for processing
+    double mid, side;
+    stereoToMidSide(leftInputSignal, rightInputSignal, mid, side);
+    
+    // Apply widening factor to the side signal
+    side *= width;
+    
+    // Different processing based on widener type
+    switch (widenerType) {
+        case MID_SIDE_WIDENER:
+        case PHASE_WIDENER: {
+            // Apply delay to the mid signal and recombine
+            int delay_samples = static_cast<int>((delayTimeMs / 1000.0) * sampleRate);
+            delay_samples = std::min(delay_samples, delayBufferSize - 1);
+            
+            // Add delayed mid to side in a way that widens the stereo field
+            int mid_delay_pos = (leftWritePos - delay_samples + delayBufferSize) % delayBufferSize;
+            mid_delay_pos = (mid_delay_pos + delayBufferSize) % delayBufferSize;
+            
+            // Store input in delay buffer
+            leftDelayBuffer[leftWritePos] = mid * midSideRatio + side * (1.0 - midSideRatio);
+            rightDelayBuffer[rightWritePos] = side * midSideRatio + mid * (1.0 - midSideRatio);
+            
+            // Get delayed values
+            double delayed_mid = leftDelayBuffer[mid_delay_pos];
+            double delayed_side = rightDelayBuffer[(mid_delay_pos + delay_samples/2) % delayBufferSize]; // Different delay for side
+            
+            // Apply widening based on the amount parameter
+            double temp_mid = mid * (1.0 - amount) + delayed_mid * amount;
+            double temp_side = side * (1.0 - amount) + delayed_side * amount;
+            
+            // Convert back to left/right
+            midSideToStereo(temp_mid, temp_side, leftOutputSignal, rightOutputSignal);
+            
+            // Update write positions
+            leftWritePos = (leftWritePos + 1) % delayBufferSize;
+            rightWritePos = (rightWritePos + 1) % delayBufferSize;
+            break;
+        }
+        
+        case BAND_PASS_WIDENER: {
+            // Process through frequency bands
+            double leftOut = leftInputSignal;
+            double rightOut = rightInputSignal;
+            processFrequencyBands(leftOut, rightOut);
+            
+            // Apply the processed signals with widening
+            leftOutputSignal = leftInputSignal * (1.0 - amount) + leftOut * amount;
+            rightOutputSignal = rightInputSignal * (1.0 - amount) + rightOut * amount;
+            
+            break;
+        }
+        
+        case ALL_PASS_WIDENER: {
+            // Apply all-pass filter based widening
+            // This simulates frequency-dependent phase shifts that create stereo widening
+            static double apx1 = 0.0, apy1 = 0.0; // All-pass filter state
+            double ap_coeff = 0.5; // All-pass coefficient
+            
+            // Process the side signal with an all-pass filter
+            double allpass_output = -ap_coeff * side + apx1 + ap_coeff * apy1;
+            apx1 = side;
+            apy1 = allpass_output;
+            
+            // Apply the all-pass processed signal with amount control
+            side = side * (1.0 - amount * 0.5) + allpass_output * amount * 0.5;
+            
+            // Convert back to stereo
+            midSideToStereo(mid, side, leftOutputSignal, rightOutputSignal);
+            break;
+        }
+    }
+    
+    // Apply tube characteristics if enabled
+    if (tubeCharacteristicsEnabled) {
+        // Apply soft saturation to simulate tube warmth
+        double saturation = 0.8 - 0.3 * tubeSaturation; // Adjust saturation based on setting
+        if (leftOutputSignal > saturation) {
+            leftOutputSignal = saturation + (1 - saturation) * tanh((leftOutputSignal - saturation) / (1 - saturation));
+        } else if (leftOutputSignal < -saturation) {
+            leftOutputSignal = -saturation + (1 - saturation) * tanh((leftOutputSignal + saturation) / (1 - saturation));
+        }
+        
+        if (rightOutputSignal > saturation) {
+            rightOutputSignal = saturation + (1 - saturation) * tanh((rightOutputSignal - saturation) / (1 - saturation));
+        } else if (rightOutputSignal < -saturation) {
+            rightOutputSignal = -saturation + (1 - saturation) * tanh((rightOutputSignal + saturation) / (1 - saturation));
+        }
+        
+        // Add subtle harmonic content
+        double left_harmonic = 0.02 * tubeSaturation * leftOutputSignal * leftOutputSignal * (leftOutputSignal > 0 ? 1 : -1);
+        double right_harmonic = 0.02 * tubeSaturation * rightOutputSignal * rightOutputSignal * (rightOutputSignal > 0 ? 1 : -1);
+        
+        leftOutputSignal = leftOutputSignal * (1.0 - 0.05 * tubeSaturation) + left_harmonic * 0.05 * tubeSaturation;
+        rightOutputSignal = rightOutputSignal * (1.0 - 0.05 * tubeSaturation) + right_harmonic * 0.05 * tubeSaturation;
+    }
+}
+
+void TubeStereoWidener::setAmount(double amount) {
+    this->amount = std::max(0.0, std::min(1.0, amount));
+}
+
+void TubeStereoWidener::setDelayTime(double time) {
+    this->delayTimeMs = std::max(0.0, std::min(10.0, time));
+}
+
+void TubeStereoWidener::setWidth(double width) {
+    this->width = std::max(0.0, std::min(3.0, width));
+}
+
+void TubeStereoWidener::setMidSideRatio(double ratio) {
+    this->midSideRatio = std::max(0.0, std::min(1.0, ratio));
+}
+
+void TubeStereoWidener::setFrequencyBand(int band, double freq) {
+    if (band >= 0 && band < static_cast<int>(bandFrequencies.size())) {
+        bandFrequencies[band] = std::max(20.0, std::min(20000.0, freq));
+    }
+}
+
+
+// TubeSideMidSplitter implementation
+TubeSideMidSplitter::TubeSideMidSplitter(SplitterType type) : splitterType(type) {
+    initializeSplitter(type);
+}
+
+void TubeSideMidSplitter::initializeSplitter(SplitterType type) {
+    switch (type) {
+        case PASSIVE_SPLITTER:
+            midSideRatio = 0.5;       // Balanced mid/side
+            tubeSaturation = 0.0;     // No saturation for passive
+            harmonicContent = 0.0;    // No harmonic enhancement for passive
+            gain = 0.5;               // No amplification
+            break;
+            
+        case ACTIVE_SPLITTER:
+            midSideRatio = 0.5;       // Balanced mid/side
+            tubeSaturation = 0.1;     // Low saturation
+            harmonicContent = 0.1;    // Low harmonic enhancement
+            gain = 1.0;               // Unity gain
+            break;
+            
+        case TUBE_SPLITTER:
+            midSideRatio = 0.5;       // Balanced mid/side
+            tubeSaturation = 0.3;     // Medium saturation
+            harmonicContent = 0.2;    // Medium harmonic enhancement
+            gain = 1.1;               // Slight gain for tube character
+            break;
+            
+        case VARIABLE_SPLITTER:
+            midSideRatio = 0.5;       // Start balanced
+            tubeSaturation = 0.2;     // Medium saturation
+            harmonicContent = 0.15;   // Medium harmonic enhancement
+            gain = 1.0;               // Unity gain
+            break;
+    }
+}
+
+bool TubeSideMidSplitter::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (op == OP_READ) {
+        return GetRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_WRITE) {
+        return PutRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_TICK) {
+        return Tick();
+    }
+    return false;
+}
+
+bool TubeSideMidSplitter::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == leftInput && data_bytes == sizeof(double)) {
+        memcpy(&leftInputSignal, data, sizeof(double));
+        return true;
+    } else if (conn_id == rightInput && data_bytes == sizeof(double)) {
+        memcpy(&rightInputSignal, data, sizeof(double));
+        return true;
+    } else if (conn_id == midSideControl && data_bytes == sizeof(double)) {
+        memcpy(&midSideControlSignal, data, sizeof(double));
+        setMidSideRatio(0.5 + 0.5 * midSideControlSignal); // Map -1,1 to 0,1
+        return true;
+    }
+    return false;
+}
+
+bool TubeSideMidSplitter::GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == midOutput && data_bytes == sizeof(double)) {
+        memcpy(data, &midOutputSignal, sizeof(double));
+        return true;
+    } else if (conn_id == sideOutput && data_bytes == sizeof(double)) {
+        memcpy(data, &sideOutputSignal, sizeof(double));
+        return true;
+    }
+    return false;
+}
+
+bool TubeSideMidSplitter::Tick() {
+    processSignal();
+    return true;
+}
+
+double TubeSideMidSplitter::applyTubeCharacteristics(double signal, double tubeSat) {
+    if (!tubeCharacteristicsEnabled) {
+        return signal;
+    }
+    
+    // Apply soft clipping to simulate tube saturation
+    double saturation = 0.7 + 0.3 * (1.0 - tubeSat);  // Lower value = more saturation
+    if (signal > saturation) {
+        signal = saturation + (1 - saturation) * tanh((signal - saturation) / (1 - saturation));
+    } else if (signal < -saturation) {
+        signal = -saturation + (1 - saturation) * tanh((signal + saturation) / (1 - saturation));
+    }
+    
+    // Add harmonic content characteristic of tube circuits
+    if (harmonicEnhancementEnabled) {
+        double harmonic = tubeSat * 0.1 * signal * signal * (signal > 0 ? 1 : -1);
+        signal = signal * (1.0 - 0.05 * tubeSat) + harmonic * 0.05 * tubeSat;
+    }
+    
+    return signal;
+}
+
+void TubeSideMidSplitter::processSignal() {
+    // Convert stereo L/R to mid/side: Mid = (L+R)/2, Side = (L-R)/2
+    double mid = (leftInputSignal + rightInputSignal) * 0.5;
+    double side = (leftInputSignal - rightInputSignal) * 0.5;
+    
+    // Apply gain
+    mid *= gain;
+    side *= gain;
+    
+    // Apply tube characteristics if enabled
+    if (tubeCharacteristicsEnabled) {
+        mid = applyTubeCharacteristics(mid, tubeSaturation);
+        side = applyTubeCharacteristics(side, tubeSaturation);
+    }
+    
+    // Apply mid/side ratio control
+    double ratio = midSideRatio;
+    midOutputSignal = mid * ratio + side * (1.0 - ratio);
+    sideOutputSignal = side * ratio + mid * (1.0 - ratio);
+    
+    // Apply harmonic content if enabled
+    if (harmonicEnhancementEnabled) {
+        double mid_harmonic = harmonicContent * midOutputSignal * midOutputSignal * (midOutputSignal > 0 ? 1 : -1);
+        double side_harmonic = harmonicContent * sideOutputSignal * sideOutputSignal * (sideOutputSignal > 0 ? 1 : -1);
+        
+        midOutputSignal = midOutputSignal * (1.0 - 0.1 * harmonicContent) + mid_harmonic * 0.1 * harmonicContent;
+        sideOutputSignal = sideOutputSignal * (1.0 - 0.1 * harmonicContent) + side_harmonic * 0.1 * harmonicContent;
+    }
+}
+
+void TubeSideMidSplitter::setMidSideRatio(double ratio) {
+    this->midSideRatio = std::max(0.0, std::min(1.0, ratio));
+}
+
+void TubeSideMidSplitter::setTubeSaturation(double saturation) {
+    this->tubeSaturation = std::max(0.0, std::min(1.0, saturation));
+}
+
+void TubeSideMidSplitter::setHarmonicContent(double content) {
+    this->harmonicContent = std::max(0.0, std::min(1.0, content));
+}
+
+void TubeSideMidSplitter::setGain(double gain) {
+    this->gain = std::max(0.1, std::min(2.0, gain));
+}
+
+
 // TubeFlanger implementation
 TubeFlanger::TubeFlanger() {
     initializeFlanger();

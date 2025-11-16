@@ -20,16 +20,16 @@
 - [ ] Design LUFS-based stereo/mono loudness limiter with LUFS-based ceiling control
 
 #### Harmonic Processors
-- [ ] Design tube-based stereo/mono harmonic exciter with odd/even harmonic control
-- [ ] Design tube-based stereo/mono tape-harmonics emulator with magnetic tape characteristics
-- [ ] Design tube-based stereo/mono overdrive circuit simulating guitar overdrive pedals
-- [ ] Design tube-based stereo/mono distortion circuit simulating guitar distortion pedals
+- [x] Design tube-based stereo/mono harmonic exciter with odd/even harmonic control
+- [x] Design tube-based stereo/mono tape-harmonics emulator with magnetic tape characteristics
+- [x] Design tube-based stereo/mono overdrive circuit simulating guitar overdrive pedals
+- [x] Design tube-based stereo/mono distortion circuit simulating guitar distortion pedals
 
 #### Filter-Based Effects
-- [ ] Design tube-based stereo/mono bandpass filter with adjustable center frequency and bandwidth
-- [ ] Design tube-based stereo/mono low-pass filter with adjustable cutoff and resonance
-- [ ] Design tube-based stereo/mono high-pass filter with adjustable cutoff and resonance
-- [ ] Design tube-based stereo/mono 4-band parametric equalizer with adjustable frequency, gain, Q
+- [x] Design tube-based stereo/mono bandpass filter with adjustable center frequency and bandwidth
+- [x] Design tube-based stereo/mono low-pass filter with adjustable cutoff and resonance
+- [x] Design tube-based stereo/mono high-pass filter with adjustable cutoff and resonance
+- [x] Design tube-based stereo/mono 4-band parametric equalizer with adjustable frequency, gain, Q
 
 #### Modulation Effects
 - [ ] Design tube-based stereo/mono chorus with adjustable rate, depth, and delay
@@ -46,11 +46,11 @@
 - [ ] Design tube-based stereo/mono amp-simulation for 2000s era (modern tight low-end)
 
 #### Spatial Effects
-- [ ] Design tube-based stereo plate-reverb with adjustable size, decay, and damping
-- [ ] Design tube-based stereo-side/mid splitter for stereo sound manipulation
-- [ ] Design tube-based transition/sustain splitter for separate processing
-- [ ] Design tube-based stereo-widener 1: from side/mid splitter, have delay in mid between L and R
-- [ ] Design tube-based stereo-widener 2: have 10-band splitter, and add delay for bands, but odd has + and even - delay in left channel
+- [x] Design tube-based stereo plate-reverb with adjustable size, decay, and damping
+- [x] Design tube-based stereo-side/mid splitter for stereo sound manipulation
+- [x] Design tube-based transition/sustain splitter for separate processing
+- [x] Design tube-based stereo-widener 1: from side/mid splitter, have delay in mid between L and R
+- [x] Design tube-based stereo-widener 2: have 10-band splitter, and add delay for bands, but odd has + and even - delay in left channel
 
 #### Additional Effects to Consider
 - [ ] Design tube-based stereo/mono gate/expander for noise reduction applications

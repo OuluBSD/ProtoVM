@@ -982,6 +982,257 @@ private:
     double applyWowFlutter(double input, double phase);
 };
 
+// Class for tube-based parametric equalizer circuits
+class TubeParametricEQ : public ElectricNodeBase {
+public:
+    enum EQBandType {
+        LOW_SHELF,    // Low shelving filter
+        PEAKING,      // Peaking filter for midrange
+        HIGH_SHELF,   // High shelving filter
+        LOW_PASS,     // Low-pass filter
+        HIGH_PASS,    // High-pass filter
+        BAND_PASS     // Band-pass filter
+    };
+
+    // Structure for a single EQ band
+    struct EQBand {
+        EQBandType type = PEAKING;
+        double frequency = 1000.0;  // Center/corner frequency in Hz
+        double gain = 0.0;          // Gain in dB (-15 to 15)
+        double q = 0.707;           // Quality factor (resonance)
+        bool enabled = true;        // Whether this band is active
+        
+        // Filter coefficients (calculated in process)
+        double b0 = 1.0, b1 = 0.0, b2 = 0.0;
+        double a0 = 1.0, a1 = 0.0, a2 = 0.0;
+        
+        // Filter state (for IIR filter implementation)
+        double x1 = 0.0, x2 = 0.0;  // Previous input values
+        double y1 = 0.0, y2 = 0.0;  // Previous output values
+    };
+
+    TubeParametricEQ(int numBands = 4);  // Default to 4 bands
+    virtual ~TubeParametricEQ() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure EQ parameters
+    void setNumBands(int numBands);                       // Change number of bands
+    void setBandType(int bandIndex, EQBandType type);    // Set type for a specific band
+    void setBandFrequency(int bandIndex, double freq);   // Set frequency for a band
+    void setBandGain(int bandIndex, double gain);        // Set gain for a band
+    void setBandQ(int bandIndex, double q);              // Set Q for a band
+    void enableBand(int bandIndex, bool enable);         // Enable/disable a band
+
+    // Get parameters
+    int getNumBands() const { return static_cast<int>(bands.size()); }
+    EQBandType getBandType(int bandIndex) const { return bands[bandIndex].type; }
+    double getBandFrequency(int bandIndex) const { return bands[bandIndex].frequency; }
+    double getBandGain(int bandIndex) const { return bands[bandIndex].gain; }
+    double getBandQ(int bandIndex) const { return bands[bandIndex].q; }
+    bool isBandEnabled(int bandIndex) const { return bands[bandIndex].enabled; }
+
+    // Enable/disable features
+    void enableTubeCharacteristics(bool enable) { tubeCharacteristicsEnabled = enable; }
+    void setSaturation(double saturation) { tubeSaturation = std::max(0.0, std::min(1.0, saturation)); }
+
+private:
+    std::vector<EQBand> bands;
+    int numBands;
+
+    // Processing parameters
+    bool tubeCharacteristicsEnabled = true;
+    double tubeSaturation = 0.3;  // How much tube saturation to apply
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections
+    int inputPin = 0;
+    int outputPin = 1;
+
+    double inputSignal = 0.0;
+    double outputSignal = 0.0;
+
+    // Initialize EQ with specified number of bands
+    void initializeEQ(int numBands);
+
+    // Process signal through parametric EQ algorithm
+    void processSignal();
+
+    // Calculate filter coefficients for a band
+    void calculateFilterCoefficients(int bandIndex);
+
+    // Process sample through a single band
+    double processBand(int bandIndex, double input);
+};
+
+// Class for tube-based stereo widener circuits
+class TubeStereoWidener : public ElectricNodeBase {
+public:
+    enum WidenerType {
+        MID_SIDE_WIDENER,     // Mid-side based widener with delay
+        BAND_PASS_WIDENER,    // 10-band splitter with frequency-specific delays
+        ALL_PASS_WIDENER,     // All-pass filter based widener
+        PHASE_WIDENER         // Phase-based widener
+    };
+
+    TubeStereoWidener(WidenerType type = MID_SIDE_WIDENER);
+    virtual ~TubeStereoWidener() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure widener parameters
+    void setAmount(double amount);              // 0.0 to 1.0, amount of widening
+    void setDelayTime(double time);             // Delay time in ms (0.0 to 10.0)
+    void setWidth(double width);                // Stereo width (0.0 to 2.0, 1.0 = normal)
+    void setMidSideRatio(double ratio);         // Balance between mid and side processing
+    void setFrequencyBand(int band, double freq); // Set frequency for each band (for BAND_PASS_WIDENER)
+
+    // Get parameters
+};
+
+// Class for tube-based mid/side splitter circuits
+class TubeSideMidSplitter : public ElectricNodeBase {
+public:
+    enum SplitterType {
+        PASSIVE_SPLITTER,      // Simple passive L/R to M/S conversion
+        ACTIVE_SPLITTER,       // Active splitter with amplification stages
+        TUBE_SPLITTER,         // Tube-based splitter with tube characteristics
+        VARIABLE_SPLITTER      // Variable ratio of mid/side emphasis
+    };
+
+    TubeSideMidSplitter(SplitterType type = TUBE_SPLITTER);
+    virtual ~TubeSideMidSplitter() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure splitter parameters
+    void setMidSideRatio(double ratio);           // 0.0 = all side, 1.0 = all mid
+    void setTubeSaturation(double saturation);    // 0.0 to 1.0, amount of tube saturation
+    void setHarmonicContent(double content);      // 0.0 to 1.0, amount of harmonic enhancement
+    void setGain(double gain);                    // Overall gain
+
+    // Get parameters
+    double getMidSideRatio() const { return midSideRatio; }
+    double getTubeSaturation() const { return tubeSaturation; }
+    double getHarmonicContent() const { return harmonicContent; }
+    double getGain() const { return gain; }
+
+    // Enable/disable features
+    void enableTubeCharacteristics(bool enable) { tubeCharacteristicsEnabled = enable; }
+    void enableHarmonicEnhancement(bool enable) { harmonicEnhancementEnabled = enable; }
+
+private:
+    SplitterType splitterType;
+
+    // Splitter parameters
+    double midSideRatio = 0.5;          // Balance between mid and side (0.0=all side, 1.0=all mid)
+    double tubeSaturation = 0.3;        // Amount of tube saturation
+    double harmonicContent = 0.2;       // Amount of harmonic enhancement
+    double gain = 1.0;                  // Overall gain
+
+    // Processing parameters
+    bool tubeCharacteristicsEnabled = true;
+    bool harmonicEnhancementEnabled = true;
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections (stereo in/out)
+    int leftInput = 0;
+    int rightInput = 1;
+    int midOutput = 2;
+    int sideOutput = 3;
+    int midSideControl = 4;             // For external control of mid/side ratio
+
+    double leftInputSignal = 0.0;
+    double rightInputSignal = 0.0;
+    double midOutputSignal = 0.0;
+    double sideOutputSignal = 0.0;
+    double midSideControlSignal = 0.0;
+
+    // Initialize splitter based on type
+    void initializeSplitter(SplitterType type);
+
+    // Process signal through mid/side splitting algorithm
+    void processSignal();
+
+    // Apply tube characteristics to the signals
+    double applyTubeCharacteristics(double signal, double tubeSaturation);
+};
+
+// Class for tube-based flanger circuits
+    double getAmount() const { return amount; }
+    double getDelayTime() const { return delayTimeMs; }
+    double getWidth() const { return width; }
+    double getMidSideRatio() const { return midSideRatio; }
+
+    // Enable/disable features
+    void enableTubeCharacteristics(bool enable) { tubeCharacteristicsEnabled = enable; }
+    void setBandCount(int count) { bandCount = std::max(2, std::min(10, count)); }
+
+private:
+    WidenerType widenerType;
+
+    // Widener parameters
+    double amount = 0.5;                // Amount of widening (0.0 to 1.0)
+    double delayTimeMs = 1.0;           // Delay time in milliseconds
+    double width = 1.0;                 // Stereo width factor
+    double midSideRatio = 0.5;          // Balance between mid and side (0.0=all mid, 1.0=all side)
+    int bandCount = 10;                 // Number of frequency bands (for BAND_PASS_WIDENER)
+    std::vector<double> bandFrequencies; // Frequencies for each band
+
+    // Processing parameters
+    bool tubeCharacteristicsEnabled = true;
+    double tubeSaturation = 0.2;        // How much tube saturation to apply
+
+    // Delay buffers for stereo widening
+    std::vector<double> leftDelayBuffer;
+    std::vector<double> rightDelayBuffer;
+    int delayBufferSize = 0;
+    int leftWritePos = 0;
+    int rightWritePos = 0;
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections (stereo in/out)
+    int leftInput = 0;
+    int rightInput = 1;
+    int leftOutput = 2;
+    int rightOutput = 3;
+    int controlInput = 4;               // For external control of amount
+
+    double leftInputSignal = 0.0;
+    double rightInputSignal = 0.0;
+    double leftOutputSignal = 0.0;
+    double rightOutputSignal = 0.0;
+    double controlSignal = 0.0;
+
+    // Initialize widener based on type
+    void initializeWidener(WidenerType type);
+
+    // Process signal through stereo widening algorithm
+    void processSignal();
+
+    // Convert stereo to mid-side and back
+    void stereoToMidSide(double left, double right, double& mid, double& side);
+    void midSideToStereo(double mid, double side, double& left, double& right);
+
+    // Process frequency bands (for band-pass widener)
+    void processFrequencyBands(double& left, double& right);
+};
+
 // Class for tube-based flanger circuits
 class TubeFlanger : public ElectricNodeBase {
 public:

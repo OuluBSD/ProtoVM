@@ -1770,6 +1770,109 @@ private:
     bool detectAttack();
 };
 
+// Class for tube-based psychoacoustic bass enhancement circuits
+class TubeBassEnhancer : public ElectricNodeBase {
+public:
+    enum EnhancementType {
+        HARMONIC_BASS,      // Generate harmonics to enhance bass perception
+        SUBHARMONIC_BASS,   // Add subharmonic content
+        DYNAMIC_BASS,       // Dynamic bass enhancement
+        WARM_BASS           // Warmth-focused bass enhancement
+    };
+
+    TubeBassEnhancer(EnhancementType type = HARMONIC_BASS);
+    virtual ~TubeBassEnhancer() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure bass enhancement parameters
+    void setAmount(double amount);              // 0.0 to 1.0, amount of enhancement
+    void setFrequency(double freq);             // Center frequency for enhancement (20 to 200 Hz)
+    void setHarmonicCount(int count);           // Number of harmonics to generate (1 to 8)
+    void setDrive(double drive);                // Drive/input gain (1.0 to 5.0)
+    void setType(EnhancementType type);         // Set enhancement type
+    void setAttackTime(double time);            // Attack time in ms (1 to 100)
+    void setReleaseTime(double time);           // Release time in ms (10 to 500)
+
+    // Get parameters
+    double getAmount() const { return amount; }
+    double getFrequency() const { return frequency; }
+    int getHarmonicCount() const { return harmonicCount; }
+    double getDrive() const { return drive; }
+    EnhancementType getType() const { return enhancementType; }
+    double getAttackTime() const { return attackTimeMs; }
+    double getReleaseTime() const { return releaseTimeMs; }
+
+    // Enable/disable features
+    void enableTubeCharacteristics(bool enable) { tubeCharacteristicsEnabled = enable; }
+    void setTubeWarmth(double warmth) { tubeWarmth = std::max(0.0, std::min(1.0, warmth)); }
+
+private:
+    EnhancementType enhancementType;
+
+    // Bass enhancement parameters
+    double amount = 0.4;                // Amount of enhancement
+    double frequency = 60.0;            // Base frequency for enhancement
+    int harmonicCount = 4;              // Number of harmonics to generate
+    double drive = 1.5;                 // Drive/gain for processing
+    double attackTimeMs = 10.0;         // Attack time in ms
+    double releaseTimeMs = 100.0;       // Release time in ms
+    double tubeWarmth = 0.5;            // Tube warmth amount
+
+    // Harmonic generation state
+    std::vector<double> harmonicPhases; // Phase for each harmonic
+    std::vector<double> harmonicFrequencies; // Frequency for each harmonic
+    std::vector<double> harmonicGains;  // Gain for each harmonic
+
+    // Envelope follower state
+    double envelope = 0.0;              // Current envelope value
+    double attackCoeff = 0.0;           // Attack coefficient
+    double releaseCoeff = 0.0;          // Release coefficient
+
+    // Filter coefficients for low-frequency extraction
+    double lp_b0 = 1.0, lp_b1 = 0.0, lp_b2 = 0.0;
+    double lp_a0 = 1.0, lp_a1 = 0.0, lp_a2 = 0.0;
+    
+    // Filter state
+    double lp_x1 = 0.0, lp_x2 = 0.0;   // Previous input values
+    double lp_y1 = 0.0, lp_y2 = 0.0;   // Previous output values
+
+    // Processing parameters
+    bool tubeCharacteristicsEnabled = true;
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections
+    int inputPin = 0;
+    int outputPin = 1;
+    int amountPin = 2;                  // For external amount control
+    int frequencyPin = 3;               // For external frequency control
+
+    double inputSignal = 0.0;
+    double outputSignal = 0.0;
+    double amountControl = 0.0;
+    double frequencyControl = 0.0;
+
+    // Initialize bass enhancer based on type
+    void initializeEnhancer(EnhancementType type);
+
+    // Process signal through bass enhancement algorithm
+    void processSignal();
+
+    // Generate harmonics to enhance bass perception
+    double generateHarmonics(double input);
+
+    // Update envelope follower
+    void updateEnvelope();
+
+    // Update low-pass filter coefficients
+    void updateFilterCoefficients();
+};
+
 // Class for tube-based flanger circuits
 class TubeFlanger : public ElectricNodeBase {
 public:

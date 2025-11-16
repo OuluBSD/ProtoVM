@@ -68,7 +68,7 @@
 - [x] Design tube-based stereo resonant filter (Moog-style) with adjustable resonance
 - [x] Design tube-based stereo imager for stereo field adjustment
 - [x] Design tube-based transient designer for attack and sustain reshaping
-- [ ] Design tube-based psychoacoustic bass enhancement for low-frequency enhancement
+- [x] Design tube-based psychoacoustic bass enhancement for low-frequency enhancement
 - [ ] Design tube-based spectral processing for frequency domain effects
 
 ### Top Priority: Passive Components Implementation

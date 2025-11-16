@@ -4482,6 +4482,312 @@ void TubeTransientDesigner::setRatio(double ratio) {
 }
 
 
+// TubeBassEnhancer implementation
+TubeBassEnhancer::TubeBassEnhancer(EnhancementType type) : enhancementType(type) {
+    initializeEnhancer(type);
+}
+
+void TubeBassEnhancer::initializeEnhancer(EnhancementType type) {
+    enhancementType = type;
+    
+    switch (enhancementType) {
+        case HARMONIC_BASS:
+            amount = 0.5;
+            frequency = 60.0;           // Around fundamental bass frequencies
+            harmonicCount = 4;          // Generate 4 harmonics
+            drive = 1.8;                // Moderate drive for harmonic generation
+            attackTimeMs = 15.0;        // Medium attack
+            releaseTimeMs = 120.0;      // Medium release
+            tubeWarmth = 0.6;           // Warm tube characteristics
+            break;
+            
+        case SUBHARMONIC_BASS:
+            amount = 0.4;
+            frequency = 40.0;           // Lower fundamental
+            harmonicCount = 3;          // Fewer harmonics for subharmonic focus
+            drive = 2.0;                // Higher drive for subharmonic generation
+            attackTimeMs = 20.0;        // Slower attack for subharmonic tracking
+            releaseTimeMs = 150.0;      // Slower release for subharmonic sustain
+            tubeWarmth = 0.7;           // More tube warmth for subharmonic
+            break;
+            
+        case DYNAMIC_BASS:
+            amount = 0.6;
+            frequency = 80.0;           // More mid-bass focused
+            harmonicCount = 5;          // More harmonics for dynamic range
+            drive = 1.5;                // Balanced drive
+            attackTimeMs = 5.0;         // Fast attack for transients
+            releaseTimeMs = 80.0;       // Medium release
+            tubeWarmth = 0.4;           // Balanced tube warmth
+            break;
+            
+        case WARM_BASS:
+            amount = 0.3;
+            frequency = 70.0;           // Warm mid-bass
+            harmonicCount = 6;          // Rich harmonic content
+            drive = 1.2;                // Low drive for warmth
+            attackTimeMs = 25.0;        // Slow attack for smoothness
+            releaseTimeMs = 200.0;      // Slow release for sustain
+            tubeWarmth = 0.8;           // High tube warmth
+            break;
+    }
+    
+    // Calculate coefficients for envelope follower
+    attackCoeff = exp(-1.0 / (attackTimeMs / 1000.0 * sampleRate));
+    releaseCoeff = exp(-1.0 / (releaseTimeMs / 1000.0 * sampleRate));
+    
+    // Resize harmonic vectors
+    harmonicPhases.resize(harmonicCount);
+    harmonicFrequencies.resize(harmonicCount);
+    harmonicGains.resize(harmonicCount);
+    
+    // Initialize harmonic parameters
+    for (int i = 0; i < harmonicCount; i++) {
+        harmonicFrequencies[i] = frequency * (i + 2); // Start from 2nd harmonic
+        harmonicGains[i] = 1.0 / (i + 1); // Decreasing amplitude for higher harmonics
+        harmonicPhases[i] = 0.0;
+    }
+    
+    // Initialize low-pass filter coefficients for bass extraction
+    updateFilterCoefficients();
+}
+
+bool TubeBassEnhancer::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (op == OP_READ) {
+        return GetRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_WRITE) {
+        return PutRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_TICK) {
+        return Tick();
+    }
+    return false;
+}
+
+bool TubeBassEnhancer::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == inputPin && data_bytes == sizeof(double)) {
+        memcpy(&inputSignal, data, sizeof(double));
+        return true;
+    } else if (conn_id == amountPin && data_bytes == sizeof(double)) {
+        memcpy(&amountControl, data, sizeof(double));
+        setAmount(amount + 0.3 * amountControl); // Modulate amount
+        return true;
+    } else if (conn_id == frequencyPin && data_bytes == sizeof(double)) {
+        memcpy(&frequencyControl, data, sizeof(double));
+        setFrequency(frequency * (1.0 + 0.2 * frequencyControl)); // Modulate frequency
+        return true;
+    }
+    return false;
+}
+
+bool TubeBassEnhancer::GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == outputPin && data_bytes == sizeof(double)) {
+        memcpy(data, &outputSignal, sizeof(double));
+        return true;
+    }
+    return false;
+}
+
+bool TubeBassEnhancer::Tick() {
+    processSignal();
+    return true;
+}
+
+void TubeBassEnhancer::updateFilterCoefficients() {
+    // Calculate coefficients for a low-pass filter to extract bass frequencies
+    double cutoff = std::min(frequency * 2.0, 500.0); // Limit to 500Hz max
+    double omega = 2.0 * M_PI * cutoff / sampleRate;
+    double sin_omega = sin(omega);
+    double cos_omega = cos(omega);
+    double alpha = sin_omega / 2.0;  // Low Q filter
+    
+    // Low-pass filter coefficients
+    lp_b0 = (1.0 - cos_omega) / 2.0;
+    lp_b1 = 1.0 - cos_omega;
+    lp_b2 = (1.0 - cos_omega) / 2.0;
+    lp_a0 = 1.0 + alpha;
+    lp_a1 = -2.0 * cos_omega;
+    lp_a2 = 1.0 - alpha;
+    
+    // Normalize coefficients
+    lp_b0 /= lp_a0;
+    lp_b1 /= lp_a0;
+    lp_b2 /= lp_a0;
+    lp_a1 /= lp_a0;
+    lp_a2 /= lp_a0;
+    // lp_a0 is now effectively 1.0
+}
+
+double TubeBassEnhancer::generateHarmonics(double input) {
+    // Extract the low-frequency content from the input
+    double bassSignal = lp_b0 * input + lp_b1 * lp_x1 + lp_b2 * lp_x2 - lp_a1 * lp_y1 - lp_a2 * lp_y2;
+    
+    // Update filter state
+    lp_x2 = lp_x1; lp_x1 = input;
+    lp_y2 = lp_y1; lp_y1 = bassSignal;
+    
+    // Apply drive/distortion to enhance harmonics
+    double drivenSignal = bassSignal * drive;
+    if (std::abs(drivenSignal) > 0.8) {
+        drivenSignal = 0.8 * (drivenSignal > 0 ? 1 : -1) + 0.2 * tanh((drivenSignal - (drivenSignal > 0 ? 0.8 : -0.8)) / 0.2);
+    }
+    
+    // Generate harmonics based on the bass signal
+    double harmonicSignal = 0.0;
+    
+    for (int i = 0; i < harmonicCount; i++) {
+        // Update phase for this harmonic
+        harmonicPhases[i] += 2.0 * M_PI * harmonicFrequencies[i] / sampleRate;
+        if (harmonicPhases[i] >= 2.0 * M_PI) {
+            harmonicPhases[i] -= 2.0 * M_PI;
+        }
+        
+        // Generate harmonic using the phase and original signal as amplitude modulator
+        double harmonic = sin(harmonicPhases[i]) * drivenSignal * harmonicGains[i];
+        harmonicSignal += harmonic;
+    }
+    
+    // Apply envelope modulation based on input level
+    harmonicSignal *= envelope;
+    
+    return harmonicSignal;
+}
+
+void TubeBassEnhancer::updateEnvelope() {
+    // Calculate the absolute value of the input for envelope detection
+    double inputLevel = std::abs(inputSignal);
+    
+    // Update the envelope follower with attack/release characteristics
+    if (inputLevel > envelope) {
+        // Attack (follow input quickly)
+        envelope = inputLevel * (1.0 - attackCoeff) + envelope * attackCoeff;
+    } else {
+        // Release (fall back slowly)
+        envelope = envelope * releaseCoeff;
+    }
+    
+    // Ensure envelope doesn't go below minimum value
+    if (envelope < 0.001) envelope = 0.001;
+}
+
+void TubeBassEnhancer::processSignal() {
+    // Update envelope follower
+    updateEnvelope();
+    
+    // Generate harmonics to enhance bass perception
+    double enhancedBass = generateHarmonics(inputSignal);
+    
+    // Apply enhancement type-specific processing
+    switch (enhancementType) {
+        case HARMONIC_BASS:
+            // Mix original with harmonic enhancement
+            outputSignal = inputSignal * (1.0 - amount) + enhancedBass * amount;
+            break;
+            
+        case SUBHARMONIC_BASS: {
+            // For subharmonic, we'll add a component at a lower frequency
+            static double subHarmonicPhase = 0.0;
+            subHarmonicPhase += 2.0 * M_PI * (frequency / 2.0) / sampleRate;
+            if (subHarmonicPhase >= 2.0 * M_PI) {
+                subHarmonicPhase -= 2.0 * M_PI;
+            }
+            
+            // Generate subharmonic component
+            double subHarmonic = sin(subHarmonicPhase) * envelope * amount * 0.3;
+            
+            // Mix original with both harmonic and subharmonic enhancement
+            outputSignal = inputSignal * (1.0 - amount) + 
+                          enhancedBass * amount * 0.5 + 
+                          subHarmonic;
+            break;
+        }
+            
+        case DYNAMIC_BASS: {
+            // For dynamic enhancement, adjust based on envelope
+            double dynamicAmount = amount * envelope * 2.0; // Boost when signal is strong
+            dynamicAmount = std::min(dynamicAmount, amount * 2.0); // Limit boost
+            outputSignal = inputSignal * (1.0 - dynamicAmount * 0.5) + 
+                          enhancedBass * dynamicAmount;
+            break;
+        }
+            
+        case WARM_BASS: {
+            // For warm enhancement, focus on even harmonics and tube warmth
+            // This is implemented in the final processing below
+            outputSignal = inputSignal * (1.0 - amount * 0.7) + enhancedBass * amount;
+            break;
+        }
+    }
+    
+    // Apply tube characteristics if enabled
+    if (tubeCharacteristicsEnabled) {
+        // Apply soft saturation to simulate tube warmth
+        double saturation = 0.7 + 0.3 * (1.0 - tubeWarmth); // Lower warmth = higher saturation capability
+        
+        if (outputSignal > saturation) {
+            outputSignal = saturation + (1 - saturation) * tanh((outputSignal - saturation) / (1 - saturation));
+        } else if (outputSignal < -saturation) {
+            outputSignal = -saturation + (1 - saturation) * tanh((outputSignal + saturation) / (1 - saturation));
+        }
+        
+        // Add even-order harmonics for tube warmth
+        double harmonic = tubeWarmth * 0.08 * outputSignal * outputSignal * (outputSignal > 0 ? 1 : -1);
+        outputSignal = outputSignal * (1.0 - 0.04 * tubeWarmth) + harmonic * 0.04 * tubeWarmth;
+    }
+    
+    // Apply gentle high-frequency roll-off to focus on bass enhancement
+    static double prevOutput = 0.0;
+    outputSignal = outputSignal * (0.9 + 0.1 * tubeWarmth) + prevOutput * (0.1 - 0.1 * tubeWarmth);
+    prevOutput = outputSignal * (0.9 + 0.1 * tubeWarmth);
+}
+
+void TubeBassEnhancer::setAmount(double amount) {
+    this->amount = std::max(0.0, std::min(1.0, amount));
+}
+
+void TubeBassEnhancer::setFrequency(double freq) {
+    this->frequency = std::max(20.0, std::min(200.0, freq));
+    // Update harmonic frequencies
+    for (int i = 0; i < harmonicCount; i++) {
+        harmonicFrequencies[i] = frequency * (i + 2);
+    }
+    // Update filter coefficients
+    updateFilterCoefficients();
+}
+
+void TubeBassEnhancer::setHarmonicCount(int count) {
+    this->harmonicCount = std::max(1, std::min(8, count));
+    harmonicPhases.resize(harmonicCount);
+    harmonicFrequencies.resize(harmonicCount);
+    harmonicGains.resize(harmonicCount);
+    
+    // Initialize harmonic parameters
+    for (int i = 0; i < harmonicCount; i++) {
+        harmonicFrequencies[i] = frequency * (i + 2);
+        harmonicGains[i] = 1.0 / (i + 1);
+        harmonicPhases[i] = 0.0;
+    }
+}
+
+void TubeBassEnhancer::setDrive(double drive) {
+    this->drive = std::max(1.0, std::min(5.0, drive));
+}
+
+void TubeBassEnhancer::setType(EnhancementType type) {
+    this->enhancementType = type;
+    initializeEnhancer(type);
+}
+
+void TubeBassEnhancer::setAttackTime(double time) {
+    this->attackTimeMs = std::max(0.1, std::min(100.0, time));
+    attackCoeff = exp(-1.0 / (attackTimeMs / 1000.0 * sampleRate));
+}
+
+void TubeBassEnhancer::setReleaseTime(double time) {
+    this->releaseTimeMs = std::max(1.0, std::min(500.0, time));
+    releaseCoeff = exp(-1.0 / (releaseTimeMs / 1000.0 * sampleRate));
+}
+
+
 // TubeFlanger implementation
 TubeFlanger::TubeFlanger() {
     initializeFlanger();

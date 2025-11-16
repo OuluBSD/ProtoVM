@@ -3135,6 +3135,435 @@ void TubeSideMidSplitter::setGain(double gain) {
 }
 
 
+// TubeAutoWah implementation
+TubeAutoWah::TubeAutoWah(AutoWahType type) : autoWahType(type) {
+    initializeAutoWah(type);
+}
+
+void TubeAutoWah::initializeAutoWah(AutoWahType type) {
+    switch (type) {
+        case CONTOUR_FILTER:
+            sensitivity = 0.7;        // Medium sensitivity
+            attackTime = 0.03;        // Medium attack
+            releaseTime = 0.15;       // Medium release
+            minFrequency = 200.0;     // Low Q point
+            maxFrequency = 1200.0;    // High Q point
+            resonance = 4.0;          // Medium resonance
+            wetDryMix = 0.9;          // Most effect
+            break;
+            
+        case TRACKING_FILTER:
+            sensitivity = 0.6;        // Lower sensitivity for tracking
+            attackTime = 0.02;        // Faster attack for tracking
+            releaseTime = 0.1;        // Faster release
+            minFrequency = 150.0;     // Lower minimum
+            maxFrequency = 1800.0;    // Higher maximum
+            resonance = 5.0;          // Higher resonance for tracking
+            wetDryMix = 0.85;         // Slightly less effect
+            break;
+            
+        case DUAL_FILTER:
+            sensitivity = 0.75;       // Higher sensitivity
+            attackTime = 0.04;        // Slower attack
+            releaseTime = 0.25;       // Slower release
+            minFrequency = 180.0;     // Low minimum
+            maxFrequency = 1500.0;    // Higher maximum
+            resonance = 3.5;          // Medium resonance
+            wetDryMix = 0.95;         // More effect
+            break;
+            
+        case RESONANT_WAH:
+            sensitivity = 0.65;       // Medium sensitivity
+            attackTime = 0.05;        // Slow attack
+            releaseTime = 0.3;        // Slow release
+            minFrequency = 100.0;     // Very low minimum
+            maxFrequency = 2000.0;    // Very high maximum
+            resonance = 8.0;          // Very high resonance
+            wetDryMix = 0.8;          // Balanced mix
+            break;
+    }
+    
+    // Calculate coefficients for envelope follower
+    attackCoeff = exp(-1.0 / (attackTime * sampleRate));
+    releaseCoeff = exp(-1.0 / (releaseTime * sampleRate));
+    
+    // Initialize filter with minimum frequency
+    updateFilterCoefficients();
+}
+
+bool TubeAutoWah::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (op == OP_READ) {
+        return GetRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_WRITE) {
+        return PutRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_TICK) {
+        return Tick();
+    }
+    return false;
+}
+
+bool TubeAutoWah::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == inputPin && data_bytes == sizeof(double)) {
+        memcpy(&inputSignal, data, sizeof(double));
+        return true;
+    } else if (conn_id == sensitivityPin && data_bytes == sizeof(double)) {
+        memcpy(&sensitivityControl, data, sizeof(double));
+        setSensitivity(sensitivity + 0.3 * sensitivityControl); // Modulate around current setting
+        return true;
+    }
+    return false;
+}
+
+bool TubeAutoWah::GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == outputPin && data_bytes == sizeof(double)) {
+        memcpy(data, &outputSignal, sizeof(double));
+        return true;
+    }
+    return false;
+}
+
+bool TubeAutoWah::Tick() {
+    processSignal();
+    return true;
+}
+
+void TubeAutoWah::updateEnvelope() {
+    // Calculate the absolute value of the input for envelope detection
+    double inputLevel = std::abs(inputSignal) * sensitivity;
+    
+    // Update the envelope follower with attack/release characteristics
+    if (inputLevel > envelope) {
+        // Attack (follow input quickly)
+        envelope = inputLevel * (1.0 - attackCoeff) + envelope * attackCoeff;
+    } else {
+        // Release (fall back slowly)
+        envelope = envelope * releaseCoeff;
+    }
+    
+    // Ensure envelope doesn't go below minimum value
+    if (envelope < 0.001) envelope = 0.001;
+}
+
+void TubeAutoWah::updateFilterCoefficients() {
+    // Calculate the current filter frequency based on the envelope
+    // Map envelope (0.0 to 1.0) to frequency range (minFrequency to maxFrequency)
+    double normalizedEnvelope = std::min(1.0, std::max(0.0, envelope));
+    double currentFreq = minFrequency * pow(maxFrequency/minFrequency, normalizedEnvelope);
+    
+    // Ensure frequency is within valid range
+    currentFreq = std::max(minFrequency, std::min(maxFrequency, currentFreq));
+    
+    // Calculate coefficients for a resonant low-pass filter (biquad)
+    double omega = 2.0 * M_PI * currentFreq / sampleRate;
+    double sin_omega = sin(omega);
+    double cos_omega = cos(omega);
+    double alpha = sin_omega / (2.0 * resonance);  // Alpha with resonance
+    
+    // Low-pass filter coefficients
+    b0 = (1.0 - cos_omega) / 2.0;
+    b1 = 1.0 - cos_omega;
+    b2 = (1.0 - cos_omega) / 2.0;
+    a0 = 1.0 + alpha;
+    a1 = -2.0 * cos_omega;
+    a2 = 1.0 - alpha;
+    
+    // Normalize coefficients
+    b0 /= a0;
+    b1 /= a0;
+    b2 /= a0;
+    a1 /= a0;
+    a2 /= a0;
+    // a0 is now effectively 1.0
+}
+
+double TubeAutoWah::processFilter(double input) {
+    // Direct Form II implementation of the biquad filter
+    double output = b0 * input + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+    
+    // Update filter state
+    x2 = x1;
+    x1 = input;
+    y2 = y1;
+    y1 = output;
+    
+    return output;
+}
+
+void TubeAutoWah::processSignal() {
+    // Update the envelope follower
+    updateEnvelope();
+    
+    // Update filter coefficients based on current envelope
+    updateFilterCoefficients();
+    
+    // Process the input through the filter
+    double filteredSignal = processFilter(inputSignal);
+    
+    // Apply tube characteristics if enabled
+    if (tubeCharacteristicsEnabled) {
+        // Add harmonic content based on the filter's resonance
+        double harmonic = harmonicContent * filteredSignal * filteredSignal * (filteredSignal > 0 ? 1 : -1);
+        filteredSignal = filteredSignal * (1.0 - 0.1 * harmonicContent) + harmonic * 0.1 * harmonicContent;
+        
+        // Apply soft saturation to simulate tube warmth
+        double saturation = 0.8 - 0.2 * harmonicContent; // Adjust based on harmonic content
+        if (filteredSignal > saturation) {
+            filteredSignal = saturation + (1 - saturation) * tanh((filteredSignal - saturation) / (1 - saturation));
+        } else if (filteredSignal < -saturation) {
+            filteredSignal = -saturation + (1 - saturation) * tanh((filteredSignal + saturation) / (1 - saturation));
+        }
+    }
+    
+    // Mix with original signal
+    outputSignal = inputSignal * (1.0 - wetDryMix) + filteredSignal * wetDryMix;
+}
+
+void TubeAutoWah::setSensitivity(double sensitivity) {
+    this->sensitivity = std::max(0.0, std::min(1.0, sensitivity));
+}
+
+void TubeAutoWah::setAttackTime(double time) {
+    this->attackTime = std::max(0.001, std::min(0.5, time));
+    attackCoeff = exp(-1.0 / (attackTime * sampleRate));
+}
+
+void TubeAutoWah::setReleaseTime(double time) {
+    this->releaseTime = std::max(0.01, std::min(1.0, time));
+    releaseCoeff = exp(-1.0 / (releaseTime * sampleRate));
+}
+
+void TubeAutoWah::setMinFrequency(double freq) {
+    this->minFrequency = std::max(20.0, std::min(500.0, freq));
+    // Ensure minFrequency is less than maxFrequency
+    if (minFrequency >= maxFrequency) {
+        maxFrequency = minFrequency * 2.0;
+    }
+}
+
+void TubeAutoWah::setMaxFrequency(double freq) {
+    this->maxFrequency = std::max(1000.0, std::min(20000.0, freq));
+    // Ensure maxFrequency is greater than minFrequency
+    if (maxFrequency <= minFrequency) {
+        minFrequency = maxFrequency / 2.0;
+    }
+}
+
+void TubeAutoWah::setResonance(double res) {
+    this->resonance = std::max(0.1, std::min(20.0, res));
+}
+
+void TubeAutoWah::setWetDryMix(double mix) {
+    this->wetDryMix = std::max(0.0, std::min(1.0, mix));
+}
+
+
+// TubeMoogFilter implementation
+TubeMoogFilter::TubeMoogFilter(FilterType type) : filterType(type) {
+    initializeFilter(type);
+}
+
+void TubeMoogFilter::initializeFilter(FilterType type) {
+    filterType = type;
+    
+    switch (filterType) {
+        case LOW_PASS:
+            cutoffFreq = 1000.0;
+            resonance = 0.6;
+            drive = 1.2;
+            stability = 0.8;
+            break;
+            
+        case HIGH_PASS:
+            cutoffFreq = 500.0;
+            resonance = 0.5;
+            drive = 1.0;
+            stability = 0.7;
+            break;
+            
+        case BAND_PASS:
+            cutoffFreq = 1000.0;
+            resonance = 0.7;
+            drive = 1.3;
+            stability = 0.75;
+            break;
+            
+        case BAND_REJECT:
+            cutoffFreq = 800.0;
+            resonance = 0.4;
+            drive = 1.1;
+            stability = 0.85;
+            break;
+            
+        case ALL_PASS:
+            cutoffFreq = 1000.0;
+            resonance = 0.3;
+            drive = 1.0;
+            stability = 0.9;
+            break;
+    }
+}
+
+bool TubeMoogFilter::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (op == OP_READ) {
+        return GetRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_WRITE) {
+        return PutRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_TICK) {
+        return Tick();
+    }
+    return false;
+}
+
+bool TubeMoogFilter::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == inputPin && data_bytes == sizeof(double)) {
+        memcpy(&inputSignal, data, sizeof(double));
+        return true;
+    } else if (conn_id == cutoffPin && data_bytes == sizeof(double)) {
+        memcpy(&cutoffControl, data, sizeof(double));
+        setCutoff(cutoffFreq * (1.0 + 0.5 * cutoffControl)); // Modulate around current setting
+        return true;
+    } else if (conn_id == resonancePin && data_bytes == sizeof(double)) {
+        memcpy(&resonanceControl, data, sizeof(double));
+        setResonance(resonance + 0.4 * resonanceControl); // Modulate around current setting
+        return true;
+    }
+    return false;
+}
+
+bool TubeMoogFilter::GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == outputPin && data_bytes == sizeof(double)) {
+        memcpy(data, &outputSignal, sizeof(double));
+        return true;
+    }
+    return false;
+}
+
+bool TubeMoogFilter::Tick() {
+    processSignal();
+    return true;
+}
+
+double TubeMoogFilter::processMoogFilter(double input) {
+    // Apply drive/gain to input
+    double processedInput = input * drive;
+    
+    // Calculate filter coefficients based on cutoff and resonance
+    // Using the standard Moog ladder filter approach with non-linear stages
+    double f = 2.0 * sin(M_PI * std::max(20.0, std::min(10000.0, cutoffFreq)) / sampleRate);
+    double fb = resonance * (1.0 - 0.15 * f * f);  // Feedback amount with stability
+    
+    // Apply the 4-stage ladder filter with non-linear saturation
+    // Stage 1
+    inputLP = processedInput - fb * lastOutput;
+    stage1 = f * tanh(inputLP) + (1 - f) * stage1;  // Non-linear input stage
+    
+    // Stage 2
+    stage2 = f * tanh(stage1) + (1 - f) * stage2;
+    
+    // Stage 3
+    stage3 = f * tanh(stage2) + (1 - f) * stage3;
+    
+    // Stage 4
+    stage4 = f * tanh(stage3) + (1 - f) * stage4;
+    
+    // Apply final saturation and return
+    lastOutput = 2.0 * stage4;  // 2x gain to compensate for losses
+    
+    // Apply stability control to prevent oscillation
+    lastOutput *= stability;
+    
+    // Return based on filter type
+    switch (filterType) {
+        case LOW_PASS:
+            return lastOutput;
+            
+        case HIGH_PASS: {
+            // High-pass is input minus low-pass
+            return input - lastOutput;
+        }
+        
+        case BAND_PASS: {
+            // Band-pass is difference between two low-pass filters at different frequencies
+            // This is a simplified approximation
+            double f2 = 2.0 * sin(M_PI * std::max(20.0, std::min(10000.0, cutoffFreq * 0.7)) / sampleRate);
+            double fb2 = resonance * 0.8 * (1.0 - 0.15 * f2 * f2);
+            double inputLP2 = processedInput - fb2 * lastOutput * 0.8;
+            double stage1_2 = f2 * tanh(inputLP2) + (1 - f2) * stage1;  // Non-linear input stage
+            double stage2_2 = f2 * tanh(stage1_2) + (1 - f2) * stage2;
+            double stage3_2 = f2 * tanh(stage2_2) + (1 - f2) * stage3;
+            double stage4_2 = f2 * tanh(stage3_2) + (1 - f2) * stage4;
+            double hpOutput = 2.0 * stage4_2 * stability * 0.9;
+            return lastOutput - hpOutput;  // Difference gives bandpass
+        }
+        
+        case BAND_REJECT: {
+            // Band-reject is input minus bandpass
+            double f2 = 2.0 * sin(M_PI * std::max(20.0, std::min(10000.0, cutoffFreq * 0.7)) / sampleRate);
+            double fb2 = resonance * 0.8 * (1.0 - 0.15 * f2 * f2);
+            double inputLP2 = processedInput - fb2 * lastOutput * 0.8;
+            double stage1_2 = f2 * tanh(inputLP2) + (1 - f2) * stage1;  // Non-linear input stage
+            double stage2_2 = f2 * tanh(stage1_2) + (1 - f2) * stage2;
+            double stage3_2 = f2 * tanh(stage2_2) + (1 - f2) * stage3;
+            double stage4_2 = f2 * tanh(stage3_2) + (1 - f2) * stage4;
+            double hpOutput = 2.0 * stage4_2 * stability * 0.9;
+            double bandPass = lastOutput - hpOutput;
+            return input - bandPass;
+        }
+        
+        case ALL_PASS: {
+            // All-pass maintains same amplitude but changes phase
+            // This is a simplified implementation
+            return input - 2.0 * lastOutput;
+        }
+        
+        default:
+            return lastOutput;
+    }
+}
+
+void TubeMoogFilter::processSignal() {
+    // Process the input through the Moog filter
+    outputSignal = processMoogFilter(inputSignal);
+    
+    // Apply tube characteristics if enabled
+    if (tubeCharacteristicsEnabled) {
+        // Apply soft saturation to simulate tube warmth
+        double saturation = 0.7 + 0.3 * (1.0 - tubeSaturation); // Lower value = more saturation
+        
+        if (outputSignal > saturation) {
+            outputSignal = saturation + (1 - saturation) * tanh((outputSignal - saturation) / (1 - saturation));
+        } else if (outputSignal < -saturation) {
+            outputSignal = -saturation + (1 - saturation) * tanh((outputSignal + saturation) / (1 - saturation));
+        }
+        
+        // Add harmonic content characteristic of tube circuits
+        double harmonic = tubeSaturation * 0.05 * outputSignal * outputSignal * (outputSignal > 0 ? 1 : -1);
+        outputSignal = outputSignal * (1.0 - 0.02 * tubeSaturation) + harmonic * 0.02 * tubeSaturation;
+    }
+}
+
+void TubeMoogFilter::setCutoff(double freq) {
+    this->cutoffFreq = std::max(20.0, std::min(20000.0, freq));
+}
+
+void TubeMoogFilter::setResonance(double res) {
+    this->resonance = std::max(0.0, std::min(0.99, res));
+}
+
+void TubeMoogFilter::setDrive(double drive) {
+    this->drive = std::max(1.0, std::min(20.0, drive));
+}
+
+void TubeMoogFilter::setType(FilterType type) {
+    this->filterType = type;
+    initializeFilter(type);
+}
+
+void TubeMoogFilter::setStability(double stability) {
+    this->stability = std::max(0.1, std::min(1.0, stability));
+}
+
+
 // TubeFlanger implementation
 TubeFlanger::TubeFlanger() {
     initializeFlanger();

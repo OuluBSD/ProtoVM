@@ -64,8 +64,8 @@
 - [ ] Design tube-based stereo/mono vocoder for robotic speech effects
 - [ ] Design tube-based stereo/mono octave effects (octaver) for sub-octave and super-octave generation
 - [ ] Design tube-based stereo/mono ring modulator for metallic and bell-like sounds
-- [ ] Design tube-based stereo/mono auto-wah for envelope-following filter effects
-- [ ] Design tube-based stereo resonant filter (Moog-style) with adjustable resonance
+- [x] Design tube-based stereo/mono auto-wah for envelope-following filter effects
+- [x] Design tube-based stereo resonant filter (Moog-style) with adjustable resonance
 - [ ] Design tube-based stereo imager for stereo field adjustment
 - [ ] Design tube-based transient designer for attack and sustain reshaping
 - [ ] Design tube-based psychoacoustic bass enhancement for low-frequency enhancement

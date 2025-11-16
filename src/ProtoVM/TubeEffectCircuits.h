@@ -1233,6 +1233,183 @@ private:
     void processFrequencyBands(double& left, double& right);
 };
 
+// Class for tube-based auto-wah circuits
+class TubeAutoWah : public ElectricNodeBase {
+public:
+    enum AutoWahType {
+        CONTOUR_FILTER,        // Classic envelope-controlled filter
+        TRACKING_FILTER,       // Pitch-tracking auto-wah
+        DUAL_FILTER,           // Two filters with different tracking
+        RESONANT_WAH           // Highly resonant auto-wah
+    };
+
+    TubeAutoWah(AutoWahType type = CONTOUR_FILTER);
+    virtual ~TubeAutoWah() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure auto-wah parameters
+    void setSensitivity(double sensitivity);         // 0.0 to 1.0, envelope detection sensitivity
+    void setAttackTime(double time);                 // Attack time in seconds (0.01 to 0.5)
+    void setReleaseTime(double time);                // Release time in seconds (0.1 to 1.0)
+    void setMinFrequency(double freq);               // Minimum filter frequency in Hz
+    void setMaxFrequency(double freq);               // Maximum filter frequency in Hz
+    void setResonance(double res);                   // Filter resonance (Q factor)
+    void setWetDryMix(double mix);                   // Wet/dry mix (0.0 to 1.0)
+
+    // Get parameters
+    double getSensitivity() const { return sensitivity; }
+    double getAttackTime() const { return attackTime; }
+    double getReleaseTime() const { return releaseTime; }
+    double getMinFrequency() const { return minFrequency; }
+    double getMaxFrequency() const { return maxFrequency; }
+    double getResonance() const { return resonance; }
+    double getWetDryMix() const { return wetDryMix; }
+
+    // Enable/disable features
+    void enableTubeCharacteristics(bool enable) { tubeCharacteristicsEnabled = enable; }
+    void setHarmonicContent(double content) { harmonicContent = std::max(0.0, std::min(1.0, content)); }
+
+private:
+    AutoWahType autoWahType;
+
+    // Auto-wah parameters
+    double sensitivity = 0.7;             // Sensitivity of envelope detection
+    double attackTime = 0.03;             // Attack time in seconds
+    double releaseTime = 0.2;             // Release time in seconds
+    double minFrequency = 200.0;          // Minimum filter frequency
+    double maxFrequency = 1200.0;         // Maximum filter frequency
+    double resonance = 3.0;               // Filter resonance/Q
+    double wetDryMix = 0.8;               // Wet/dry mix (1.0 = fully wet)
+    double harmonicContent = 0.2;         // Harmonic content added by tube simulation
+
+    // Filter coefficients (for time-varying filter)
+    double b0 = 1.0, b1 = 0.0, b2 = 0.0;
+    double a0 = 1.0, a1 = 0.0, a2 = 0.0;
+
+    // Filter state
+    double x1 = 0.0, x2 = 0.0;            // Previous input values
+    double y1 = 0.0, y2 = 0.0;            // Previous output values
+
+    // Envelope follower state
+    double envelope = 0.0;                // Current envelope value
+    double attackCoeff = 0.0;             // Attack coefficient
+    double releaseCoeff = 0.0;            // Release coefficient
+    double lastInput = 0.0;               // Previous input for peak detection
+
+    // Processing parameters
+    bool tubeCharacteristicsEnabled = true;
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections
+    int inputPin = 0;
+    int outputPin = 1;
+    int sensitivityPin = 2;               // For external sensitivity control
+
+    double inputSignal = 0.0;
+    double outputSignal = 0.0;
+    double sensitivityControl = 0.0;
+
+    // Initialize auto-wah based on type
+    void initializeAutoWah(AutoWahType type);
+
+    // Process signal through auto-wah algorithm
+    void processSignal();
+
+    // Update the filter coefficients based on current envelope
+    void updateFilterCoefficients();
+
+    // Process sample through the filter
+    double processFilter(double input);
+
+    // Update the envelope follower
+    void updateEnvelope();
+};
+
+// Class for tube-based Moog resonant filter circuits
+class TubeMoogFilter : public ElectricNodeBase {
+public:
+    enum FilterType {
+        LOW_PASS,       // Classic Moog low-pass
+        HIGH_PASS,      // High-pass derived from low-pass
+        BAND_PASS,      // Band-pass derived from low-pass
+        BAND_REJECT,    // Band-reject (notch) filter
+        ALL_PASS        // All-pass filter for phase effects
+    };
+
+    TubeMoogFilter(FilterType type = LOW_PASS);
+    virtual ~TubeMoogFilter() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure Moog filter parameters
+    void setCutoff(double freq);           // Cutoff frequency in Hz (20 to 20000)
+    void setResonance(double res);         // Resonance (0.0 to 1.0, but 0.0 to 0.99 in practice)
+    void setDrive(double drive);           // Drive/input gain for distortion (1.0 to 10.0)
+    void setType(FilterType type);         // Set filter type (LOW_PASS, etc.)
+    void setStability(double stability);   // Stability control (0.0 to 1.0)
+
+    // Get parameters
+    double getCutoff() const { return cutoffFreq; }
+    double getResonance() const { return resonance; }
+    double getDrive() const { return drive; }
+    FilterType getType() const { return filterType; }
+    double getStability() const { return stability; }
+
+    // Enable/disable features
+    void enableTubeCharacteristics(bool enable) { tubeCharacteristicsEnabled = enable; }
+    void setSaturation(double saturation) { tubeSaturation = std::max(0.0, std::min(1.0, saturation)); }
+
+private:
+    FilterType filterType;
+
+    // Filter parameters
+    double cutoffFreq = 1000.0;          // Cutoff frequency in Hz
+    double resonance = 0.5;              // Resonance amount (0.0 to 0.99)
+    double drive = 1.0;                  // Input drive/gain
+    double stability = 0.8;              // Stability control
+    double tubeSaturation = 0.3;         // Tube saturation amount
+
+    // Moog filter state (4-stage ladder filter simulation)
+    double stage1 = 0.0, stage2 = 0.0, stage3 = 0.0, stage4 = 0.0;
+    double inputLP = 0.0;                // Low-pass input with feedback
+    double lastOutput = 0.0;             // Last output for feedback
+
+    // Processing parameters
+    bool tubeCharacteristicsEnabled = true;
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections
+    int inputPin = 0;
+    int outputPin = 1;
+    int cutoffPin = 2;                   // For external cutoff control
+    int resonancePin = 3;                // For external resonance control
+
+    double inputSignal = 0.0;
+    double outputSignal = 0.0;
+    double cutoffControl = 0.0;
+    double resonanceControl = 0.0;
+
+    // Initialize Moog filter based on type
+    void initializeFilter(FilterType type);
+
+    // Process signal through Moog filter algorithm
+    void processSignal();
+
+    // Calculate one sample of the Moog filter
+    double processMoogFilter(double input);
+};
+
 // Class for tube-based flanger circuits
 class TubeFlanger : public ElectricNodeBase {
 public:

@@ -3564,6 +3564,449 @@ void TubeMoogFilter::setStability(double stability) {
 }
 
 
+// TubeOctave implementation
+TubeOctave::TubeOctave(OctaveType type) : octaveType(type) {
+    initializeOctave(type);
+    
+    // Initialize pitch detection buffer
+    pitchBuffer.resize(pitchBufferSize, 0.0);
+}
+
+void TubeOctave::initializeOctave(OctaveType type) {
+    octaveType = type;
+    
+    switch (octaveType) {
+        case SUB_OCTAVE:
+            subOctaveAmount = 0.8;
+            superOctaveAmount = 0.0;
+            dryWetMix = 0.5;
+            tracking = 0.85;
+            distortion = 0.1;
+            break;
+            
+        case SUPER_OCTAVE:
+            subOctaveAmount = 0.0;
+            superOctaveAmount = 0.7;
+            dryWetMix = 0.4;
+            tracking = 0.7;
+            distortion = 0.15;
+            break;
+            
+        case DUAL_OCTAVE:
+            subOctaveAmount = 0.6;
+            superOctaveAmount = 0.4;
+            dryWetMix = 0.6;
+            tracking = 0.8;
+            distortion = 0.2;
+            break;
+            
+        case OCTAVE_FUZZ:
+            subOctaveAmount = 0.7;
+            superOctaveAmount = 0.2;
+            dryWetMix = 0.7;
+            tracking = 0.75;
+            distortion = 0.6;  // Higher distortion for fuzz effect
+            break;
+    }
+}
+
+bool TubeOctave::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (op == OP_READ) {
+        return GetRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_WRITE) {
+        return PutRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_TICK) {
+        return Tick();
+    }
+    return false;
+}
+
+bool TubeOctave::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == inputPin && data_bytes == sizeof(double)) {
+        memcpy(&inputSignal, data, sizeof(double));
+        return true;
+    } else if (conn_id == mixPin && data_bytes == sizeof(double)) {
+        memcpy(&mixControl, data, sizeof(double));
+        setDryWetMix(0.5 + 0.5 * mixControl); // Map -1,1 to 0,1
+        return true;
+    } else if (conn_id == octavePin && data_bytes == sizeof(double)) {
+        memcpy(&octaveControl, data, sizeof(double));
+        setSubOctaveAmount(subOctaveAmount + 0.3 * octaveControl); // Modulate octave amount
+        return true;
+    }
+    return false;
+}
+
+bool TubeOctave::GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == outputPin && data_bytes == sizeof(double)) {
+        memcpy(data, &outputSignal, sizeof(double));
+        return true;
+    }
+    return false;
+}
+
+bool TubeOctave::Tick() {
+    processSignal();
+    return true;
+}
+
+double TubeOctave::estimateFrequency() {
+    // Store current sample in buffer
+    pitchBuffer[pitchWritePos] = inputSignal;
+    pitchWritePos = (pitchWritePos + 1) % pitchBufferSize;
+    
+    // Simple zero-crossing based frequency estimation
+    bool currentSign = inputSignal >= 0;
+    bool lastSign = lastInput >= 0;
+    
+    double estimatedFreq = estimatedFrequency;
+    
+    // If we've crossed zero (changed sign)
+    if (currentSign != lastSign) {
+        if (zeroCrossings > 0) {
+            // Calculate period based on samples since last zero crossing
+            double period = sampleCounter / zeroCrossings;
+            estimatedFreq = sampleRate / (period * 2.0);  // Factor of 2 since we count each full cycle twice
+            
+            // Apply smoothing to frequency estimate
+            estimatedFrequency = 0.7 * estimatedFrequency + 0.3 * estimatedFreq;
+            
+            // Clamp to reasonable range
+            estimatedFrequency = std::max(50.0, std::min(5000.0, estimatedFrequency));
+        }
+        
+        // Reset counter and crossing count
+        sampleCounter = 0.0;
+        zeroCrossings = 1;
+    } else {
+        // Increment sample counter
+        sampleCounter++;
+    }
+    
+    // Update last input
+    lastInput = inputSignal;
+    
+    return estimatedFrequency;
+}
+
+double TubeOctave::generateSubOctave() {
+    // Update phase based on half the detected frequency (one octave down)
+    phase += 2.0 * M_PI * estimatedFrequency / sampleRate / 2.0;  // Divide by 2 for sub-octave
+    if (phase >= 2.0 * M_PI) {
+        phase -= 2.0 * M_PI;
+    }
+    
+    // Generate a square wave at the sub-octave frequency
+    // This is a simple approach - more sophisticated implementations could use different methods
+    double subOctaveSignal = (sin(phase) > 0) ? 1.0 : -1.0;
+    
+    // Scale based on input signal amplitude
+    subOctaveSignal *= std::abs(inputSignal) * tracking;
+    
+    return subOctaveSignal;
+}
+
+double TubeOctave::generateSuperOctave() {
+    // For super-octave, we double the frequency
+    // Note: This is a simplified approach - real octave-up effects are much more complex
+    phase += 2.0 * M_PI * estimatedFrequency / sampleRate * 2.0;  // Multiply by 2 for super-octave
+    if (phase >= 2.0 * M_PI) {
+        phase -= 2.0 * M_PI;
+    }
+    
+    // Generate a signal at double the frequency
+    double superOctaveSignal = sin(phase) * 0.7;  // Reduce amplitude
+    
+    // Enhance harmonics to simulate octave-up effect
+    // This is a simplified approach to generate higher harmonics
+    double inputHarmonics = inputSignal * inputSignal * (inputSignal > 0 ? 1 : -1) * 0.3;
+    superOctaveSignal += inputHarmonics;
+    
+    return superOctaveSignal;
+}
+
+void TubeOctave::applyOctaveProcessing() {
+    // Estimate input frequency
+    estimateFrequency();
+    
+    double subOctave = 0.0;
+    double superOctave = 0.0;
+    
+    // Generate octave signals based on current settings
+    if (subOctaveAmount > 0.0) {
+        subOctave = generateSubOctave() * subOctaveAmount;
+    }
+    
+    if (superOctaveAmount > 0.0) {
+        superOctave = generateSuperOctave() * superOctaveAmount;
+    }
+    
+    // Combine octave signals
+    double octaveSignal = subOctave + superOctave;
+    
+    // Apply to input based on dry/wet mix
+    outputSignal = inputSignal * (1.0 - dryWetMix) + octaveSignal * dryWetMix;
+    
+    // Apply tube characteristics if enabled
+    if (tubeCharacteristicsEnabled) {
+        // Apply distortion based on setting
+        double tubeDistortion = distortion * 0.5;
+        if (std::abs(outputSignal) > tubeDistortion) {
+            outputSignal = tubeDistortion * (outputSignal > 0 ? 1 : -1) + 
+                          (1 - tubeDistortion) * tanh(outputSignal / (1 - tubeDistortion));
+        }
+        
+        // Add tube warmth (even-order harmonics)
+        double warmthSignal = tubeWarmth * 0.1 * outputSignal * outputSignal * (outputSignal > 0 ? 1 : -1);
+        outputSignal = outputSignal * (1.0 - 0.05 * tubeWarmth) + warmthSignal * 0.05 * tubeWarmth;
+    }
+}
+
+void TubeOctave::processSignal() {
+    applyOctaveProcessing();
+}
+
+void TubeOctave::setDryWetMix(double mix) {
+    this->dryWetMix = std::max(0.0, std::min(1.0, mix));
+}
+
+void TubeOctave::setSubOctaveAmount(double amount) {
+    this->subOctaveAmount = std::max(0.0, std::min(1.0, amount));
+}
+
+void TubeOctave::setSuperOctaveAmount(double amount) {
+    this->superOctaveAmount = std::max(0.0, std::min(1.0, amount));
+}
+
+void TubeOctave::setTracking(double tracking) {
+    this->tracking = std::max(0.0, std::min(1.0, tracking));
+}
+
+void TubeOctave::setType(OctaveType type) {
+    this->octaveType = type;
+    initializeOctave(type);
+}
+
+void TubeOctave::setDistortion(double distortion) {
+    this->distortion = std::max(0.0, std::min(1.0, distortion));
+}
+
+
+// TubeRingModulator implementation
+TubeRingModulator::TubeRingModulator(ModulationType type) : modulationType(type) {
+    initializeModulator(type);
+}
+
+void TubeRingModulator::initializeModulator(ModulationType type) {
+    modulationType = type;
+    
+    switch (modulationType) {
+        case SINE_MODULATION:
+            carrierFrequency = 150.0;
+            depth = 1.0;
+            symmetry = 0.5;
+            tubeCharacteristics = 0.2;
+            carrierDistortion = 0.0;
+            break;
+            
+        case TRIANGLE_MODULATION:
+            carrierFrequency = 80.0;
+            depth = 0.9;
+            symmetry = 0.5;
+            tubeCharacteristics = 0.3;
+            carrierDistortion = 0.1;
+            break;
+            
+        case SQUARE_MODULATION:
+            carrierFrequency = 120.0;
+            depth = 1.0;
+            symmetry = 0.5;
+            tubeCharacteristics = 0.4;
+            carrierDistortion = 0.2;
+            break;
+            
+        case SAWTOOTH_MODULATION:
+            carrierFrequency = 90.0;
+            depth = 0.85;
+            symmetry = 0.5;
+            tubeCharacteristics = 0.35;
+            carrierDistortion = 0.15;
+            break;
+            
+        case TUBE_CARRIER:
+            carrierFrequency = 200.0;
+            depth = 1.0;
+            symmetry = 0.6;
+            tubeCharacteristics = 0.6;
+            carrierDistortion = 0.4;
+            break;
+    }
+    
+    // Calculate initial phase increment
+    carrierPhaseInc = 2.0 * M_PI * carrierFrequency / sampleRate;
+}
+
+bool TubeRingModulator::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (op == OP_READ) {
+        return GetRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_WRITE) {
+        return PutRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_TICK) {
+        return Tick();
+    }
+    return false;
+}
+
+bool TubeRingModulator::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == inputPin && data_bytes == sizeof(double)) {
+        memcpy(&inputSignal, data, sizeof(double));
+        return true;
+    } else if (conn_id == carrierFreqPin && data_bytes == sizeof(double)) {
+        memcpy(&carrierFreqControl, data, sizeof(double));
+        setCarrierFrequency(carrierFrequency * (1.0 + 0.5 * carrierFreqControl)); // Modulate frequency
+        return true;
+    } else if (conn_id == depthPin && data_bytes == sizeof(double)) {
+        memcpy(&depthControl, data, sizeof(double));
+        setDepth(depth + 0.3 * depthControl); // Modulate depth
+        return true;
+    }
+    return false;
+}
+
+bool TubeRingModulator::GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == outputPin && data_bytes == sizeof(double)) {
+        memcpy(data, &outputSignal, sizeof(double));
+        return true;
+    }
+    return false;
+}
+
+bool TubeRingModulator::Tick() {
+    processSignal();
+    return true;
+}
+
+double TubeRingModulator::generateCarrier() {
+    // Update the carrier phase
+    carrierPhase += carrierPhaseInc;
+    if (carrierPhase >= 2.0 * M_PI) {
+        carrierPhase -= 2.0 * M_PI;
+    }
+    
+    double carrier = 0.0;
+    
+    // Generate carrier based on type
+    switch (modulationType) {
+        case SINE_MODULATION:
+            carrier = sin(carrierPhase);
+            break;
+            
+        case TRIANGLE_MODULATION: {
+            // Generate triangle wave
+            if (carrierPhase < M_PI) {
+                carrier = (2.0 / M_PI) * carrierPhase - 1.0;
+            } else {
+                carrier = -1.0 - (2.0 / M_PI) * (carrierPhase - M_PI);
+            }
+            break;
+        }
+            
+        case SQUARE_MODULATION: {
+            // Generate square wave with adjustable symmetry
+            double sym = symmetry; // Adjust symmetry
+            if (carrierPhase < 2 * M_PI * sym) {
+                carrier = 1.0;
+            } else {
+                carrier = -1.0;
+            }
+            break;
+        }
+            
+        case SAWTOOTH_MODULATION: {
+            // Generate sawtooth wave
+            carrier = (carrierPhase / M_PI) - 1.0;
+            break;
+        }
+            
+        case TUBE_CARRIER: {
+            // Generate a more complex carrier that simulates tube harmonics
+            carrier = sin(carrierPhase);
+            // Add 2nd harmonic (even-order, characteristic of tube circuits)
+            carrier += 0.3 * tubeCharacteristics * sin(2.0 * carrierPhase);
+            // Add 3rd harmonic
+            carrier += 0.15 * tubeCharacteristics * sin(3.0 * carrierPhase);
+            // Normalize
+            carrier *= 1.0 / (1.0 + 0.3 * tubeCharacteristics + 0.15 * tubeCharacteristics);
+            break;
+        }
+    }
+    
+    // Apply distortion to carrier if enabled
+    if (carrierDistortion > 0.0 && tubeCarrierEnabled) {
+        double dist = carrierDistortion;
+        if (std::abs(carrier) > (1.0 - dist)) {
+            carrier = (1.0 - dist) * (carrier > 0 ? 1 : -1) + 
+                     dist * tanh(carrier / dist);
+        }
+    }
+    
+    return carrier;
+}
+
+double TubeRingModulator::applyRingModulation(double input, double carrier) {
+    // Standard ring modulation is simply input * carrier
+    double modulated = input * carrier * depth;
+    
+    // Add tube characteristics if enabled
+    if (tubeCharacteristics > 0.0) {
+        // Add some even-order harmonics to simulate tube warmth
+        double harmonic1 = tubeCharacteristics * 0.1 * modulated * modulated * (modulated > 0 ? 1 : -1);
+        double harmonic2 = tubeCharacteristics * 0.05 * modulated * modulated * modulated;
+        
+        modulated = modulated * (1.0 - 0.075 * tubeCharacteristics) + 
+                   harmonic1 * 0.05 * tubeCharacteristics + 
+                   harmonic2 * 0.025 * tubeCharacteristics;
+    }
+    
+    return modulated;
+}
+
+void TubeRingModulator::processSignal() {
+    // Generate the carrier signal
+    double carrier = generateCarrier();
+    
+    // Apply ring modulation to the input
+    outputSignal = applyRingModulation(inputSignal, carrier);
+    
+    // Apply soft limiting to prevent clipping
+    if (outputSignal > 0.9) outputSignal = 0.9 + 0.1 * tanh((outputSignal - 0.9) / 0.1);
+    if (outputSignal < -0.9) outputSignal = -0.9 + 0.1 * tanh((outputSignal + 0.9) / 0.1);
+}
+
+void TubeRingModulator::setCarrierFrequency(double freq) {
+    this->carrierFrequency = std::max(0.1, std::min(2000.0, freq));
+    // Update phase increment based on new frequency
+    carrierPhaseInc = 2.0 * M_PI * carrierFrequency / sampleRate;
+}
+
+void TubeRingModulator::setModulationType(ModulationType type) {
+    this->modulationType = type;
+    initializeModulator(type);
+}
+
+void TubeRingModulator::setDepth(double depth) {
+    this->depth = std::max(0.0, std::min(1.0, depth));
+}
+
+void TubeRingModulator::setSymmetry(double symmetry) {
+    this->symmetry = std::max(0.0, std::min(1.0, symmetry));
+}
+
+void TubeRingModulator::setTubeCharacteristics(double tube) {
+    this->tubeCharacteristics = std::max(0.0, std::min(1.0, tube));
+}
+
+
 // TubeFlanger implementation
 TubeFlanger::TubeFlanger() {
     initializeFlanger();

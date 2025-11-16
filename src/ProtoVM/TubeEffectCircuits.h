@@ -1410,6 +1410,185 @@ private:
     double processMoogFilter(double input);
 };
 
+// Class for tube-based octave effects circuits
+class TubeOctave : public ElectricNodeBase {
+public:
+    enum OctaveType {
+        SUB_OCTAVE,        // One octave down
+        SUPER_OCTAVE,      // One octave up
+        DUAL_OCTAVE,       // Both sub and super octave
+        OCTAVE_FUZZ        // Octave with added fuzz/distortion
+    };
+
+    TubeOctave(OctaveType type = SUB_OCTAVE);
+    virtual ~TubeOctave() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure octave parameters
+    void setDryWetMix(double mix);         // Dry/wet mix (0.0 = dry, 1.0 = wet)
+    void setSubOctaveAmount(double amount); // Amount of sub-octave (0.0 to 1.0)
+    void setSuperOctaveAmount(double amount); // Amount of super-octave (0.0 to 1.0)
+    void setTracking(double tracking);     // Pitch tracking quality (0.0 to 1.0)
+    void setType(OctaveType type);         // Set octave type
+    void setDistortion(double distortion); // Amount of tube distortion (0.0 to 1.0)
+
+    // Get parameters
+    double getDryWetMix() const { return dryWetMix; }
+    double getSubOctaveAmount() const { return subOctaveAmount; }
+    double getSuperOctaveAmount() const { return superOctaveAmount; }
+    double getTracking() const { return tracking; }
+    OctaveType getType() const { return octaveType; }
+    double getDistortion() const { return distortion; }
+
+    // Enable/disable features
+    void enableTubeCharacteristics(bool enable) { tubeCharacteristicsEnabled = enable; }
+    void setTubeWarmth(double warmth) { tubeWarmth = std::max(0.0, std::min(1.0, warmth)); }
+
+private:
+    OctaveType octaveType;
+
+    // Octave parameters
+    double dryWetMix = 0.5;             // Dry/wet mix
+    double subOctaveAmount = 0.7;       // Amount of sub-octave
+    double superOctaveAmount = 0.3;     // Amount of super-octave
+    double tracking = 0.8;              // Pitch tracking quality
+    double distortion = 0.2;            // Distortion amount
+    double tubeWarmth = 0.4;            // Tube warmth amount
+
+    // Pitch detection and generation
+    double estimatedFrequency = 440.0;  // Estimated fundamental frequency
+    double phase = 0.0;                 // Current phase for generation
+    double lastInput = 0.0;             // Last input sample for zero-crossing detection
+    int zeroCrossings = 0;              // Count for frequency estimation
+    double sampleCounter = 0.0;         // Counter for frequency estimation
+    bool frequencyValid = false;        // Whether frequency estimation is valid
+    
+    // Buffer for pitch tracking
+    std::vector<double> pitchBuffer;
+    int pitchBufferSize = 1024;         // Size of pitch detection buffer
+    int pitchWritePos = 0;
+
+    // Processing parameters
+    bool tubeCharacteristicsEnabled = true;
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections
+    int inputPin = 0;
+    int outputPin = 1;
+    int mixPin = 2;                    // For external dry/wet control
+    int octavePin = 3;                 // For external octave amount control
+
+    double inputSignal = 0.0;
+    double outputSignal = 0.0;
+    double mixControl = 0.0;
+    double octaveControl = 0.0;
+
+    // Initialize octave effect based on type
+    void initializeOctave(OctaveType type);
+
+    // Process signal through octave algorithm
+    void processSignal();
+
+    // Estimate the fundamental frequency of the input signal
+    double estimateFrequency();
+
+    // Generate sub-octave signal
+    double generateSubOctave();
+
+    // Generate super-octave signal
+    double generateSuperOctave();
+
+    // Apply pitch tracking and generate octave signals
+    void applyOctaveProcessing();
+};
+
+// Class for tube-based ring modulator circuits
+class TubeRingModulator : public ElectricNodeBase {
+public:
+    enum ModulationType {
+        SINE_MODULATION,      // Sine wave carrier
+        TRIANGLE_MODULATION,  // Triangle wave carrier
+        SQUARE_MODULATION,    // Square wave carrier
+        SAWTOOTH_MODULATION,  // Sawtooth wave carrier
+        TUBE_CARRIER        // Tube-based carrier simulation
+    };
+
+    TubeRingModulator(ModulationType type = SINE_MODULATION);
+    virtual ~TubeRingModulator() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure ring modulator parameters
+    void setCarrierFrequency(double freq);   // Carrier frequency in Hz (0.1 to 2000)
+    void setModulationType(ModulationType type); // Set modulation type
+    void setDepth(double depth);             // Modulation depth (0.0 to 1.0)
+    void setSymmetry(double symmetry);       // Carrier symmetry (0.0 to 1.0)
+    void setTubeCharacteristics(double tube); // Amount of tube character (0.0 to 1.0)
+
+    // Get parameters
+    double getCarrierFrequency() const { return carrierFrequency; }
+    ModulationType getModulationType() const { return modulationType; }
+    double getDepth() const { return depth; }
+    double getSymmetry() const { return symmetry; }
+    double getTubeCharacteristics() const { return tubeCharacteristics; }
+
+    // Enable/disable features
+    void enableTubeCarrier(bool enable) { tubeCarrierEnabled = enable; }
+    void setCarrierDistortion(double distortion) { carrierDistortion = std::max(0.0, std::min(1.0, distortion)); }
+
+private:
+    ModulationType modulationType;
+
+    // Ring modulator parameters
+    double carrierFrequency = 100.0;       // Carrier frequency in Hz
+    double depth = 1.0;                    // Modulation depth
+    double symmetry = 0.5;                 // Carrier symmetry (for asymmetrical waves)
+    double tubeCharacteristics = 0.3;      // Amount of tube characteristics
+    double carrierDistortion = 0.2;        // Distortion applied to carrier
+
+    // Carrier generation state
+    double carrierPhase = 0.0;             // Current phase of carrier
+    double carrierPhaseInc = 0.0;          // Phase increment per sample
+
+    // Processing parameters
+    bool tubeCarrierEnabled = true;
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections
+    int inputPin = 0;
+    int outputPin = 1;
+    int carrierFreqPin = 2;                // For external carrier frequency control
+    int depthPin = 3;                      // For external depth control
+
+    double inputSignal = 0.0;
+    double outputSignal = 0.0;
+    double carrierFreqControl = 0.0;
+    double depthControl = 0.0;
+
+    // Initialize ring modulator based on type
+    void initializeModulator(ModulationType type);
+
+    // Process signal through ring modulation algorithm
+    void processSignal();
+
+    // Generate the carrier signal
+    double generateCarrier();
+
+    // Apply ring modulation to the input signal
+    double applyRingModulation(double input, double carrier);
+};
+
 // Class for tube-based flanger circuits
 class TubeFlanger : public ElectricNodeBase {
 public:

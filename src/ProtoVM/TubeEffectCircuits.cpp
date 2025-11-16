@@ -4210,6 +4210,278 @@ void TubeImager::setMidSideRatio(double ratio) {
 }
 
 
+// TubeTransientDesigner implementation
+TubeTransientDesigner::TubeTransientDesigner(TransientMode mode) : transientMode(mode) {
+    initializeDesigner(mode);
+}
+
+void TubeTransientDesigner::initializeDesigner(TransientMode mode) {
+    transientMode = mode;
+    
+    switch (transientMode) {
+        case ATTACK_MODE:
+            attackAmount = 0.3;         // Enhance attack
+            sustainAmount = 0.0;        // No sustain change
+            attackTimeMs = 3.0;         // Fast attack detection
+            releaseTimeMs = 30.0;       // Medium release
+            threshold = 0.05;           // Low threshold for sensitivity
+            ratio = 2.0;                // Moderate ratio
+            tubeSaturation = 0.2;
+            break;
+            
+        case SUSTAIN_MODE:
+            attackAmount = 0.0;         // No attack change
+            sustainAmount = 0.4;        // Enhance sustain
+            attackTimeMs = 10.0;        // Slower attack detection
+            releaseTimeMs = 100.0;      // Slower release for sustain
+            threshold = 0.1;            // Medium threshold
+            ratio = 1.5;                // Gentle ratio
+            tubeSaturation = 0.3;
+            break;
+            
+        case PUNCH_MODE:
+            attackAmount = 0.5;         // Strong attack enhancement
+            sustainAmount = 0.2;        // Moderate sustain enhancement
+            attackTimeMs = 2.0;         // Fast attack detection
+            releaseTimeMs = 40.0;       // Medium release
+            threshold = 0.08;           // Low-medium threshold
+            ratio = 3.0;                // Higher ratio for punch
+            tubeSaturation = 0.4;
+            break;
+            
+        case DYNAMIC_MODE:
+            attackAmount = 0.0;         // Adaptive processing
+            sustainAmount = 0.0;
+            attackTimeMs = 5.0;         // Balanced attack detection
+            releaseTimeMs = 60.0;       // Adaptive release
+            threshold = 0.12;           // Adaptive threshold
+            ratio = 1.0;                // Adaptive ratio
+            tubeSaturation = 0.25;
+            break;
+    }
+    
+    // Calculate coefficients for envelope follower
+    attackCoeff = exp(-1.0 / (attackTimeMs / 1000.0 * sampleRate));
+    releaseCoeff = exp(-1.0 / (releaseTimeMs / 1000.0 * sampleRate));
+}
+
+bool TubeTransientDesigner::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (op == OP_READ) {
+        return GetRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_WRITE) {
+        return PutRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_TICK) {
+        return Tick();
+    }
+    return false;
+}
+
+bool TubeTransientDesigner::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == inputPin && data_bytes == sizeof(double)) {
+        memcpy(&inputSignal, data, sizeof(double));
+        return true;
+    } else if (conn_id == attackPin && data_bytes == sizeof(double)) {
+        memcpy(&attackControl, data, sizeof(double));
+        setAttackAmount(attackAmount + 0.3 * attackControl); // Modulate attack
+        return true;
+    } else if (conn_id == sustainPin && data_bytes == sizeof(double)) {
+        memcpy(&sustainControl, data, sizeof(double));
+        setSustainAmount(sustainAmount + 0.3 * sustainControl); // Modulate sustain
+        return true;
+    }
+    return false;
+}
+
+bool TubeTransientDesigner::GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == outputPin && data_bytes == sizeof(double)) {
+        memcpy(data, &outputSignal, sizeof(double));
+        return true;
+    }
+    return false;
+}
+
+bool TubeTransientDesigner::Tick() {
+    processSignal();
+    return true;
+}
+
+bool TubeTransientDesigner::detectAttack() {
+    // Calculate the rate of change in the signal
+    double delta = std::abs(inputSignal - lastInput);
+    double thresholdLevel = threshold * 10.0; // Scale threshold for rate of change
+    
+    // If the rate of change is above threshold, consider it an attack
+    bool detected = delta > thresholdLevel;
+    
+    // Update last input value
+    lastInput = inputSignal;
+    
+    return detected;
+}
+
+void TubeTransientDesigner::updateEnvelope() {
+    // Calculate signal level
+    double inputLevel = std::abs(inputSignal);
+    
+    // Update attack envelope (fast response)
+    if (inputLevel > attackEnvelope) {
+        attackEnvelope = inputLevel * (1.0 - attackCoeff) + attackEnvelope * attackCoeff;
+    } else {
+        attackEnvelope = attackEnvelope * releaseCoeff;
+    }
+    
+    // Update sustain envelope (slower response)
+    if (inputLevel > sustainEnvelope) {
+        sustainEnvelope = inputLevel * (1.0 - attackCoeff * 0.1) + sustainEnvelope * (1.0 - 0.1 * attackCoeff); // Much slower attack
+    } else {
+        sustainEnvelope = sustainEnvelope * releaseCoeff;
+    }
+}
+
+void TubeTransientDesigner::applyTransientShaping() {
+    // Determine if we're currently in an attack phase
+    bool inAttack = detectAttack();
+    
+    // Calculate gain adjustment based on mode and settings
+    double gainAdjustment = 1.0;
+    
+    switch (transientMode) {
+        case ATTACK_MODE: {
+            if (inAttack) {
+                // Apply attack shaping
+                if (attackAmount > 0) {
+                    // Enhance attack (increase gain rapidly)
+                    gainAdjustment = 1.0 + attackAmount * 0.5;
+                } else if (attackAmount < 0) {
+                    // Soften attack (reduce gain)
+                    gainAdjustment = 1.0 + attackAmount * 0.3;
+                }
+            } else {
+                // For sustain portion, apply inverse of attack effect
+                double sustainAdjust = (1.0 - std::abs(attackAmount) * 0.1);
+                gainAdjustment = std::max(0.1, sustainAdjust);
+            }
+            break;
+        }
+        
+        case SUSTAIN_MODE: {
+            // Apply sustain shaping
+            if (sustainAmount > 0) {
+                // Enhance sustain (when envelope is at sustained level)
+                if (attackEnvelope < sustainEnvelope * 1.2) { // If attack has subsided
+                    gainAdjustment = 1.0 + sustainAmount * 0.4;
+                }
+            } else if (sustainAmount < 0) {
+                // Reduce sustain
+                if (attackEnvelope < sustainEnvelope * 1.2) {
+                    gainAdjustment = 1.0 + sustainAmount * 0.3;
+                }
+            }
+            break;
+        }
+        
+        case PUNCH_MODE: {
+            // Enhance both attack and sustain
+            if (inAttack) {
+                gainAdjustment = 1.0 + attackAmount * 0.6; // Emphasize attack
+            } else if (sustainEnvelope > attackEnvelope * 0.5) {
+                gainAdjustment = 1.0 + sustainAmount * 0.3; // Enhance sustain
+            }
+            break;
+        }
+        
+        case DYNAMIC_MODE: {
+            // Adaptive mode based on signal characteristics
+            if (inAttack) {
+                // Fast transient detection
+                gainAdjustment = 1.0 + attackAmount * (attackEnvelope / (sustainEnvelope + 0.01));
+            } else {
+                // Sustain based on longer-term level
+                gainAdjustment = 1.0 + sustainAmount * (sustainEnvelope / (attackEnvelope + 0.01));
+            }
+            break;
+        }
+    }
+    
+    // Apply compression/expansion ratio
+    if (std::abs(ratio - 1.0) > 0.01) {
+        if (ratio > 1.0) {
+            // Compression - reduce gain adjustment for loud signals
+            double compressionFactor = 1.0 / ratio;
+            gainAdjustment = 1.0 + (gainAdjustment - 1.0) * compressionFactor;
+        } else {
+            // Expansion - increase gain adjustment for loud signals
+            double expansionFactor = ratio;
+            gainAdjustment = 1.0 + (gainAdjustment - 1.0) * expansionFactor;
+        }
+    }
+    
+    // Clamp gain adjustment to reasonable range
+    gainAdjustment = std::max(0.1, std::min(3.0, gainAdjustment));
+    
+    // Apply to output
+    outputSignal = inputSignal * gainAdjustment;
+}
+
+void TubeTransientDesigner::processSignal() {
+    // Update envelope followers
+    updateEnvelope();
+    
+    // Apply transient shaping
+    applyTransientShaping();
+    
+    // Apply tube characteristics if enabled
+    if (tubeCharacteristicsEnabled) {
+        // Apply soft saturation to simulate tube warmth
+        double saturation = 0.7 + 0.3 * (1.0 - tubeSaturation); // Lower saturation value = more saturation
+        
+        if (outputSignal > saturation) {
+            outputSignal = saturation + (1 - saturation) * tanh((outputSignal - saturation) / (1 - saturation));
+        } else if (outputSignal < -saturation) {
+            outputSignal = -saturation + (1 - saturation) * tanh((outputSignal + saturation) / (1 - saturation));
+        }
+        
+        // Add harmonic content characteristic of tube circuits
+        double harmonic = tubeSaturation * 0.05 * outputSignal * outputSignal * (outputSignal > 0 ? 1 : -1);
+        outputSignal = outputSignal * (1.0 - 0.025 * tubeSaturation) + harmonic * 0.025 * tubeSaturation;
+    }
+    
+    // Update last values
+    lastOutput = outputSignal;
+}
+
+void TubeTransientDesigner::setAttackAmount(double amount) {
+    this->attackAmount = std::max(-1.0, std::min(1.0, amount));
+}
+
+void TubeTransientDesigner::setSustainAmount(double amount) {
+    this->sustainAmount = std::max(-1.0, std::min(1.0, amount));
+}
+
+void TubeTransientDesigner::setAttackTime(double time) {
+    this->attackTimeMs = std::max(0.1, std::min(100.0, time));
+    attackCoeff = exp(-1.0 / (attackTimeMs / 1000.0 * sampleRate));
+}
+
+void TubeTransientDesigner::setReleaseTime(double time) {
+    this->releaseTimeMs = std::max(1.0, std::min(500.0, time));
+    releaseCoeff = exp(-1.0 / (releaseTimeMs / 1000.0 * sampleRate));
+}
+
+void TubeTransientDesigner::setMode(TransientMode mode) {
+    this->transientMode = mode;
+    initializeDesigner(mode);
+}
+
+void TubeTransientDesigner::setThreshold(double threshold) {
+    this->threshold = std::max(0.001, std::min(0.5, threshold));
+}
+
+void TubeTransientDesigner::setRatio(double ratio) {
+    this->ratio = std::max(0.1, std::min(10.0, ratio));
+}
+
+
 // TubeFlanger implementation
 TubeFlanger::TubeFlanger() {
     initializeFlanger();

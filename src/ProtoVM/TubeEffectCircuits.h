@@ -1671,6 +1671,105 @@ private:
     void midSideToStereo(double mid, double side, double& left, double& right);
 };
 
+// Class for tube-based transient designer circuits
+class TubeTransientDesigner : public ElectricNodeBase {
+public:
+    enum TransientMode {
+        ATTACK_MODE,         // Enhance/soften attack transients
+        SUSTAIN_MODE,        // Enhance/soften sustain portion
+        PUNCH_MODE,          // Enhance overall punch
+        DYNAMIC_MODE         // Adaptive dynamic processing
+    };
+
+    TubeTransientDesigner(TransientMode mode = ATTACK_MODE);
+    virtual ~TubeTransientDesigner() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure transient parameters
+    void setAttackAmount(double amount);        // -1.0 to 1.0, negative = softer, positive = harder
+    void setSustainAmount(double amount);       // -1.0 to 1.0, negative = softer, positive = more sustain
+    void setAttackTime(double time);            // Attack detection time in ms (1 to 100)
+    void setReleaseTime(double time);           // Release time in ms (10 to 500)
+    void setMode(TransientMode mode);           // Set processing mode
+    void setThreshold(double threshold);        // Threshold for transient detection
+    void setRatio(double ratio);                // Compression/expansion ratio (0.1 to 10.0)
+
+    // Get parameters
+    double getAttackAmount() const { return attackAmount; }
+    double getSustainAmount() const { return sustainAmount; }
+    double getAttackTime() const { return attackTimeMs; }
+    double getReleaseTime() const { return releaseTimeMs; }
+    TransientMode getMode() const { return transientMode; }
+    double getThreshold() const { return threshold; }
+    double getRatio() const { return ratio; }
+
+    // Enable/disable features
+    void enableTubeCharacteristics(bool enable) { tubeCharacteristicsEnabled = enable; }
+    void setTubeSaturation(double saturation) { tubeSaturation = std::max(0.0, std::min(1.0, saturation)); }
+
+private:
+    TransientMode transientMode;
+
+    // Transient designer parameters
+    double attackAmount = 0.0;          // Amount of attack adjustment (-1.0 to 1.0)
+    double sustainAmount = 0.0;         // Amount of sustain adjustment (-1.0 to 1.0)
+    double attackTimeMs = 5.0;          // Attack detection time in ms
+    double releaseTimeMs = 50.0;        // Release time in ms
+    double threshold = 0.1;             // Threshold for detection
+    double ratio = 1.0;                 // Compression/expansion ratio
+    double tubeSaturation = 0.3;        // Tube saturation amount
+
+    // Envelope follower state
+    double attackEnvelope = 0.0;        // Attack envelope
+    double sustainEnvelope = 0.0;       // Sustain envelope
+    double gainReduction = 1.0;         // Current gain reduction
+    double attackCoeff = 0.0;           // Attack coefficient
+    double releaseCoeff = 0.0;          // Release coefficient
+    
+    // Detection and processing state
+    double lastInput = 0.0;
+    double lastOutput = 0.0;
+    bool isAttacking = false;
+    double attackStartTime = 0.0;
+    int sampleCounter = 0;
+
+    // Processing parameters
+    bool tubeCharacteristicsEnabled = true;
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections
+    int inputPin = 0;
+    int outputPin = 1;
+    int attackPin = 2;                  // For external attack control
+    int sustainPin = 3;                 // For external sustain control
+
+    double inputSignal = 0.0;
+    double outputSignal = 0.0;
+    double attackControl = 0.0;
+    double sustainControl = 0.0;
+
+    // Initialize transient designer based on mode
+    void initializeDesigner(TransientMode mode);
+
+    // Process signal through transient shaping algorithm
+    void processSignal();
+
+    // Update the envelope follower
+    void updateEnvelope();
+
+    // Apply transient shaping
+    void applyTransientShaping();
+
+    // Detect if we're in an attack phase
+    bool detectAttack();
+};
+
 // Class for tube-based flanger circuits
 class TubeFlanger : public ElectricNodeBase {
 public:

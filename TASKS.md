@@ -12,12 +12,12 @@
 - [x] Add oversampling for high-quality audio processing
 
 #### Dynamics Processors
-- [ ] Design tube-based stereo/mono compressor with adjustable ratio, threshold, attack, release
-- [ ] Design tube-based stereo/mono expander with adjustable ratio, threshold, attack, release
-- [ ] Design tube-based stereo/mono limiter with adjustable ceiling, attack, release
-- [ ] Design tube-based stereo/mono maximizer for peak limiting and gain recovery
-- [ ] Design LUFS-based stereo/mono loudness compressor with integrated/lufs-based control
-- [ ] Design LUFS-based stereo/mono loudness limiter with LUFS-based ceiling control
+- [x] Design tube-based stereo/mono compressor with adjustable ratio, threshold, attack, release
+- [x] Design tube-based stereo/mono expander with adjustable ratio, threshold, attack, release
+- [x] Design tube-based stereo/mono limiter with adjustable ceiling, attack, release
+- [x] Design tube-based stereo/mono maximizer for peak limiting and gain recovery
+- [x] Design LUFS-based stereo/mono loudness compressor with integrated/lufs-based control
+- [x] Design LUFS-based stereo/mono loudness limiter with LUFS-based ceiling control
 
 #### Harmonic Processors
 - [x] Design tube-based stereo/mono harmonic exciter with odd/even harmonic control
@@ -32,18 +32,18 @@
 - [x] Design tube-based stereo/mono 4-band parametric equalizer with adjustable frequency, gain, Q
 
 #### Modulation Effects
-- [ ] Design tube-based stereo/mono chorus with adjustable rate, depth, and delay
-- [ ] Design tube-based stereo/mono flanger with adjustable rate, depth, feedback, and delay
-- [ ] Design tube-based stereo multichorus (phase-constellation chorus) with multiple delay lines
-- [ ] Design tube-based stereo tape-echo with tape emulation and adjustable parameters
+- [x] Design tube-based stereo/mono chorus with adjustable rate, depth, and delay
+- [x] Design tube-based stereo/mono flanger with adjustable rate, depth, feedback, and delay
+- [x] Design tube-based stereo multichorus (phase-constellation chorus) with multiple delay lines
+- [x] Design tube-based stereo tape-echo with tape emulation and adjustable parameters
 
 #### Amplifier Simulation
-- [ ] Design tube-based stereo/mono amp-simulation for 1950s era (clean, warm characteristics)
-- [ ] Design tube-based stereo/mono amp-simulation for 1960s era (British blues rock characteristics)
-- [ ] Design tube-based stereo/mono amp-simulation for 1970s era (American high-gain characteristics)
-- [ ] Design tube-based stereo/mono amp-simulation for 1980s era (high-headroom, tight bass)
-- [ ] Design tube-based stereo/mono amp-simulation for 1990s era (alternative rock characteristics)
-- [ ] Design tube-based stereo/mono amp-simulation for 2000s era (modern tight low-end)
+- [x] Design tube-based stereo/mono amp-simulation for 1950s era (clean, warm characteristics)
+- [x] Design tube-based stereo/mono amp-simulation for 1960s era (British blues rock characteristics)
+- [x] Design tube-based stereo/mono amp-simulation for 1970s era (American high-gain characteristics)
+- [x] Design tube-based stereo/mono amp-simulation for 1980s era (high-headroom, tight bass)
+- [x] Design tube-based stereo/mono amp-simulation for 1990s era (alternative rock characteristics)
+- [x] Design tube-based stereo/mono amp-simulation for 2000s era (modern tight low-end)
 
 #### Spatial Effects
 - [x] Design tube-based stereo plate-reverb with adjustable size, decay, and damping
@@ -53,13 +53,13 @@
 - [x] Design tube-based stereo-widener 2: have 10-band splitter, and add delay for bands, but odd has + and even - delay in left channel
 
 #### Additional Effects to Consider
-- [ ] Design tube-based stereo/mono gate/expander for noise reduction applications
-- [ ] Design tube-based stereo/mono de-esser for vocal sibilance control
-- [ ] Design tube-based stereo/mono pitch shifter for pitch correction and creative effects
-- [ ] Design tube-based stereo multi-band compressor for independent frequency range control
-- [ ] Design tube-based stereo exciter with formant control for tonal shaping
-- [ ] Design tube-based stereo/mono phaser for phase-shift modulation effects
-- [ ] Design tube-based stereo/mono tremolo for amplitude modulation effects
+- [x] Design tube-based stereo/mono gate/expander for noise reduction applications
+- [x] Design tube-based stereo/mono de-esser for vocal sibilance control
+- [x] Design tube-based stereo/mono pitch shifter for pitch correction and creative effects
+- [x] Design tube-based stereo multi-band compressor for independent frequency range control
+- [x] Design tube-based stereo exciter with formant control for tonal shaping
+- [x] Design tube-based stereo/mono phaser for phase-shift modulation effects
+- [x] Design tube-based stereo/mono tremolo for amplitude modulation effects
 - [x] Design tube-based rotary speaker simulation (Leslie) for organ effects
 - [x] Design tube-based stereo/mono vocoder for robotic speech effects
 - [x] Design tube-based stereo/mono octave effects (octaver) for sub-octave and super-octave generation

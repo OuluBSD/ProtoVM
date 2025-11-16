@@ -7,7 +7,7 @@
 #include "VCA.h"
 #include "LFO.h"
 #include "ADSR.h"
-#include "AudioOutputSystem.h"
+// #include "AudioOutputSystem.h"  // Temporarily commented out due to missing sndfile library
 #include "ModulationMatrix.h"
 #include "PresetManager.h"
 #include <vector>
@@ -59,7 +59,7 @@ protected:
     std::vector<std::unique_ptr<LFO>> lfos;
     std::vector<std::unique_ptr<ADSR>> adsrs;
     std::unique_ptr<ModulationMatrix> modulation_matrix;
-    std::unique_ptr<AudioOutputSystem> audio_output;
+    // std::unique_ptr<AudioOutputSystem> audio_output;  // Temporarily removed due to missing sndfile library
     std::unique_ptr<PresetManager> preset_manager;
     
     // Helper methods

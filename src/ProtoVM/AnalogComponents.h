@@ -6,8 +6,8 @@
 #include "SparkGap.h"
 #include "Fuse.h"
 #include "ModulationMatrix.h"
-#include "PresetManager.h"
-#include "AudioOutputSystem.h"
+// #include "PresetManager.h"  // Temporarily commented out due to missing JSON library
+// #include "AudioOutputSystem.h"  // Temporarily commented out due to missing sndfile library
 #include "SynthesizerArchitectures.h"
 #include "ExamplePatches.h"
 #include "TubeModels.h"

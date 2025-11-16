@@ -4007,6 +4007,209 @@ void TubeRingModulator::setTubeCharacteristics(double tube) {
 }
 
 
+// TubeImager implementation
+TubeImager::TubeImager(ImagerType type) : imagerType(type) {
+    initializeImager(type);
+}
+
+void TubeImager::initializeImager(ImagerType type) {
+    imagerType = type;
+    
+    switch (imagerType) {
+        case WIDTH_IMAGER:
+            amount = 0.6;
+            width = 1.4;              // Slightly wider
+            centerFocus = 0.5;
+            sideLevel = 1.0;
+            midSideRatio = 0.5;
+            tubeWarmth = 0.2;
+            break;
+            
+        case POSITION_IMAGER:
+            amount = 0.5;
+            width = 1.0;
+            centerFocus = 0.3;        // More focus
+            sideLevel = 1.0;
+            midSideRatio = 0.7;       // More mid processing
+            tubeWarmth = 0.3;
+            break;
+            
+        case DEPTH_IMAGER:
+            amount = 0.7;
+            width = 1.0;
+            centerFocus = 0.6;        // More focus
+            sideLevel = 0.8;          // Reduced side level for depth
+            midSideRatio = 0.4;       // Balanced processing
+            tubeWarmth = 0.25;
+            break;
+            
+        case PHASE_IMAGER:
+            amount = 0.4;             // Moderate phase adjustment
+            width = 1.0;
+            centerFocus = 0.5;
+            sideLevel = 1.0;
+            midSideRatio = 0.6;       // More mid for phase effects
+            tubeWarmth = 0.1;         // Less tube warmth for phase clarity
+            break;
+    }
+}
+
+bool TubeImager::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (op == OP_READ) {
+        return GetRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_WRITE) {
+        return PutRaw(conn_id, data, data_bytes, data_bits);
+    } else if (op == OP_TICK) {
+        return Tick();
+    }
+    return false;
+}
+
+bool TubeImager::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == leftInput && data_bytes == sizeof(double)) {
+        memcpy(&leftInputSignal, data, sizeof(double));
+        return true;
+    } else if (conn_id == rightInput && data_bytes == sizeof(double)) {
+        memcpy(&rightInputSignal, data, sizeof(double));
+        return true;
+    } else if (conn_id == controlInput && data_bytes == sizeof(double)) {
+        memcpy(&controlSignal, data, sizeof(double));
+        setAmount(amount + 0.3 * controlSignal); // Modulate around current setting
+        return true;
+    }
+    return false;
+}
+
+bool TubeImager::GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+    if (conn_id == leftOutput && data_bytes == sizeof(double)) {
+        memcpy(data, &leftOutputSignal, sizeof(double));
+        return true;
+    } else if (conn_id == rightOutput && data_bytes == sizeof(double)) {
+        memcpy(data, &rightOutputSignal, sizeof(double));
+        return true;
+    }
+    return false;
+}
+
+bool TubeImager::Tick() {
+    processSignal();
+    return true;
+}
+
+void TubeImager::stereoToMidSide(double left, double right, double& mid, double& side) {
+    mid = (left + right) * 0.5;
+    side = (left - right) * 0.5;
+}
+
+void TubeImager::midSideToStereo(double mid, double side, double& left, double& right) {
+    left = mid + side;
+    right = mid - side;
+}
+
+void TubeImager::applyImaging(double& left, double& right) {
+    // Convert to mid-side for processing
+    double mid, side;
+    stereoToMidSide(left, right, mid, side);
+    
+    // Apply different processing based on imager type
+    switch (imagerType) {
+        case WIDTH_IMAGER:
+            // Adjust stereo width by scaling the side signal
+            side *= width;
+            break;
+            
+        case POSITION_IMAGER:
+            // Adjust position by changing the mid-side balance
+            mid = mid * midSideRatio + side * (1.0 - midSideRatio);
+            side = side * midSideRatio + mid * (1.0 - midSideRatio);
+            break;
+            
+        case DEPTH_IMAGER:
+            // Adjust depth by changing center focus
+            mid = mid * (0.5 + 0.5 * centerFocus);
+            side = side * sideLevel;
+            break;
+            
+        case PHASE_IMAGER:
+            // Apply subtle phase manipulation
+            // This is a simplified approach - real phase imaging is more complex
+            double phaseShift = amount * 0.2; // Small phase shift
+            double tempMid = mid;
+            double tempSide = side;
+            
+            // Apply a slight delay/phase shift to one component
+            mid = tempMid * (1.0 - phaseShift) + tempSide * phaseShift;
+            side = tempSide * (1.0 - phaseShift) - tempMid * phaseShift;
+            break;
+    }
+    
+    // Convert back to stereo
+    midSideToStereo(mid, side, left, right);
+}
+
+void TubeImager::processSignal() {
+    // Apply stereo imaging processing
+    double left = leftInputSignal;
+    double right = rightInputSignal;
+    
+    applyImaging(left, right);
+    
+    // Apply amount control to blend processed and original
+    leftOutputSignal = leftInputSignal * (1.0 - amount) + left * amount;
+    rightOutputSignal = rightInputSignal * (1.0 - amount) + right * amount;
+    
+    // Apply tube characteristics if enabled
+    if (tubeCharacteristicsEnabled) {
+        // Apply soft saturation to simulate tube warmth
+        double saturation = 0.8 + 0.2 * (1.0 - tubeWarmth); // Lower warmth = higher saturation capability
+        
+        if (leftOutputSignal > saturation) {
+            leftOutputSignal = saturation + (1 - saturation) * tanh((leftOutputSignal - saturation) / (1 - saturation));
+        } else if (leftOutputSignal < -saturation) {
+            leftOutputSignal = -saturation + (1 - saturation) * tanh((leftOutputSignal + saturation) / (1 - saturation));
+        }
+        
+        if (rightOutputSignal > saturation) {
+            rightOutputSignal = saturation + (1 - saturation) * tanh((rightOutputSignal - saturation) / (1 - saturation));
+        } else if (rightOutputSignal < -saturation) {
+            rightOutputSignal = -saturation + (1 - saturation) * tanh((rightOutputSignal + saturation) / (1 - saturation));
+        }
+        
+        // Add tube warmth (even-order harmonics)
+        double leftHarmonic = tubeWarmth * 0.05 * leftOutputSignal * leftOutputSignal * (leftOutputSignal > 0 ? 1 : -1);
+        double rightHarmonic = tubeWarmth * 0.05 * rightOutputSignal * rightOutputSignal * (rightOutputSignal > 0 ? 1 : -1);
+        
+        leftOutputSignal = leftOutputSignal * (1.0 - 0.025 * tubeWarmth) + leftHarmonic * 0.025 * tubeWarmth;
+        rightOutputSignal = rightOutputSignal * (1.0 - 0.025 * tubeWarmth) + rightHarmonic * 0.025 * tubeWarmth;
+    }
+}
+
+void TubeImager::setAmount(double amount) {
+    this->amount = std::max(0.0, std::min(1.0, amount));
+}
+
+void TubeImager::setWidth(double width) {
+    this->width = std::max(0.0, std::min(3.0, width));
+}
+
+void TubeImager::setCenterFocus(double focus) {
+    this->centerFocus = std::max(0.0, std::min(1.0, focus));
+}
+
+void TubeImager::setSideLevel(double level) {
+    this->sideLevel = std::max(0.0, std::min(2.0, level));
+}
+
+void TubeImager::setType(ImagerType type) {
+    this->imagerType = type;
+    initializeImager(type);
+}
+
+void TubeImager::setMidSideRatio(double ratio) {
+    this->midSideRatio = std::max(0.0, std::min(1.0, ratio));
+}
+
+
 // TubeFlanger implementation
 TubeFlanger::TubeFlanger() {
     initializeFlanger();

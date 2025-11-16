@@ -1589,6 +1589,88 @@ private:
     double applyRingModulation(double input, double carrier);
 };
 
+// Class for tube-based stereo imager circuits
+class TubeImager : public ElectricNodeBase {
+public:
+    enum ImagerType {
+        WIDTH_IMAGER,        // Adjust stereo width
+        POSITION_IMAGER,     // Adjust position in stereo field
+        DEPTH_IMAGER,        // Adjust stereo depth
+        PHASE_IMAGER         // Adjust phase relationships
+    };
+
+    TubeImager(ImagerType type = WIDTH_IMAGER);
+    virtual ~TubeImager() = default;
+
+    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Tick() override;
+
+    // Configure imager parameters
+    void setAmount(double amount);              // 0.0 to 1.0, amount of imaging effect
+    void setWidth(double width);                // Stereo width (0.0 to 2.0, 1.0 = normal)
+    void setCenterFocus(double focus);          // Center focus (0.0 to 1.0)
+    void setSideLevel(double level);            // Side level adjustment
+    void setType(ImagerType type);              // Set imager type
+    void setMidSideRatio(double ratio);         // Mid/side balance (0.0 = all side, 1.0 = all mid)
+
+    // Get parameters
+    double getAmount() const { return amount; }
+    double getWidth() const { return width; }
+    double getCenterFocus() const { return centerFocus; }
+    double getSideLevel() const { return sideLevel; }
+    ImagerType getType() const { return imagerType; }
+    double getMidSideRatio() const { return midSideRatio; }
+
+    // Enable/disable features
+    void enableTubeCharacteristics(bool enable) { tubeCharacteristicsEnabled = enable; }
+    void setTubeWarmth(double warmth) { tubeWarmth = std::max(0.0, std::min(1.0, warmth)); }
+
+private:
+    ImagerType imagerType;
+
+    // Imager parameters
+    double amount = 0.5;                // Amount of imaging effect
+    double width = 1.0;                 // Stereo width factor
+    double centerFocus = 0.5;           // Center focus
+    double sideLevel = 1.0;             // Side level adjustment
+    double midSideRatio = 0.5;          // Mid/side balance
+    double tubeWarmth = 0.3;            // Tube warmth amount
+
+    // Processing parameters
+    bool tubeCharacteristicsEnabled = true;
+
+    // Sample rate for time constants
+    double sampleRate = 44100.0;
+
+    // Pin connections (stereo in/out)
+    int leftInput = 0;
+    int rightInput = 1;
+    int leftOutput = 2;
+    int rightOutput = 3;
+    int controlInput = 4;               // For external control of imaging
+
+    double leftInputSignal = 0.0;
+    double rightInputSignal = 0.0;
+    double leftOutputSignal = 0.0;
+    double rightOutputSignal = 0.0;
+    double controlSignal = 0.0;
+
+    // Initialize imager based on type
+    void initializeImager(ImagerType type);
+
+    // Process signal through stereo imaging algorithm
+    void processSignal();
+
+    // Apply stereo imaging processing
+    void applyImaging(double& left, double& right);
+
+    // Convert stereo to mid-side and back
+    void stereoToMidSide(double left, double right, double& mid, double& side);
+    void midSideToStereo(double mid, double side, double& left, double& right);
+};
+
 // Class for tube-based flanger circuits
 class TubeFlanger : public ElectricNodeBase {
 public:

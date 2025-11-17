@@ -5,7 +5,8 @@
 #include <vector>
 #include <map>
 #include <memory>
-#include <json/json.h>  // Using JSON library for serialization
+// Temporarily removing JSON include until proper JSON library is set up
+// #include <json/json.h>  // Using JSON library for serialization
 
 // Forward declarations
 class VCO;
@@ -130,11 +131,11 @@ public:
     // Get current preset
     const PatchParameters* GetCurrentPreset() const { return current_preset; }
     
-    // Serialize parameters to JSON
-    Json::Value SerializeParameters(const PatchParameters& params) const;
-    
-    // Deserialize parameters from JSON
-    PatchParameters DeserializeParameters(const Json::Value& json) const;
+    // Serialize parameters (placeholder - not implemented without JSON dependency)
+    void* SerializeParameters(const PatchParameters& params) const;
+
+    // Deserialize parameters (placeholder - not implemented without JSON dependency)
+    PatchParameters DeserializeParameters(void* json) const;
     
     // Set a callback function for when a preset is loaded
     void SetPresetLoadedCallback(std::function<void(const PatchParameters& params)> callback);

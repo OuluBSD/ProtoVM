@@ -1,7 +1,7 @@
 #ifndef TUBE_COMPUTER_SYSTEMS_H
 #define TUBE_COMPUTER_SYSTEMS_H
 
-#include "ElectricNodeBase.h"
+#include "Common.h"
 #include "TubeLogicGates.h"
 #include "TubeFlipFlops.h"
 #include "TubeCountersRegisters.h"
@@ -14,9 +14,9 @@ public:
     TubeALU(int width = 8);
     virtual ~TubeALU() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
     
     // Set inputs
@@ -71,9 +71,9 @@ public:
     TubeMemory(int addrWidth = 8, int dataWidth = 8); // 256 bytes by default
     virtual ~TubeMemory() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
     
     // Memory operations
@@ -125,9 +125,9 @@ public:
     TubeAccumulator(int width = 8);
     virtual ~TubeAccumulator() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
     
     // Operations
@@ -180,9 +180,9 @@ public:
     TubeComputerSystem(ComputerType type = ENIAC);
     virtual ~TubeComputerSystem() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
     
     // System operations
@@ -259,9 +259,9 @@ public:
     TubeSequencer(int numSteps = 16);
     virtual ~TubeSequencer() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
     
     void setStep(int step);

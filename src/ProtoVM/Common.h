@@ -1,6 +1,11 @@
 #ifndef _ProtoVM_Common_h_
 #define _ProtoVM_Common_h_
 
+#include <Core/Core.h>  // Include U++ Core library for String, Vector, Array, Moveable types
+using namespace UPP;   // Use U++ namespace for String, Vector, Array, Moveable, etc.
+
+// Forward declaration to resolve references in tube-based components
+class Tube;
 
 
 

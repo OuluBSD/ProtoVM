@@ -1,7 +1,7 @@
 #ifndef TUBE_STANDARD_LOGIC_LIBRARY_H
 #define TUBE_STANDARD_LOGIC_LIBRARY_H
 
-#include "ElectricNodeBase.h"
+#include "Common.h"
 #include "TubeLogicGates.h"
 #include "TubeFlipFlops.h"
 #include "TubeCountersRegisters.h"
@@ -30,9 +30,9 @@ namespace TubeLogicLibrary {
             IC7400();
             virtual ~IC7400() = default;
             
-            virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
             virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-            virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
             virtual bool Tick() override;
             
         private:
@@ -54,9 +54,9 @@ namespace TubeLogicLibrary {
             IC7402();
             virtual ~IC7402() = default;
             
-            virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
             virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-            virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
             virtual bool Tick() override;
             
         private:
@@ -78,9 +78,9 @@ namespace TubeLogicLibrary {
             IC7404();
             virtual ~IC7404() = default;
             
-            virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
             virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-            virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
             virtual bool Tick() override;
             
         private:
@@ -101,9 +101,9 @@ namespace TubeLogicLibrary {
             IC7408();
             virtual ~IC7408() = default;
             
-            virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
             virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-            virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
             virtual bool Tick() override;
             
         private:
@@ -125,9 +125,9 @@ namespace TubeLogicLibrary {
             IC7432();
             virtual ~IC7432() = default;
             
-            virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
             virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-            virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
             virtual bool Tick() override;
             
         private:
@@ -150,9 +150,9 @@ namespace TubeLogicLibrary {
             IC7474();
             virtual ~IC7474() = default;
             
-            virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
             virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-            virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
             virtual bool Tick() override;
             
         private:
@@ -179,9 +179,9 @@ namespace TubeLogicLibrary {
             IC7490();
             virtual ~IC7490() = default;
             
-            virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
             virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-            virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
             virtual bool Tick() override;
             
         private:
@@ -205,9 +205,9 @@ namespace TubeLogicLibrary {
             IC74161();
             virtual ~IC74161() = default;
             
-            virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
             virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-            virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
             virtual bool Tick() override;
             
         private:
@@ -235,9 +235,9 @@ namespace TubeLogicLibrary {
             IC74151();
             virtual ~IC74151() = default;
             
-            virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
             virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-            virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
             virtual bool Tick() override;
             
         private:
@@ -294,9 +294,9 @@ namespace TubeLogicLibrary {
             TubALU(int width = 8);
             virtual ~TubALU() = default;
             
-            virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
             virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-            virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
             virtual bool Tick() override;
             
             enum Operation {
@@ -342,9 +342,9 @@ namespace TubeLogicLibrary {
             TubeMemorySystem(int addrBits = 8, int dataBits = 8, int banks = 1);
             virtual ~TubeMemorySystem() = default;
             
-            virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
             virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-            virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+            /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
             virtual bool Tick() override;
             
             void setAddress(const std::vector<bool>& addr) { address = addr; }

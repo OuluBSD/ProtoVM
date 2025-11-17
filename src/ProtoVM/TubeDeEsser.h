@@ -23,9 +23,9 @@ public:
     TubeDeEsser(DeEsserType type = BANDPASS_DESSER);
     virtual ~TubeDeEsser();
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configuration methods for de-esser parameters

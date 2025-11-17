@@ -1,7 +1,7 @@
 #ifndef TUBE_EFFECT_CIRCUITS_H
 #define TUBE_EFFECT_CIRCUITS_H
 
-#include "ElectricNodeBase.h"
+#include "Common.h"
 #include <vector>
 #include <memory>
 
@@ -18,9 +18,9 @@ public:
     TubeCompressor(CompressionType type = TRIODE_LIMITER);
     virtual ~TubeCompressor() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
     
     // Configure compression parameters
@@ -111,9 +111,9 @@ public:
     TubePhaser(PhaserType type = CLASSIC_4_STAGE, int stages = 4);
     virtual ~TubePhaser() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
     
     // Configure phaser parameters
@@ -197,9 +197,9 @@ public:
     TubeChorus(int voices = 2);
     virtual ~TubeChorus() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
     
     // Configure chorus parameters
@@ -273,9 +273,9 @@ public:
     TubeExpander(ExpanderType type = GATE);
     virtual ~TubeExpander() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure expander parameters
@@ -366,9 +366,9 @@ public:
     TubeMaximizer(MaximizerType type = PEEK_MAXIMIZER);
     virtual ~TubeMaximizer() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure maximizer parameters
@@ -471,9 +471,9 @@ public:
     TubeLoudnessCompressor(LoudnessCompressorType type = INTEGRATED_ONLY);
     virtual ~TubeLoudnessCompressor() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure loudness parameters
@@ -594,9 +594,9 @@ public:
     TubeLoudnessLimiter(LoudnessLimiterType type = INTEGRATED_LIMITER);
     virtual ~TubeLoudnessLimiter() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure loudness limiter parameters
@@ -719,9 +719,9 @@ public:
     TubeLimiter(LimiterType type = PLAIN_LIMITER);
     virtual ~TubeLimiter() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure limiter parameters
@@ -813,9 +813,9 @@ public:
     TubeHarmonicExciter(ExciterType type = ODD_HARMONIC);
     virtual ~TubeHarmonicExciter() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure exciter parameters
@@ -902,9 +902,9 @@ public:
     TubeTapeHarmonics(TapeType type = FERRIC_456);
     virtual ~TubeTapeHarmonics() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure tape parameters
@@ -1014,9 +1014,9 @@ public:
     TubeParametricEQ(int numBands = 4);  // Default to 4 bands
     virtual ~TubeParametricEQ() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure EQ parameters
@@ -1083,9 +1083,9 @@ public:
     TubeStereoWidener(WidenerType type = MID_SIDE_WIDENER);
     virtual ~TubeStereoWidener() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure widener parameters
@@ -1111,9 +1111,9 @@ public:
     TubeSideMidSplitter(SplitterType type = TUBE_SPLITTER);
     virtual ~TubeSideMidSplitter() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure splitter parameters
@@ -1246,9 +1246,9 @@ public:
     TubeAutoWah(AutoWahType type = CONTOUR_FILTER);
     virtual ~TubeAutoWah() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure auto-wah parameters
@@ -1345,9 +1345,9 @@ public:
     TubeMoogFilter(FilterType type = LOW_PASS);
     virtual ~TubeMoogFilter() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure Moog filter parameters
@@ -1423,9 +1423,9 @@ public:
     TubeOctave(OctaveType type = SUB_OCTAVE);
     virtual ~TubeOctave() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure octave parameters
@@ -1522,9 +1522,9 @@ public:
     TubeRingModulator(ModulationType type = SINE_MODULATION);
     virtual ~TubeRingModulator() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure ring modulator parameters
@@ -1602,9 +1602,9 @@ public:
     TubeImager(ImagerType type = WIDTH_IMAGER);
     virtual ~TubeImager() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure imager parameters
@@ -1684,9 +1684,9 @@ public:
     TubeTransientDesigner(TransientMode mode = ATTACK_MODE);
     virtual ~TubeTransientDesigner() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure transient parameters
@@ -1783,9 +1783,9 @@ public:
     TubeBassEnhancer(EnhancementType type = HARMONIC_BASS);
     virtual ~TubeBassEnhancer() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure bass enhancement parameters
@@ -1886,9 +1886,9 @@ public:
     TubeSpectralProcessor(SpectralMode mode = FFT_BASED);
     virtual ~TubeSpectralProcessor() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure spectral processing parameters
@@ -1976,9 +1976,9 @@ public:
     TubeRotarySpeaker(SpeakerType type = LESLIE_16);
     virtual ~TubeRotarySpeaker() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure rotary speaker parameters
@@ -2070,9 +2070,9 @@ public:
     TubeVocoder(VocoderType type = ANALOG_STYLE);
     virtual ~TubeVocoder() = default;
 
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
 
     // Configure vocoder parameters
@@ -2156,9 +2156,9 @@ public:
     TubeFlanger();
     virtual ~TubeFlanger() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
     
     // Configure flanger parameters

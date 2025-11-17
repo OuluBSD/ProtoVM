@@ -25,7 +25,7 @@ void IC7400::initialize() {
     gndPin = 7;                   // Ground
 }
 
-bool IC7400::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool IC7400::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -100,7 +100,7 @@ void IC7404::initialize() {
     gndPin = 7;                         // Ground
 }
 
-bool IC7404::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool IC7404::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -172,7 +172,7 @@ void IC7474::initialize() {
     gndPin = 7;                      // Ground
 }
 
-bool IC7474::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool IC7474::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -265,7 +265,7 @@ void IC7490::initialize() {
     gndPin = 10;           // Ground
 }
 
-bool IC7490::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool IC7490::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -391,7 +391,7 @@ void TubALU::initialize() {
     clockPin = 2 * width + 2;
 }
 
-bool TubALU::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubALU::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {

@@ -81,7 +81,7 @@ void TubePhaser::InitializePhaser(PhaserType type) {
     }
 }
 
-bool TubePhaser::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubePhaser::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {

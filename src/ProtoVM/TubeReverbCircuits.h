@@ -1,7 +1,7 @@
 #ifndef TUBE_REVERB_CIRCUITS_H
 #define TUBE_REVERB_CIRCUITS_H
 
-#include "ElectricNodeBase.h"
+#include "Common.h"
 #include <vector>
 #include <memory>
 
@@ -18,9 +18,9 @@ public:
     SpringReverb(SpringType type = ACCUTRON_2A);
     virtual ~SpringReverb() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
     
     // Configure reverb parameters
@@ -106,9 +106,9 @@ public:
     PlateReverb();
     virtual ~PlateReverb() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
     
     // Configure plate reverb parameters
@@ -173,9 +173,9 @@ public:
     TubeReverbDriver(const std::string& tubeType = "12AX7");
     virtual ~TubeReverbDriver() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
     
     // Configure driver parameters
@@ -222,9 +222,9 @@ public:
     TubeReverbUnit(ReverbConfiguration config = SPRING_REVERB);
     virtual ~TubeReverbUnit() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
     
     // Configure reverb parameters

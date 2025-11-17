@@ -14,7 +14,7 @@ TubeLogicGate::TubeLogicGate() {
     inputStates.resize(1, 0.0);
 }
 
-bool TubeLogicGate::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeLogicGate::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -290,7 +290,7 @@ TubeHalfAdder::TubeHalfAdder() {
     andGate->setInputs(2);  // Sets pins 0,1 as inputs
 }
 
-bool TubeHalfAdder::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeHalfAdder::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -351,7 +351,7 @@ TubeFullAdder::TubeFullAdder() {
     // This is a conceptual model; actual pin connections would be more complex
 }
 
-bool TubeFullAdder::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeFullAdder::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {

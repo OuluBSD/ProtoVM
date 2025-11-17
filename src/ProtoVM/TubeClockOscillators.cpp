@@ -23,7 +23,7 @@ void TubeClockOscillator::initializeOscillator() {
     oscillator->start();
 }
 
-bool TubeClockOscillator::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeClockOscillator::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -162,7 +162,7 @@ TubeClockDivider::TubeClockDivider(int divideFactor) : divideFactor(divideFactor
     resetCounter();
 }
 
-bool TubeClockDivider::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeClockDivider::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -240,7 +240,7 @@ TubePLL::TubePLL() {
     vco.start();
 }
 
-bool TubePLL::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubePLL::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -343,7 +343,7 @@ TubeFrequencySynthesizer::TubeFrequencySynthesizer(SynthesisMethod method)
     configurePLL();
 }
 
-bool TubeFrequencySynthesizer::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeFrequencySynthesizer::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -449,7 +449,7 @@ void TubeClockSystem::initializeSystem() {
     // This is a simplified approach; in reality, each would get its input separately
 }
 
-bool TubeClockSystem::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeClockSystem::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {

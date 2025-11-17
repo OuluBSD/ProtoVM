@@ -1,7 +1,7 @@
 #ifndef TUBE_POWER_SUPPLY_H
 #define TUBE_POWER_SUPPLY_H
 
-#include "ElectricNodeBase.h"
+#include "Common.h"
 #include <vector>
 #include <memory>
 
@@ -18,9 +18,9 @@ public:
     TubePowerSupply(SupplyType type = CLASSIC_EL34);
     virtual ~TubePowerSupply() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*/*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/*/
     virtual bool Tick() override;
     
     // Configure supply parameters
@@ -116,9 +116,9 @@ public:
     TubeRectifier(RectifierType type = TYPE_5Y3);
     virtual ~TubeRectifier() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*/*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/*/
     virtual bool Tick() override;
     
     // Get rectifier parameters
@@ -153,9 +153,9 @@ public:
     TubeHeaterSupply(double voltage = 6.3, double current = 0.9);
     virtual ~TubeHeaterSupply() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*/*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/*/
     virtual bool Tick() override;
     
     // Get heater parameters

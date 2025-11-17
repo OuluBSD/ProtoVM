@@ -35,7 +35,7 @@ void CathodeFollower::updateParams() {
     inputImpedance = gridResistor;
 }
 
-bool CathodeFollower::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool CathodeFollower::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -126,7 +126,7 @@ void GroundedCathodeAmp::updateParams() {
     inputImpedance = gridResistor;
 }
 
-bool GroundedCathodeAmp::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool GroundedCathodeAmp::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -222,7 +222,7 @@ void GroundedGridAmp::updateParams() {
     inputImpedance = 1.0 / tubeModel->getTransconductance();  // Low input impedance
 }
 
-bool GroundedGridAmp::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool GroundedGridAmp::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -304,7 +304,7 @@ void LongTailedPair::updateParams() {
     cmrr = 40.0;  // dB
 }
 
-bool LongTailedPair::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool LongTailedPair::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -406,7 +406,7 @@ void PhaseInverter::updateParams() {
     }
 }
 
-bool PhaseInverter::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool PhaseInverter::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -547,7 +547,7 @@ void TubeStage::initializeStage(StageType type) {
     }
 }
 
-bool TubeStage::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeStage::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {

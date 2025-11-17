@@ -1,7 +1,7 @@
 #ifndef COMPLETE_TUBE_COMPUTER_SYSTEM_H
 #define COMPLETE_TUBE_COMPUTER_SYSTEM_H
 
-#include "ElectricNodeBase.h"
+#include "Common.h"
 #include "TubeComputerSystems.h"
 #include "TubeStandardLogicLibrary.h"
 #include "TubeArithmeticUnits.h"
@@ -23,9 +23,9 @@ public:
     TubeComputer(ComputerArchitecture arch = EDSAC_STYLE);
     virtual ~TubeComputer() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     virtual bool Tick() override;
     
     // Power control

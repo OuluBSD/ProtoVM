@@ -31,7 +31,7 @@ void TubeALU::initializeALU() {
     clockPin = 2 * width + 5;
 }
 
-bool TubeALU::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeALU::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -228,7 +228,7 @@ void TubeMemory::initializeMemory() {
     chipEnablePin = addrWidth + 2 * dataWidth + 3;
 }
 
-bool TubeMemory::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeMemory::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -356,7 +356,7 @@ void TubeAccumulator::initializeAccumulator() {
     shiftRightPin = 2 * width + 5;
 }
 
-bool TubeAccumulator::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeAccumulator::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -555,7 +555,7 @@ void TubeComputerSystem::initializeEDSAC() {
     // EDSAC had a simple accumulator-based architecture
 }
 
-bool TubeComputerSystem::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeComputerSystem::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -722,7 +722,7 @@ void TubeSequencer::initializeSequencer() {
     resetPin = 19;
 }
 
-bool TubeSequencer::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeSequencer::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {

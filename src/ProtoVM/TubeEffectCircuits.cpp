@@ -54,7 +54,7 @@ void TubeCompressor::initializeCompressor(CompressionType type) {
     }
 }
 
-bool TubeCompressor::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeCompressor::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -268,7 +268,7 @@ void TubePhaser::initializePhaser(PhaserType type, int stages) {
     lfoDepth = depth;
 }
 
-bool TubePhaser::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubePhaser::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -425,7 +425,7 @@ void TubeChorus::initializeChorus(int voices) {
     separation = 2.0;       // 2ms separation between voices
 }
 
-bool TubeChorus::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeChorus::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -580,7 +580,7 @@ void TubeExpander::initializeExpander(ExpanderType type) {
     }
 }
 
-bool TubeExpander::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeExpander::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -805,7 +805,7 @@ void TubeMaximizer::initializeMaximizer(MaximizerType type) {
     }
 }
 
-bool TubeMaximizer::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeMaximizer::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -1089,7 +1089,7 @@ void TubeLoudnessCompressor::initializeCompressor(LoudnessCompressorType type) {
     }
 }
 
-bool TubeLoudnessCompressor::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeLoudnessCompressor::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -1434,7 +1434,7 @@ void TubeLoudnessLimiter::initializeLimiter(LoudnessLimiterType type) {
     releaseCoeff = exp(-1.0 / (releaseTime * effectiveSampleRate));
 }
 
-bool TubeLoudnessLimiter::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeLoudnessLimiter::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -1746,7 +1746,7 @@ void TubeLimiter::initializeLimiter(LimiterType type) {
     }
 }
 
-bool TubeLimiter::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeLimiter::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -1995,7 +1995,7 @@ void TubeHarmonicExciter::initializeExciter(ExciterType type) {
     }
 }
 
-bool TubeHarmonicExciter::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeHarmonicExciter::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -2251,7 +2251,7 @@ void TubeTapeHarmonics::initializeTape(TapeType type) {
     }
 }
 
-bool TubeTapeHarmonics::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeTapeHarmonics::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -2464,7 +2464,7 @@ void TubeParametricEQ::initializeEQ(int numBands) {
     }
 }
 
-bool TubeParametricEQ::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeParametricEQ::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -2752,7 +2752,7 @@ void TubeStereoWidener::initializeWidener(WidenerType type) {
     }
 }
 
-bool TubeStereoWidener::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeStereoWidener::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -3024,7 +3024,7 @@ void TubeSideMidSplitter::initializeSplitter(SplitterType type) {
     }
 }
 
-bool TubeSideMidSplitter::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeSideMidSplitter::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -3191,7 +3191,7 @@ void TubeAutoWah::initializeAutoWah(AutoWahType type) {
     updateFilterCoefficients();
 }
 
-bool TubeAutoWah::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeAutoWah::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -3403,7 +3403,7 @@ void TubeMoogFilter::initializeFilter(FilterType type) {
     }
 }
 
-bool TubeMoogFilter::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeMoogFilter::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -3610,7 +3610,7 @@ void TubeOctave::initializeOctave(OctaveType type) {
     }
 }
 
-bool TubeOctave::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeOctave::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -3846,7 +3846,7 @@ void TubeRingModulator::initializeModulator(ModulationType type) {
     carrierPhaseInc = 2.0 * M_PI * carrierFrequency / sampleRate;
 }
 
-bool TubeRingModulator::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeRingModulator::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -4054,7 +4054,7 @@ void TubeImager::initializeImager(ImagerType type) {
     }
 }
 
-bool TubeImager::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeImager::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -4265,7 +4265,7 @@ void TubeTransientDesigner::initializeDesigner(TransientMode mode) {
     releaseCoeff = exp(-1.0 / (releaseTimeMs / 1000.0 * sampleRate));
 }
 
-bool TubeTransientDesigner::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeTransientDesigner::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -4552,7 +4552,7 @@ void TubeBassEnhancer::initializeEnhancer(EnhancementType type) {
     updateFilterCoefficients();
 }
 
-bool TubeBassEnhancer::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeBassEnhancer::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -4845,7 +4845,7 @@ void TubeSpectralProcessor::initializeProcessor(SpectralMode mode) {
     hopSize = resolution / 4;
 }
 
-bool TubeSpectralProcessor::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeSpectralProcessor::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -5144,7 +5144,7 @@ void TubeVocoder::initializeVocoder(VocoderType type) {
     }
 }
 
-bool TubeVocoder::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeVocoder::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -5365,7 +5365,7 @@ void TubeFlanger::initializeFlanger() {
     writePosition = 0;
 }
 
-bool TubeFlanger::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeFlanger::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {

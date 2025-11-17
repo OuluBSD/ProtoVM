@@ -47,7 +47,7 @@ void TubeMultiplexer::initializeMultiplexer() {
     orGate = std::make_unique<TubeORGate>(channelCount);
 }
 
-bool TubeMultiplexer::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeMultiplexer::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -199,7 +199,7 @@ void TubeDemultiplexer::initializeDemultiplexer() {
     }
 }
 
-bool TubeDemultiplexer::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeDemultiplexer::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -380,7 +380,7 @@ void TubeDecoder::initializeDecoder() {
     }
 }
 
-bool TubeDecoder::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeDecoder::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {
@@ -508,7 +508,7 @@ void TubeAnalogMultiplexer::initialize() {
     enablePin = channelCount + selectBits + 1;
 }
 
-bool TubeAnalogMultiplexer::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool bool TubeAnalogMultiplexer::Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) {::Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) {
     if (op == OP_READ) {
         return GetRaw(conn_id, data, data_bytes, data_bits);
     } else if (op == OP_WRITE) {

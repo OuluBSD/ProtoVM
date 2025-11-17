@@ -1,7 +1,7 @@
 #ifndef TUBE_COMPONENTS_H
 #define TUBE_COMPONENTS_H
 
-#include "ElectricNodeBase.h"
+#include "Common.h"
 #include "TubeModels.h"
 #include <memory>
 
@@ -14,9 +14,9 @@ public:
     TubeComponent();
     virtual ~TubeComponent() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     
     // Get tube model
     TubeModel* getTubeModel() { return tubeModel.get(); }
@@ -79,9 +79,9 @@ public:
     TubeAmplifierStage(VacuumTube::TubeType type = VacuumTube::TRIODE);
     virtual ~TubeAmplifierStage() = default;
     
-    virtual bool Process(int op, uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
-    virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
+    /*virtual bool GetRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;*/
     
     // Get the internal tube
     VacuumTube* getTube() { return tube.get(); }

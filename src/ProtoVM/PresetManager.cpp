@@ -87,27 +87,85 @@ bool PresetManager::ApplyPreset(const PatchParameters& params) {
 }
 
 bool PresetManager::SavePresetsToFile(const std::string& filepath) {
-    Json::Value root;
-    Json::Value presets_array(Json::arrayValue);
-    
+bool PresetManager::SavePresetsToFile(const std::string& filepath) {
+    std::ofstream file(filepath);
+    if (!file.is_open()) {
+        return false;
+    }
+
     for (const auto& name : preset_order) {
         auto it = presets.find(name);
         if (it != presets.end()) {
-            Json::Value preset_obj = SerializeParameters(it->second);
-            preset_obj["preset_name"] = it->second.name;
-            preset_obj["preset_description"] = it->second.description;
-            preset_obj["preset_author"] = it->second.author;
-            preset_obj["preset_category"] = it->second.category;
-            preset_obj["preset_timestamp"] = it->second.created_timestamp;
-            presets_array.append(preset_obj);
+            const auto& params = it->second;
+            
+            file << "[Preset]" << std::endl;
+            file << "name=" << params.name << std::endl;
+            file << "description=" << params.description << std::endl;
+            file << "author=" << params.author << std::endl;
+            file << "category=" << params.category << std::endl;
+            file << "timestamp=" << params.created_timestamp << std::endl;
+            
+            // VCO parameters
+            file << "vco_count=" << params.vco_params.size() << std::endl;
+            for (size_t i = 0; i < params.vco_params.size(); ++i) {
+                const auto& vco = params.vco_params[i];
+                file << "vco" << i << "_waveform_type=" << vco.waveform_type << std::endl;
+                file << "vco" << i << "_frequency=" << vco.frequency << std::endl;
+                file << "vco" << i << "_amplitude=" << vco.amplitude << std::endl;
+                file << "vco" << i << "_fm_amount=" << vco.fm_amount << std::endl;
+                file << "vco" << i << "_pwm_duty_cycle=" << vco.pwm_duty_cycle << std::endl;
+                file << "vco" << i << "_anti_aliasing=" << vco.anti_aliasing << std::endl;
+            }
+            
+            // VCF parameters
+            file << "vcf_filter_type=" << params.vcf_params.filter_type << std::endl;
+            file << "vcf_cutoff_freq=" << params.vcf_params.cutoff_freq << std::endl;
+            file << "vcf_resonance=" << params.vcf_params.resonance << std::endl;
+            file << "vcf_env_amount=" << params.vcf_params.env_amount << std::endl;
+            file << "vcf_key_track_amount=" << params.vcf_params.key_track_amount << std::endl;
+            
+            // VCA parameters
+            file << "vca_level=" << params.vca_params.level << std::endl;
+            file << "vca_linear_response=" << params.vca_params.linear_response << std::endl;
+            
+            // LFO parameters
+            file << "lfo_count=" << params.lfo_params.size() << std::endl;
+            for (size_t i = 0; i < params.lfo_params.size(); ++i) {
+                const auto& lfo = params.lfo_params[i];
+                file << "lfo" << i << "_waveform_type=" << lfo.waveform_type << std::endl;
+                file << "lfo" << i << "_frequency=" << lfo.frequency << std::endl;
+                file << "lfo" << i << "_amplitude=" << lfo.amplitude << std::endl;
+            }
+            
+            // ADSR parameters
+            file << "adsr_count=" << params.adsr_params.size() << std::endl;
+            for (size_t i = 0; i < params.adsr_params.size(); ++i) {
+                const auto& adsr = params.adsr_params[i];
+                file << "adsr" << i << "_attack=" << adsr.attack << std::endl;
+                file << "adsr" << i << "_decay=" << adsr.decay << std::endl;
+                file << "adsr" << i << "_sustain=" << adsr.sustain << std::endl;
+                file << "adsr" << i << "_release=" << adsr.release << std::endl;
+            }
+            
+            // Modulation connections
+            file << "mod_conn_count=" << params.modulation_params.connections.size() << std::endl;
+            for (size_t i = 0; i < params.modulation_params.connections.size(); ++i) {
+                const auto& conn = params.modulation_params.connections[i];
+                file << "conn" << i << "_source=" << conn.source << std::endl;
+                file << "conn" << i << "_destination=" << conn.destination << std::endl;
+                file << "conn" << i << "_amount=" << conn.amount << std::endl;
+                file << "conn" << i << "_active=" << conn.active << std::endl;
+                file << "conn" << i << "_name=" << conn.name << std::endl;
+            }
+            
+            file << "[EndPreset]" << std::endl << std::endl;
         }
     }
     
-    root["presets"] = presets_array;
-    
-    std::ofstream file(filepath);
-    if (file.is_open()) {
-        file << root;
+    file.close();
+    return true;
+}
+
         file.close();
         return true;
     }
@@ -125,28 +183,180 @@ bool PresetManager::LoadPresetsFromFile(const std::string& filepath) {
     file.close();
     
     const Json::Value& presets_array = root["presets"];
-    if (!presets_array.isArray()) {
+bool PresetManager::LoadPresetsFromFile(const std::string& filepath) {
+    std::ifstream file(filepath);
+    if (!file.is_open()) {
         return false;
     }
-    
+
     // Clear existing presets
     presets.clear();
     preset_order.clear();
-    
-    for (const auto& preset_json : presets_array) {
-        PatchParameters params = DeserializeParameters(preset_json);
-        
-        // Extract additional fields
-        if (preset_json.isMember("preset_name")) {
-            params.name = preset_json["preset_name"].asString();
+
+    std::string line;
+    PatchParameters params;
+    std::string current_preset_name;
+    bool in_preset = false;
+
+    while (std::getline(file, line)) {
+        // Remove potential carriage return
+        if (!line.empty() && line[line.length()-1] == '\r') {
+            line.erase(line.length()-1);
         }
-        if (preset_json.isMember("preset_description")) {
-            params.description = preset_json["preset_description"].asString();
+
+        if (line == "[Preset]") {
+            in_preset = true;
+            // Initialize new preset parameters
+            params = PatchParameters();
+        } else if (line == "[EndPreset]" && in_preset) {
+            if (!current_preset_name.empty()) {
+                presets[current_preset_name] = params;
+                preset_order.push_back(current_preset_name);
+            }
+            in_preset = false;
+            current_preset_name.clear();
+        } else if (in_preset) {
+            // Parse parameter lines
+            size_t pos = line.find('=');
+            if (pos != std::string::npos) {
+                std::string key = line.substr(0, pos);
+                std::string value = line.substr(pos + 1);
+
+                if (key == "name") {
+                    params.name = value;
+                    current_preset_name = value;
+                } else if (key == "description") {
+                    params.description = value;
+                } else if (key == "author") {
+                    params.author = value;
+                } else if (key == "category") {
+                    params.category = std::stoi(value);
+                } else if (key == "timestamp") {
+                    params.created_timestamp = std::stod(value);
+                }
+                // VCO parameters
+                else if (key == "vco_count") {
+                    int count = std::stoi(value);
+                    params.vco_params.resize(count);
+                }
+                else if (key.substr(0, 3) == "vco" && key.find("_waveform_type") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(3, key.find("_") - 3));
+                    if (idx < params.vco_params.size()) params.vco_params[idx].waveform_type = std::stoi(value);
+                }
+                else if (key.substr(0, 3) == "vco" && key.find("_frequency") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(3, key.find("_") - 3));
+                    if (idx < params.vco_params.size()) params.vco_params[idx].frequency = std::stod(value);
+                }
+                else if (key.substr(0, 3) == "vco" && key.find("_amplitude") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(3, key.find("_") - 3));
+                    if (idx < params.vco_params.size()) params.vco_params[idx].amplitude = std::stod(value);
+                }
+                else if (key.substr(0, 3) == "vco" && key.find("_fm_amount") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(3, key.find("_") - 3));
+                    if (idx < params.vco_params.size()) params.vco_params[idx].fm_amount = std::stod(value);
+                }
+                else if (key.substr(0, 3) == "vco" && key.find("_pwm_duty_cycle") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(3, key.find("_") - 3));
+                    if (idx < params.vco_params.size()) params.vco_params[idx].pwm_duty_cycle = std::stod(value);
+                }
+                else if (key.substr(0, 3) == "vco" && key.find("_anti_aliasing") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(3, key.find("_") - 3));
+                    if (idx < params.vco_params.size()) params.vco_params[idx].anti_aliasing = (value == "1");
+                }
+                // VCF parameters
+                else if (key == "vcf_filter_type") {
+                    params.vcf_params.filter_type = std::stoi(value);
+                }
+                else if (key == "vcf_cutoff_freq") {
+                    params.vcf_params.cutoff_freq = std::stod(value);
+                }
+                else if (key == "vcf_resonance") {
+                    params.vcf_params.resonance = std::stod(value);
+                }
+                else if (key == "vcf_env_amount") {
+                    params.vcf_params.env_amount = std::stod(value);
+                }
+                else if (key == "vcf_key_track_amount") {
+                    params.vcf_params.key_track_amount = std::stod(value);
+                }
+                // VCA parameters
+                else if (key == "vca_level") {
+                    params.vca_params.level = std::stod(value);
+                }
+                else if (key == "vca_linear_response") {
+                    params.vca_params.linear_response = (value == "1");
+                }
+                // LFO parameters
+                else if (key == "lfo_count") {
+                    int count = std::stoi(value);
+                    params.lfo_params.resize(count);
+                }
+                else if (key.substr(0, 3) == "lfo" && key.find("_waveform_type") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(3, key.find("_") - 3));
+                    if (idx < params.lfo_params.size()) params.lfo_params[idx].waveform_type = std::stoi(value);
+                }
+                else if (key.substr(0, 3) == "lfo" && key.find("_frequency") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(3, key.find("_") - 3));
+                    if (idx < params.lfo_params.size()) params.lfo_params[idx].frequency = std::stod(value);
+                }
+                else if (key.substr(0, 3) == "lfo" && key.find("_amplitude") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(3, key.find("_") - 3));
+                    if (idx < params.lfo_params.size()) params.lfo_params[idx].amplitude = std::stod(value);
+                }
+                // ADSR parameters
+                else if (key == "adsr_count") {
+                    int count = std::stoi(value);
+                    params.adsr_params.resize(count);
+                }
+                else if (key.substr(0, 4) == "adsr" && key.find("_attack") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(4, key.find("_") - 4));
+                    if (idx < params.adsr_params.size()) params.adsr_params[idx].attack = std::stod(value);
+                }
+                else if (key.substr(0, 4) == "adsr" && key.find("_decay") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(4, key.find("_") - 4));
+                    if (idx < params.adsr_params.size()) params.adsr_params[idx].decay = std::stod(value);
+                }
+                else if (key.substr(0, 4) == "adsr" && key.find("_sustain") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(4, key.find("_") - 4));
+                    if (idx < params.adsr_params.size()) params.adsr_params[idx].sustain = std::stod(value);
+                }
+                else if (key.substr(0, 4) == "adsr" && key.find("_release") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(4, key.find("_") - 4));
+                    if (idx < params.adsr_params.size()) params.adsr_params[idx].release = std::stod(value);
+                }
+                // Modulation connections
+                else if (key == "mod_conn_count") {
+                    int count = std::stoi(value);
+                    params.modulation_params.connections.resize(count);
+                }
+                else if (key.substr(0, 4) == "conn" && key.find("_source") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(4, key.find("_") - 4));
+                    if (idx < params.modulation_params.connections.size()) params.modulation_params.connections[idx].source = std::stoi(value);
+                }
+                else if (key.substr(0, 4) == "conn" && key.find("_destination") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(4, key.find("_") - 4));
+                    if (idx < params.modulation_params.connections.size()) params.modulation_params.connections[idx].destination = std::stoi(value);
+                }
+                else if (key.substr(0, 4) == "conn" && key.find("_amount") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(4, key.find("_") - 4));
+                    if (idx < params.modulation_params.connections.size()) params.modulation_params.connections[idx].amount = std::stod(value);
+                }
+                else if (key.substr(0, 4) == "conn" && key.find("_active") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(4, key.find("_") - 4));
+                    if (idx < params.modulation_params.connections.size()) params.modulation_params.connections[idx].active = (value == "1");
+                }
+                else if (key.substr(0, 4) == "conn" && key.find("_name") != std::string::npos) {
+                    size_t idx = std::stoi(key.substr(4, key.find("_") - 4));
+                    if (idx < params.modulation_params.connections.size()) params.modulation_params.connections[idx].name = value;
+                }
+            }
         }
-        if (preset_json.isMember("preset_author")) {
-            params.author = preset_json["preset_author"].asString();
-        }
-        if (preset_json.isMember("preset_category")) {
+    }
+
+    file.close();
+    return true;
+}
+
             params.category = preset_json["preset_category"].asInt();
         }
         if (preset_json.isMember("preset_timestamp")) {
@@ -268,70 +478,19 @@ Json::Value PresetManager::SerializeParameters(const PatchParameters& params) co
     vca_obj["level"] = params.vca_params.level;
     vca_obj["linear_response"] = params.vca_params.linear_response;
     root["vca_params"] = vca_obj;
-    
-    // Serialize LFO parameters
-    Json::Value lfo_array(Json::arrayValue);
-    for (const auto& lfo : params.lfo_params) {
-        Json::Value lfo_obj;
-        lfo_obj["waveform_type"] = lfo.waveform_type;
-        lfo_obj["frequency"] = lfo.frequency;
-        lfo_obj["amplitude"] = lfo.amplitude;
-        lfo_array.append(lfo_obj);
-    }
-    root["lfo_params"] = lfo_array;
-    
-    // Serialize ADSR parameters
-    Json::Value adsr_array(Json::arrayValue);
-    for (const auto& adsr : params.adsr_params) {
-        Json::Value adsr_obj;
-        adsr_obj["attack"] = adsr.attack;
-        adsr_obj["decay"] = adsr.decay;
-        adsr_obj["sustain"] = adsr.sustain;
-        adsr_obj["release"] = adsr.release;
-        adsr_array.append(adsr_obj);
-    }
-    root["adsr_params"] = adsr_array;
-    
-    // Serialize modulation parameters
-    Json::Value mod_obj;
-    Json::Value connections_array(Json::arrayValue);
-    for (const auto& conn : params.modulation_params.connections) {
-        Json::Value conn_obj;
-        conn_obj["source"] = conn.source;
-        conn_obj["destination"] = conn.destination;
-        conn_obj["amount"] = conn.amount;
-        conn_obj["active"] = conn.active;
-        conn_obj["name"] = conn.name;
-        connections_array.append(conn_obj);
-    }
-    mod_obj["connections"] = connections_array;
-    root["modulation_params"] = mod_obj;
-    
-    return root;
+Json::Value PresetManager::SerializeParameters(const PatchParameters& params) const {
+    // For now, return nullptr since serialization is handled directly in SavePresetsToFile
+    // This method is kept for API compatibility but not used in the new implementation
+    return nullptr;
 }
 
-PatchParameters PresetManager::DeserializeParameters(const Json::Value& json) const {
+PatchParameters PresetManager::DeserializeParameters(void* json) const {
+    // For now, return an empty PatchParameters since deserialization is handled directly in LoadPresetsFromFile
+    // This method is kept for API compatibility but not used in the new implementation
     PatchParameters params;
-    
-    // Deserialize VCO parameters
-    if (json.isMember("vco_params") && json["vco_params"].isArray()) {
-        const Json::Value& vco_array = json["vco_params"];
-        for (const auto& vco_json : vco_array) {
-            PatchParameters::VCOParams vco;
-            vco.waveform_type = vco_json["waveform_type"].asInt();
-            vco.frequency = vco_json["frequency"].asDouble();
-            vco.amplitude = vco_json["amplitude"].asDouble();
-            vco.fm_amount = vco_json["fm_amount"].asDouble();
-            vco.pwm_duty_cycle = vco_json["pwm_duty_cycle"].asDouble();
-            vco.anti_aliasing = vco_json["anti_aliasing"].asBool();
-            params.vco_params.push_back(vco);
-        }
-    }
-    
-    // Deserialize VCF parameters
-    if (json.isMember("vcf_params")) {
-        const Json::Value& vcf_obj = json["vcf_params"];
-        params.vcf_params.filter_type = vcf_obj["filter_type"].asInt();
+    return params;
+}
+
         params.vcf_params.cutoff_freq = vcf_obj["cutoff_freq"].asDouble();
         params.vcf_params.resonance = vcf_obj["resonance"].asDouble();
         params.vcf_params.env_amount = vcf_obj["env_amount"].asDouble();

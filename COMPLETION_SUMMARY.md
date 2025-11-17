@@ -98,3 +98,14 @@ This implementation adds significant audio processing capabilities to the ProtoV
 5. Vintage and modern tube-based sound modeling
 
 The implementation maintains the high-quality standards expected in a studio environment while preserving the educational focus of the ProtoVM platform.
+
+## Additional Enhancements
+
+### MDS-1101 Schematic Tools
+- Enhanced component identification to accurately reflect the MDS-1101 single-transistor calculator architecture
+- Implemented proper connection tracing for the single-transistor design with input switches, output display, and power supplies
+- Added power supply components (VCC and ground) to the schematic representation
+- Improved export function with power supply aliases for proper integration with ProtoVM
+- Updated schematic printing to include power supply information
+
+These enhancements complete the implementation of schematic tools for early computing devices as specified in the project requirements, allowing for better analysis and simulation of historical computing architectures.

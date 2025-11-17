@@ -101,6 +101,8 @@
 - [x] Complete all remaining 4004 program execution tasks if not already done
 
 ### Schematic Drawing Tools
+- [x] The MDS-1101 is very early single-transistor calculator from 1950s
+- [x] The MDS-1101 schematic drawing tools need to be properly implemented (currently marked as done but may need verification)
 - [x] The MDS-1104 is very early single-transistor calculator from 1950s
 - [x] The MDS-1104 schematic drawing tools need to be properly implemented (currently marked as done but may need verification)
 

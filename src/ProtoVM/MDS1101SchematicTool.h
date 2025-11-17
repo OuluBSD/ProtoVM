@@ -96,6 +96,11 @@ public:
         for (const auto& conn : connections) {
             file << "  " << conn.from_component << " -> " << conn.to_component << std::endl;
         }
+        
+        file << std::endl;
+        file << "  Power Supplies:" << std::endl;
+        file << "    VCC: +5V power" << std::endl;
+        file << "    ground: Ground reference" << std::endl;
 
         file.close();
         return true;

@@ -60,3 +60,9 @@ Create a user-friendly, powerful GUI application that allows users to:
 - Phase 5: 3-4 weeks
 
 Total estimated duration: 4-5 months for a functional MVP
+
+## Known Issues
+- Duplicate method definitions in CircuitCanvas.cpp causing compilation errors
+- Need to refactor to remove duplicate implementations
+- Simulation integration with visual components needs completion
+- Requires wxWidgets development libraries to be installed

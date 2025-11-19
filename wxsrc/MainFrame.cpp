@@ -325,7 +325,19 @@ void MainFrame::OnSaveProjectAs(wxCommandEvent& event)
 
 void MainFrame::OnToggleWireMode(wxCommandEvent& event)
 {
-    wxMessageBox("Wire mode toggle functionality would be implemented here.\n\nIn a full implementation, this would toggle the circuit canvas into wire creation mode where users can connect component pins by right-clicking on a pin and then left-clicking on another pin.", "Wire Mode", wxOK | wxICON_INFORMATION, this);
+    if (m_canvas)
+    {
+        // Toggle wire creation mode on the canvas
+        bool wasInWireMode = m_canvas->IsInWireCreationMode();
+        m_canvas->ToggleWireCreationMode(!wasInWireMode);
+        
+        // Update status and menu item
+        if (m_canvas->IsInWireCreationMode()) {
+            SetStatusText("Wire mode activated. Right-click on a pin to start a connection, then left-click on another pin to complete it.", 0);
+        } else {
+            SetStatusText("Wire mode deactivated", 0);
+        }
+    }
 }
 
 void MainFrame::OnStartSimulation(wxCommandEvent& event)

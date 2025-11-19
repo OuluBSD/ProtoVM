@@ -82,6 +82,10 @@ public:
     void SetSimulationController(class SimulationController* simController) { m_simulationController = simController; }
     class SimulationController* GetSimulationController() const { return m_simulationController; }
 
+    // Wire creation mode methods
+    void ToggleWireCreationMode(bool enabled) { m_wireCreationMode = enabled; }
+    bool IsInWireCreationMode() const { return m_wireCreationMode; }
+
 protected:
     void OnPaint(wxPaintEvent& event);
     void OnSize(wxSizeEvent& event);

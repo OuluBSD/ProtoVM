@@ -30,7 +30,7 @@ public:
     
     // Configure oscillator
     void setFrequency(double freq);
-    void setWaveform(TubeOscillator::Waveform wf) { waveform = wf; }
+    void setWaveform(TubeOscillatorCircuit::Waveform wf) { waveform = wf; }
     void setAmplitude(double amp) { amplitude = amp; }
     void setOscillatorType(OscillatorType type) { oscillatorType = type; }
     void setEnable(bool enable) { enabled = enable; }
@@ -49,7 +49,7 @@ public:
 
 private:
     OscillatorType oscillatorType;
-    TubeOscillator::Waveform waveform;
+    TubeOscillatorCircuit::Waveform waveform;
     
     // Oscillation parameters
     double frequency;
@@ -83,7 +83,7 @@ private:
     int bPlusPin = 5;
     
     // Tube oscillator components
-    std::unique_ptr<TubeOscillator> oscillator;
+    std::unique_ptr<TubeOscillatorCircuit> oscillator;
     
     // Calculate the next sample of the oscillator
     double generateNextSample();
@@ -96,10 +96,10 @@ private:
 };
 
 // Class for tube-based clock divider for generating lower frequencies
-class TubeClockDivider : public ElectricNodeBase {
+class TubeFrequencyDivider : public ElectricNodeBase {
 public:
-    TubeClockDivider(int divideFactor = 2);
-    virtual ~TubeClockDivider() = default;
+    TubeFrequencyDivider(int divideFactor = 2);
+    virtual ~TubeFrequencyDivider() = default;
     
     virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
@@ -248,8 +248,8 @@ private:
     // Internal components
     std::unique_ptr<TubePLL> pll;
     std::unique_ptr<TubeClockOscillator> oscillator;
-    std::unique_ptr<TubeClockDivider> predivider;
-    std::unique_ptr<TubeClockDivider> postdivider;
+    std::unique_ptr<TubeFrequencyDivider> predivider;
+    std::unique_ptr<TubeFrequencyDivider> postdivider;
     
     // Division ratios for frequency synthesis
     int nCounter = 1;  // Divide by N in feedback
@@ -316,7 +316,7 @@ private:
     std::unique_ptr<TubeClockOscillator> masterOsc;
     
     // Frequency dividers for generating harmonics
-    std::vector<std::unique_ptr<TubeClockDivider>> freqDividers;
+    std::vector<std::unique_ptr<TubeFrequencyDivider>> freqDividers;
     
     // Pin connections
     int masterClockPin = 0;

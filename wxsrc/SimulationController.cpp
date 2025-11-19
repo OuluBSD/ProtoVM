@@ -2,7 +2,7 @@
 #include "CircuitCanvas.h"
 #include <wx/timer.h>
 
-wxBEGIN_EVENT_TABLE(SimulationController, wxPanel)
+wxBEGIN_EVENT_TABLE(SimulationController, wxEvtHandler)
     EVT_TIMER(wxID_ANY, SimulationController::OnSimulationTimer)
 wxEND_EVENT_TABLE()
 

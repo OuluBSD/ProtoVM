@@ -1,336 +1,13 @@
 #include "CircuitCanvas.h"
+#include "CircuitData.h"
+#include "UndoRedo.h"
+#include "SimulationController.h"
 #include <wx/dcbuffer.h>
 #include <memory>
 
 // Forward declaration of MainFrame to access properties panel
 class MainFrame;
 
-wxBEGIN_EVENT_TABLE(CircuitCanvas, wxPanel)
-    EVT_PAINT(CircuitCanvas::OnPaint)
-    EVT_SIZE(CircuitCanvas::OnSize)
-    EVT_LEFT_DOWN(CircuitCanvas::OnMouseLeftDown)
-    EVT_LEFT_UP(CircuitCanvas::OnMouseLeftUp)
-    EVT_MOTION(CircuitCanvas::OnMouseMotion)
-    EVT_RIGHT_DOWN(CircuitCanvas::OnMouseRightDown)
-wxEND_EVENT_TABLE()
-
-CircuitCanvas::CircuitCanvas(wxWindow* parent, wxWindowID id)
-    : wxPanel(parent, id), m_dragging(false), m_selectedComponent(nullptr), 
-      m_wireCreationMode(false), m_startPin(nullptr)
-{
-    SetBackgroundStyle(wxBG_STYLE_PAINT);
-    SetBackgroundColour(*wxWHITE);
-}
-
-void CircuitCanvas::OnPaint(wxPaintEvent& event)
-{
-    wxBufferedPaintDC dc(this);
-    dc.SetBackground(*wxWHITE_BRUSH);
-    dc.Clear();
-    
-    // Draw all wires first (so they appear under components)
-    for (Wire* wire : m_wires)
-    {
-        wire->Draw(dc);
-    }
-    
-    // If in wire creation mode, draw the temporary wire
-    if (m_wireCreationMode && m_startPin)
-    {
-        if (IsActive())
-        {
-            dc.SetPen(wxPen(wxColour(0, 255, 0), 2)); // Green for active signal
-        }
-        else
-        {
-            dc.SetPen(wxPen(*wxBLACK, 1)); // Black for inactive
-        }
-        
-        wxPoint start = m_startPin->GetPosition();
-        wxPoint end = m_currentWireEndPoint;
-        
-        // Draw a line with possible bends for better visual appearance
-        int midX = (start.x + end.x) / 2;
-        dc.DrawLine(start.x, start.y, midX, start.y);
-        dc.DrawLine(midX, start.y, midX, end.y);
-        dc.DrawLine(midX, end.y, end.x, end.y);
-    }
-    
-    // Draw all components
-    for (Component* comp : m_components)
-    {
-        comp->Draw(dc);
-    }
-    
-    // If dragging, draw a selection rectangle
-    if (m_dragging && !m_selectedComponent)
-    {
-        wxPen pen(*wxBLUE, 1, wxPENSTYLE_DOT);
-        dc.SetPen(pen);
-        dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        // Draw selection rectangle
-    }
-}
-
-void CircuitCanvas::OnSize(wxSizeEvent& event)
-{
-    Refresh();
-    event.Skip();
-}
-
-void CircuitCanvas::OnMouseLeftDown(wxMouseEvent& event)
-{
-    wxPoint pos = PhysicalToLogical(event.GetPosition());
-    
-    if (m_wireCreationMode)
-    {
-        // In wire creation mode, we're trying to connect pins
-        bool pinFound = false;
-        
-        // Check if we clicked on any component's pin
-        for (Component* comp : m_components)
-        {
-            // Check input pins
-            for (Pin& pin : comp->GetInputPins())
-            {
-                wxPoint pinPos = pin.GetPosition();
-                if (wxRect(pinPos.x - 4, pinPos.y - 4, 8, 8).Contains(pos))
-                {
-                    if (!m_startPin)
-                    {
-                        // This is our starting pin
-                        m_startPin = &pin;
-                    }
-                    else if (m_startPin != &pin)  // Can't connect pin to itself
-                    {
-                        // This is our ending pin - create the wire
-                        // Find which component the starting pin belongs to
-                        Component* startComp = nullptr;
-                        for (Component* c : m_components)
-                        {
-                            auto& inputs = c->GetInputPins();
-                            auto& outputs = c->GetOutputPins();
-                            
-                            // Check if m_startPin is in this component's pins
-                            bool isStartInThisComp = false;
-                            for (Pin& p : inputs)
-                            {
-                                if (&p == m_startPin)
-                                {
-                                    isStartInThisComp = true;
-                                    startComp = c;
-                                    break;
-                                }
-                            }
-                            if (!isStartInThisComp) {
-                                for (Pin& p : outputs)
-                                {
-                                    if (&p == m_startPin)
-                                    {
-                                        isStartInThisComp = true;
-                                        startComp = c;
-                                        break;
-                                    }
-                                }
-                            }
-                            
-                            if (isStartInThisComp) break;
-                        }
-                        
-                        if (startComp)
-                        {
-                            // Create and execute the add wire command
-                            std::unique_ptr<AddWireCommand> cmd = std::make_unique<AddWireCommand>(this, m_startPin, &pin);
-                            PushUndoCommand(std::move(cmd));
-                            
-                            // Mark pins as connected
-                            m_startPin->SetConnected(true);
-                            pin.SetConnected(true);
-                        }
-                        
-                        // Exit wire creation mode
-                        m_wireCreationMode = false;
-                        m_startPin = nullptr;
-                    }
-                    pinFound = true;
-                    break;
-                }
-            }
-            
-            if (pinFound) break;
-            
-            // Check output pins
-            for (Pin& pin : comp->GetOutputPins())
-            {
-                wxPoint pinPos = pin.GetPosition();
-                if (wxRect(pinPos.x - 4, pinPos.y - 4, 8, 8).Contains(pos))
-                {
-                    if (!m_startPin)
-                    {
-                        // This is our starting pin
-                        m_startPin = &pin;
-                    }
-                    else if (m_startPin != &pin)  // Can't connect pin to itself
-                    {
-                        // This is our ending pin - create the wire
-                        // Find which component the starting pin belongs to
-                        Component* startComp = nullptr;
-                        for (Component* c : m_components)
-                        {
-                            auto& inputs = c->GetInputPins();
-                            auto& outputs = c->GetOutputPins();
-                            
-                            // Check if m_startPin is in this component's pins
-                            bool isStartInThisComp = false;
-                            for (Pin& p : inputs)
-                            {
-                                if (&p == m_startPin)
-                                {
-                                    isStartInThisComp = true;
-                                    startComp = c;
-                                    break;
-                                }
-                            }
-                            if (!isStartInThisComp) {
-                                for (Pin& p : outputs)
-                                {
-                                    if (&p == m_startPin)
-                                    {
-                                        isStartInThisComp = true;
-                                        startComp = c;
-                                        break;
-                                    }
-                                }
-                            }
-                            
-                            if (isStartInThisComp) break;
-                        }
-                        
-                        if (startComp)
-                        {
-                            // Create and execute the add wire command
-                            std::unique_ptr<AddWireCommand> cmd = std::make_unique<AddWireCommand>(this, m_startPin, &pin);
-                            PushUndoCommand(std::move(cmd));
-                            
-                            // Mark pins as connected
-                            m_startPin->SetConnected(true);
-                            pin.SetConnected(true);
-                        }
-                        
-                        // Exit wire creation mode
-                        m_wireCreationMode = false;
-                        m_startPin = nullptr;
-                    }
-                    pinFound = true;
-                    break;
-                }
-            }
-            
-            if (pinFound) break;
-        }
-        
-        if (!pinFound)
-        {
-            // Clicked on empty space - exit wire creation mode
-            m_wireCreationMode = false;
-            m_startPin = nullptr;
-        }
-    }
-    else
-    {
-        // Check if we clicked on a component
-        bool componentClicked = false;
-        for (auto it = m_components.rbegin(); it != m_components.rend(); ++it)
-        {
-            Component* comp = *it;
-            if (comp->Contains(pos))
-            {
-                // Check if Ctrl is pressed for multi-selection
-                bool ctrlPressed = event.ControlDown();
-                
-                if (comp->IsSelected() && ctrlPressed) {
-                    // If component is already selected and Ctrl is pressed, deselect it
-                    auto it = std::find(m_selectedComponents.begin(), m_selectedComponents.end(), comp);
-                    if (it != m_selectedComponents.end()) {
-                        m_selectedComponents.erase(it);
-                        comp->SetSelected(false);
-                        
-                        // Update the primary selection to the last selected component
-                        if (!m_selectedComponents.empty()) {
-                            m_selectedComponent = m_selectedComponents.back();
-                        } else {
-                            m_selectedComponent = nullptr;
-                        }
-                    }
-                } else if (!comp->IsSelected()) {
-                    // If component is not selected, select it
-                    if (!ctrlPressed) {
-                        // If Ctrl is not pressed, clear previous selection
-                        ClearSelection();
-                    }
-                    
-                    // Add the component to selection
-                    m_selectedComponents.push_back(comp);
-                    comp->SetSelected(true);
-                    m_selectedComponent = comp;
-                    
-                    // Notify that selection changed if callback is set
-                    if (m_selectionChangedCallback) {
-                        m_selectionChangedCallback(comp);
-                    }
-                }
-                
-                componentClicked = true;
-                m_dragging = true;
-                m_lastMousePos = pos;
-                
-                // Store the original positions of all selected components for potential move command
-                m_originalPositions.clear();
-                for (Component* c : m_selectedComponents) {
-                    m_originalPositions[c] = c->GetPosition();
-                }
-                break;
-            }
-        }
-        
-        if (!componentClicked) {
-            // Clicked on empty space - deselect all (unless Shift is pressed for marquee selection)
-            if (!event.ShiftDown()) {
-                ClearSelection();
-            }
-            
-            m_dragging = true;
-            m_lastMousePos = pos;
-        }
-    }
-    
-    CaptureMouse();
-    Refresh();
-}
-
-void CircuitCanvas::OnMouseLeftUp(wxMouseEvent& event)
-{
-    if (HasCapture())
-        ReleaseMouse();
-    
-    m_dragging = false;
-    m_selectedComponent = nullptr;
-}
-
-void CircuitCanvas::OnMouseMotion(wxMouseEvent& event)
-{
-    if (m_dragging && m_selectedComponent && event.Dragging())
-    {
-        wxPoint pos = event.GetPosition();
-        int dx = pos.x - m_lastMousePos.x;
-        int dy = pos.y - m_lastMousePos.y;
-        
-        m_selectedComponent->Move(dx, dy);
-        m_lastMousePos = pos;
-        
-        Refresh();
-    }
-}
 
 void CircuitCanvas::OnMouseRightDown(wxMouseEvent& event)
 {
@@ -669,21 +346,243 @@ void CircuitCanvas::Redo()
     }
 }
 
-#include "UndoRedo.h"
+void CircuitCanvas::OnSize(wxSizeEvent& event)
+{
+    Refresh();
+    event.Skip();
+}
 
-wxBEGIN_EVENT_TABLE(CircuitCanvas, wxPanel)
-    EVT_PAINT(CircuitCanvas::OnPaint)
-    EVT_SIZE(CircuitCanvas::OnSize)
-    EVT_LEFT_DOWN(CircuitCanvas::OnMouseLeftDown)
-    EVT_LEFT_UP(CircuitCanvas::OnMouseLeftUp)
-    EVT_MOTION(CircuitCanvas::OnMouseMotion)
-    EVT_RIGHT_DOWN(CircuitCanvas::OnMouseRightDown)
-    EVT_MIDDLE_DOWN(CircuitCanvas::OnMiddleMouseDown)
-    EVT_MIDDLE_UP(CircuitCanvas::OnMiddleMouseUp)
-    EVT_MOUSEWHEEL(CircuitCanvas::OnMouseWheel)
-    EVT_KEY_DOWN(CircuitCanvas::OnKeyDown)
-    EVT_TIMER(CircuitCanvas::OnAnimationTimer)
-wxEND_EVENT_TABLE()
+void CircuitCanvas::OnMouseLeftDown(wxMouseEvent& event)
+{
+    wxPoint pos = PhysicalToLogical(event.GetPosition());
+    
+    if (m_wireCreationMode)
+    {
+        // In wire creation mode, we're trying to connect pins
+        bool pinFound = false;
+        
+        // Check if we clicked on any component's pin
+        for (Component* comp : m_components)
+        {
+            // Check input pins
+            for (Pin& pin : comp->GetInputPins())
+            {
+                wxPoint pinPos = pin.GetPosition();
+                if (wxRect(pinPos.x - 4, pinPos.y - 4, 8, 8).Contains(pos))
+                {
+                    if (!m_startPin)
+                    {
+                        // This is our starting pin
+                        m_startPin = &pin;
+                    }
+                    else if (m_startPin != &pin)  // Can't connect pin to itself
+                    {
+                        // This is our ending pin - create the wire
+                        // Find which component the starting pin belongs to
+                        Component* startComp = nullptr;
+                        for (Component* c : m_components)
+                        {
+                            auto& inputs = c->GetInputPins();
+                            auto& outputs = c->GetOutputPins();
+                            
+                            // Check if m_startPin is in this component's pins
+                            bool isStartInThisComp = false;
+                            for (Pin& p : inputs)
+                            {
+                                if (&p == m_startPin)
+                                {
+                                    isStartInThisComp = true;
+                                    startComp = c;
+                                    break;
+                                }
+                            }
+                            if (!isStartInThisComp) {
+                                for (Pin& p : outputs)
+                                {
+                                    if (&p == m_startPin)
+                                    {
+                                        isStartInThisComp = true;
+                                        startComp = c;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (isStartInThisComp) break;
+                        }
+                        
+                        if (startComp)
+                        {
+                            // Create and execute the add wire command
+                            std::unique_ptr<AddWireCommand> cmd = std::make_unique<AddWireCommand>(this, m_startPin, &pin);
+                            PushUndoCommand(std::move(cmd));
+                            
+                            // Mark pins as connected
+                            m_startPin->SetConnected(true);
+                            pin.SetConnected(true);
+                        }
+                        
+                        // Exit wire creation mode
+                        m_wireCreationMode = false;
+                        m_startPin = nullptr;
+                    }
+                    pinFound = true;
+                    break;
+                }
+            }
+            
+            if (pinFound) break;
+            
+            // Check output pins
+            for (Pin& pin : comp->GetOutputPins())
+            {
+                wxPoint pinPos = pin.GetPosition();
+                if (wxRect(pinPos.x - 4, pinPos.y - 4, 8, 8).Contains(pos))
+                {
+                    if (!m_startPin)
+                    {
+                        // This is our starting pin
+                        m_startPin = &pin;
+                    }
+                    else if (m_startPin != &pin)  // Can't connect pin to itself
+                    {
+                        // This is our ending pin - create the wire
+                        // Find which component the starting pin belongs to
+                        Component* startComp = nullptr;
+                        for (Component* c : m_components)
+                        {
+                            auto& inputs = c->GetInputPins();
+                            auto& outputs = c->GetOutputPins();
+                            
+                            // Check if m_startPin is in this component's pins
+                            bool isStartInThisComp = false;
+                            for (Pin& p : inputs)
+                            {
+                                if (&p == m_startPin)
+                                {
+                                    isStartInThisComp = true;
+                                    startComp = c;
+                                    break;
+                                }
+                            }
+                            if (!isStartInThisComp) {
+                                for (Pin& p : outputs)
+                                {
+                                    if (&p == m_startPin)
+                                    {
+                                        isStartInThisComp = true;
+                                        startComp = c;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (isStartInThisComp) break;
+                        }
+                        
+                        if (startComp)
+                        {
+                            // Create and execute the add wire command
+                            std::unique_ptr<AddWireCommand> cmd = std::make_unique<AddWireCommand>(this, m_startPin, &pin);
+                            PushUndoCommand(std::move(cmd));
+                            
+                            // Mark pins as connected
+                            m_startPin->SetConnected(true);
+                            pin.SetConnected(true);
+                        }
+                        
+                        // Exit wire creation mode
+                        m_wireCreationMode = false;
+                        m_startPin = nullptr;
+                    }
+                    pinFound = true;
+                    break;
+                }
+            }
+            
+            if (pinFound) break;
+        }
+
+        if (!pinFound)
+        {
+            // Clicked on empty space - exit wire creation mode
+            m_wireCreationMode = false;
+            m_startPin = nullptr;
+        }
+    }
+    else
+    {
+        // Check if we clicked on a component
+        bool componentClicked = false;
+        for (auto it = m_components.rbegin(); it != m_components.rend(); ++it)
+        {
+            Component* comp = *it;
+            if (comp->Contains(pos))
+            {
+                // Check if Ctrl is pressed for multi-selection
+                bool ctrlPressed = event.ControlDown();
+
+                if (comp->IsSelected() && ctrlPressed) {
+                    // If component is already selected and Ctrl is pressed, deselect it
+                    auto it = std::find(m_selectedComponents.begin(), m_selectedComponents.end(), comp);
+                    if (it != m_selectedComponents.end()) {
+                        m_selectedComponents.erase(it);
+                        comp->SetSelected(false);
+
+                        // Update the primary selection to the last selected component
+                        if (!m_selectedComponents.empty()) {
+                            m_selectedComponent = m_selectedComponents.back();
+                        } else {
+                            m_selectedComponent = nullptr;
+                        }
+                    }
+                } else if (!comp->IsSelected()) {
+                    // If component is not selected, select it
+                    if (!ctrlPressed) {
+                        // If Ctrl is not pressed, clear previous selection
+                        ClearSelection();
+                    }
+
+                    // Add the component to selection
+                    m_selectedComponents.push_back(comp);
+                    comp->SetSelected(true);
+                    m_selectedComponent = comp;
+
+                    // Notify that selection changed if callback is set
+                    if (m_selectionChangedCallback) {
+                        m_selectionChangedCallback(comp);
+                    }
+                }
+
+                componentClicked = true;
+                m_dragging = true;
+                m_lastMousePos = pos;
+
+                // Store the original positions of all selected components for potential move command
+                m_originalPositions.clear();
+                for (Component* c : m_selectedComponents) {
+                    m_originalPositions[c] = c->GetPosition();
+                }
+                break;
+            }
+        }
+
+        if (!componentClicked) {
+            // Clicked on empty space - deselect all (unless Shift is pressed for marquee selection)
+            if (!event.ShiftDown()) {
+                ClearSelection();
+            }
+
+            m_dragging = true;
+            m_lastMousePos = pos;
+        }
+    }
+
+    CaptureMouse();
+    Refresh();
+}
+
+#include "UndoRedo.h"
 
 CircuitCanvas::CircuitCanvas(wxWindow* parent, wxWindowID id)
     : wxPanel(parent, id), m_dragging(false), m_selectedComponent(nullptr), 
@@ -873,12 +772,12 @@ void NORGateComponent::Draw(wxDC& dc)
     dc.SetBrush(*wxWHITE_BRUSH);
     dc.DrawPolygon(3, gatePoints);
     
-    // Draw the arc for NOR
-    dc.DrawArc(bodyRect.x, bodyRect.y + bodyRect.height/2, 
-               bodyRect.x + 15, bodyRect.y + bodyRect.height/2,
+    // Draw the arc for NOR - using 3 wxPoint parameters (start, end, center)
+    dc.DrawArc(wxPoint(bodyRect.x, bodyRect.y + bodyRect.height/2), 
+               wxPoint(bodyRect.x + 15, bodyRect.y + bodyRect.height/2),
                wxPoint(bodyRect.x + 15, bodyRect.y));
-    dc.DrawArc(bodyRect.x, bodyRect.y + bodyRect.height/2, 
-               bodyRect.x + 15, bodyRect.y + bodyRect.height/2,
+    dc.DrawArc(wxPoint(bodyRect.x, bodyRect.y + bodyRect.height/2), 
+               wxPoint(bodyRect.x + 15, bodyRect.y + bodyRect.height/2),
                wxPoint(bodyRect.x + 15, bodyRect.y + bodyRect.height));
     
     // Draw the bubble (inversion) at the output
@@ -1402,14 +1301,7 @@ void CircuitCanvas::OnPaint(wxPaintEvent& event)
     // If in wire creation mode, draw the temporary wire
     if (m_wireCreationMode && m_startPin)
     {
-        if (IsActive())
-        {
-            dc.SetPen(wxPen(wxColour(0, 255, 0), 2)); // Green for active signal
-        }
-        else
-        {
-            dc.SetPen(wxPen(*wxBLACK, 1)); // Black for inactive
-        }
+        dc.SetPen(wxPen(*wxBLACK, 1)); // Black for inactive
         
         wxPoint start = m_startPin->GetPosition();
         wxPoint end = m_currentWireEndPoint;
@@ -1725,3 +1617,17 @@ void CircuitCanvas::OnKeyDown(wxKeyEvent& event)
         event.Skip();  // Let other keys be handled normally
     }
 }
+
+wxBEGIN_EVENT_TABLE(CircuitCanvas, wxPanel)
+    EVT_PAINT(CircuitCanvas::OnPaint)
+    EVT_SIZE(CircuitCanvas::OnSize)
+    EVT_LEFT_DOWN(CircuitCanvas::OnMouseLeftDown)
+    EVT_LEFT_UP(CircuitCanvas::OnMouseLeftUp)
+    EVT_MOTION(CircuitCanvas::OnMouseMotion)
+    EVT_RIGHT_DOWN(CircuitCanvas::OnMouseRightDown)
+    EVT_MIDDLE_DOWN(CircuitCanvas::OnMiddleMouseDown)
+    EVT_MIDDLE_UP(CircuitCanvas::OnMiddleMouseUp)
+    EVT_MOUSEWHEEL(CircuitCanvas::OnMouseWheel)
+    EVT_KEY_DOWN(CircuitCanvas::OnKeyDown)
+    EVT_TIMER(wxID_ANY, CircuitCanvas::OnAnimationTimer)
+wxEND_EVENT_TABLE()

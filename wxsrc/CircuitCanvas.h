@@ -7,10 +7,16 @@
 #include <vector>
 #include <algorithm>  // For std::find
 #include <functional>
+#include <memory>     // For std::unique_ptr
+#include <map>        // For std::map
 
-// Forward declaration
+// Forward declarations
 class Component;
 class Wire;
+class CircuitData;      // Forward declaration for CircuitData
+class UndoCommand;      // Forward declaration for UndoCommand
+class UndoRedoManager;  // Forward declaration for UndoRedoManager
+class Pin;              // Forward declaration for Pin class
 
 class CircuitCanvas : public wxPanel
 {
@@ -123,9 +129,6 @@ private:
     wxPoint m_panOffset;
     wxPoint m_lastMousePosition;
     bool m_panning;
-    
-    // Store original positions during drag operations for multi-selection
-    std::map<Component*, wxPoint> m_originalPositions;
     
     // Simulation
     class SimulationController* m_simulationController;

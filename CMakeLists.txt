@@ -4,11 +4,27 @@ project(ProtoVM_GUI)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Find wxWidgets package
-find_package(wxWidgets REQUIRED COMPONENTS core base)
+# Use wx-config to get compiler and linker flags
+find_program(WX_CONFIG_PROGRAM NAMES wx-config)
+if(NOT WX_CONFIG_PROGRAM)
+    message(FATAL_ERROR "wx-config not found. Please install wxWidgets development libraries.")
+endif()
 
-# Include wxWidgets use file
-include(${wxWidgets_USE_FILE})
+# Execute wx-config to get flags
+execute_process(
+    COMMAND ${WX_CONFIG_PROGRAM} --cxxflags
+    OUTPUT_VARIABLE WX_CXX_FLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+execute_process(
+    COMMAND ${WX_CONFIG_PROGRAM} --libs core,base,propgrid,adv
+    OUTPUT_VARIABLE WX_LIBS
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Add the flags to the compilation
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WX_CXX_FLAGS}")
 
 # Add all source files
 set(SOURCES
@@ -40,11 +56,8 @@ set(HEADERS
 # Create executable
 add_executable(protovm_gui ${SOURCES} ${HEADERS})
 
-# Find and include property grid library
-find_package(wxWidgets COMPONENTS core base propgrid adv REQUIRED)
+# Separate the libraries for target_link_libraries
+separate_arguments(WX_LIBS_LIST NATIVE_COMMAND "${WX_LIBS}")
 
-# Link wxWidgets libraries
-target_link_libraries(protovm_gui ${wxWidgets_LIBRARIES})
-
-# Include directories
-target_include_directories(protovm_gui PRIVATE ${wxWidgets_INCLUDE_DIRS})
+# Link the libraries
+target_link_libraries(protovm_gui ${WX_LIBS_LIST})

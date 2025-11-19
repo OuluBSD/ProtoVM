@@ -18,7 +18,7 @@ struct SimulationState {
     long timestamp; // Time when this state was computed
 };
 
-class SimulationController {
+class SimulationController : public wxEvtHandler {
 public:
     SimulationController();
     

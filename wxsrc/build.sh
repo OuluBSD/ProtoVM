@@ -5,17 +5,9 @@ set -e  # Exit on any error
 
 echo "ProtoVM GUI Build Script"
 
-# Check for wxWidgets installation using different possible package names
-WX_CONFIG=""
-for pkg in wxwidgets wxWidgets-3.2 wxWidgets-3.0 wxgtk3.2 wxgtk3.0; do
-    if pkg-config --exists "$pkg"; then
-        WX_CONFIG="$pkg"
-        break
-    fi
-done
-
-if [ -z "$WX_CONFIG" ]; then
-    echo "Error: wxWidgets is not installed or not found in pkg-config"
+# Check for wxWidgets installation using wx-config
+if ! command -v wx-config &> /dev/null; then
+    echo "Error: wx-config is not found. wxWidgets is not installed properly."
     echo "Please install wxWidgets development libraries:"
     echo "  Ubuntu/Debian: sudo apt-get install libwxgtk3.2-dev"
     echo "  Or try: sudo apt-get install libwxgtk3.0-gtk3-dev"
@@ -24,7 +16,18 @@ if [ -z "$WX_CONFIG" ]; then
     exit 1
 fi
 
-echo "Found wxWidgets package: $WX_CONFIG"
+# Get wxWidgets version to confirm installation
+WX_VERSION=$(wx-config --version)
+if [ -z "$WX_VERSION" ]; then
+    echo "Error: wx-config exists but cannot retrieve version information"
+    exit 1
+fi
+
+echo "Found wxWidgets version: $WX_VERSION"
+
+# Get the project root directory (parent of wxsrc)
+PROJECT_ROOT=$(cd "$(dirname "$0")/.." && pwd)
+cd "$PROJECT_ROOT"
 
 # Create build directory if it doesn't exist
 mkdir -p build

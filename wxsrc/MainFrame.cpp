@@ -3,6 +3,9 @@
 #include "PropertiesPanel.h"
 #include "ComponentPalette.h"
 #include "SimulationController.h"
+#include "CircuitData.h"
+#include "CircuitSerializer.h"
+#include <wx/artprov.h>
 
 // Event table for MainFrame
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
@@ -134,7 +137,7 @@ void MainFrame::CreateToolbar()
 
 void MainFrame::CreateStatusBar()
 {
-    CreateStatusBar(2);
+    wxFrame::CreateStatusBar(2);
     SetStatusText("Ready", 0);
     SetStatusText("No project loaded", 1);
 }
@@ -323,15 +326,6 @@ void MainFrame::OnSaveProjectAs(wxCommandEvent& event)
 void MainFrame::OnToggleWireMode(wxCommandEvent& event)
 {
     wxMessageBox("Wire mode toggle functionality would be implemented here.\n\nIn a full implementation, this would toggle the circuit canvas into wire creation mode where users can connect component pins by right-clicking on a pin and then left-clicking on another pin.", "Wire Mode", wxOK | wxICON_INFORMATION, this);
-}
-
-void MainFrame::OnStartSimulation(wxCommandEvent& event)
-{
-    if (m_canvas)
-    {
-        m_canvas->StartAnimation();
-        SetStatusText("Simulation started", 0);
-    }
 }
 
 void MainFrame::OnStartSimulation(wxCommandEvent& event)

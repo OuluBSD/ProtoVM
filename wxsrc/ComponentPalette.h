@@ -3,6 +3,8 @@
 
 #include <wx/wx.h>
 #include <wx/clrpicker.h>
+#include <wx/listctrl.h>
+#include <wx/dnd.h>
 #include <vector>
 
 class ComponentPalette : public wxPanel
@@ -15,7 +17,7 @@ private:
     void PopulateComponents();
     void OnSearchText(wxCommandEvent& event);
     void OnCategorySelect(wxCommandEvent& event);
-    void OnComponentSelect(wxCommandEvent& event);
+    void OnComponentSelect(wxListEvent& event);
     void OnDragInit(wxListEvent& event);
     
     wxTextCtrl* m_searchCtrl;

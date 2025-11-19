@@ -7,7 +7,6 @@ wxBEGIN_EVENT_TABLE(ComponentPalette, wxPanel)
     EVT_TEXT(wxID_ANY, ComponentPalette::OnSearchText)
     EVT_CHOICE(wxID_ANY, ComponentPalette::OnCategorySelect)
     EVT_LIST_ITEM_ACTIVATED(wxID_ANY, ComponentPalette::OnComponentSelect)
-    EVT_LIST_ITEM_BEGIN_DRAG(wxID_ANY, ComponentPalette::OnDragInit)
 wxEND_EVENT_TABLE()
 
 ComponentPalette::ComponentPalette(wxWindow* parent, wxWindowID id)
@@ -114,9 +113,9 @@ void ComponentPalette::OnCategorySelect(wxCommandEvent& event)
     }
 }
 
-void ComponentPalette::OnComponentSelect(wxCommandEvent& event)
+void ComponentPalette::OnComponentSelect(wxListEvent& event)
 {
-    long selectedIndex = m_componentList->GetFirstSelected();
+    long selectedIndex = event.GetIndex();
     if (selectedIndex == -1) return;
     
     wxString* componentNamePtr = reinterpret_cast<wxString*>(m_componentList->GetItemData(selectedIndex));
@@ -127,18 +126,3 @@ void ComponentPalette::OnComponentSelect(wxCommandEvent& event)
     }
 }
 
-void ComponentPalette::OnDragInit(wxListEvent& event)
-{
-    long selectedIndex = event.GetIndex();
-    if (selectedIndex == -1) return;
-    
-    wxString* componentNamePtr = reinterpret_cast<wxString*>(m_componentList->GetItemData(selectedIndex));
-    if (componentNamePtr) {
-        // Create a data object with the component name
-        wxTextDataObject dataObj(*componentNamePtr);
-        
-        // Create a drop source and start drag operation
-        wxDropSource dropSource(dataObj, this);
-        dropSource.DoDragDrop(wxDrag_CopyOnly);
-    }
-}

@@ -28,7 +28,9 @@ private:
     void OnSaveProjectAs(wxCommandEvent& event);
     void OnToggleWireMode(wxCommandEvent& event);
     void OnStartSimulation(wxCommandEvent& event);
+    void OnPauseSimulation(wxCommandEvent& event);
     void OnStopSimulation(wxCommandEvent& event);
+    void OnStepSimulation(wxCommandEvent& event);
     void OnUndo(wxCommandEvent& event);
     void OnRedo(wxCommandEvent& event);
     void OnToggleGrid(wxCommandEvent& event);
@@ -36,10 +38,6 @@ private:
     void OnZoomIn(wxCommandEvent& event);
     void OnZoomOut(wxCommandEvent& event);
     void OnZoomReset(wxCommandEvent& event);
-    void OnStartSimulation(wxCommandEvent& event);
-    void OnPauseSimulation(wxCommandEvent& event);
-    void OnStopSimulation(wxCommandEvent& event);
-    void OnStepSimulation(wxCommandEvent& event);
 
     CircuitCanvas* m_canvas;
     PropertiesPanel* m_propertiesPanel;

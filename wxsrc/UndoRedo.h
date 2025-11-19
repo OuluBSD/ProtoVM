@@ -1,6 +1,7 @@
 #ifndef UNDOREDO_H
 #define UNDOREDO_H
 
+#include <wx/wx.h>
 #include <vector>
 #include <memory>
 

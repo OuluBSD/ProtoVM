@@ -1,6 +1,7 @@
 #ifndef _ProtoVM_AnalogCommon_h_
 #define _ProtoVM_AnalogCommon_h_
 
+#include "Common.h"  // Include Common.h to get ElectricNodeBase definition
 #include <vector>
 #include <cmath>
 

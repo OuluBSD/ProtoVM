@@ -22,7 +22,7 @@ public:
     void setInputA(const std::vector<bool>& value);
     void setInputB(const std::vector<bool>& value);
     void setCarryIn(bool carry) { carryIn = carry; }
-    void setOperation(int op) { operation = op; }  // 0=ADD, 1=SUB, 2=MUL, 3=DIV, etc.
+    virtual void setOperation(int op) { operation = op; }  // 0=ADD, 1=SUB, 2=MUL, 3=DIV, etc.
     
     // Get results
     std::vector<bool> getResult() const { return result; }
@@ -63,7 +63,7 @@ protected:
     std::vector<std::unique_ptr<TubeFullAdder>> adders;
     
     void initialize();
-    void performOperation();
+    virtual void performOperation();
     void updateFlags();
 };
 
@@ -226,7 +226,7 @@ public:
     
     // Operations
     void setOperation(int op) { operation = op; }  // 0=ADD, 1=SUB
-    void performOperation();
+    virtual void performOperation();
     
     int getDigits() const { return digits; }
 

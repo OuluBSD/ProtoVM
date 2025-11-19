@@ -63,10 +63,10 @@ protected:
 };
 
 // SR Latch using tubes
-class TubeSRLatch : public TubeLatchFlipFlop {
+class TubeSRLatchFF : public TubeLatchFlipFlop {
 public:
-    TubeSRLatch();
-    virtual ~TubeSRLatch() = default;
+    TubeSRLatchFF();
+    virtual ~TubeSRLatchFF() = default;
 
 protected:
     virtual void processOperation() override;
@@ -91,10 +91,10 @@ protected:
 };
 
 // D Flip-Flop using tubes (master-slave configuration)
-class TubeDFlipFlop : public TubeLatchFlipFlop {
+class TubeDFlipFlopFF : public TubeLatchFlipFlop {
 public:
-    TubeDFlipFlop();
-    virtual ~TubeDFlipFlop() = default;
+    TubeDFlipFlopFF();
+    virtual ~TubeDFlipFlopFF() = default;
     
     // Set clock edge sensitivity
     void setRisingEdgeTriggered(bool rising) { risingEdgeTriggered = rising; }
@@ -117,10 +117,10 @@ protected:
 };
 
 // JK Flip-Flop using tubes
-class TubeJKFlipFlop : public TubeLatchFlipFlop {
+class TubeJKFlipFlopFF : public TubeLatchFlipFlop {
 public:
-    TubeJKFlipFlop();
-    virtual ~TubeJKFlipFlop() = default;
+    TubeJKFlipFlopFF();
+    virtual ~TubeJKFlipFlopFF() = default;
 
 protected:
     virtual void processOperation() override;
@@ -175,11 +175,11 @@ public:
     bool getValue(int bit) const;
     
     // Get access to individual flip-flops
-    TubeDFlipFlop* getFlipFlop(int index) { return flipFlops[index].get(); }
+    TubeDFlipFlopFF* getFlipFlop(int index) { return flipFlops[index].get(); }
 
 private:
     int width;
-    std::vector<std::unique_ptr<TubeDFlipFlop>> flipFlops;
+    std::vector<std::unique_ptr<TubeDFlipFlopFF>> flipFlops;
     std::vector<bool> currentValue;
     
     void updateValue();
@@ -209,7 +209,7 @@ public:
 
 private:
     int width;
-    std::vector<std::unique_ptr<TubeDFlipFlop>> flipFlops;
+    std::vector<std::unique_ptr<TubeDFlipFlopFF>> flipFlops;
     std::vector<bool> currentValue;
     bool serialInputBit = false;
     

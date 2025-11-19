@@ -38,7 +38,7 @@ public:
     int getMaxCount() const { return maxCount; }
     
     // Clock the counter
-    void clock();
+    virtual void clock();
 
 protected:
     int width;

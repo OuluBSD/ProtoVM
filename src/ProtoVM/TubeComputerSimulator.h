@@ -121,7 +121,7 @@ public:
     
     // Get/set memory size
     void SetMemorySize(int words) { memory_size = std::max(64, std::min(65536, words)); }
-    int GetMemorySize() const { return memory_size; }
+    int GetMemorySize() const override { return memory_size; }
     
     // Enable/disable the computer
     void SetEnabled(bool enabled) { is_enabled = enabled; }
@@ -172,7 +172,7 @@ public:
     int GetOperationCount() const { return operation_count; }
     
     // Get power consumption
-    double GetPowerConsumption() const override;
+    double GetPowerConsumption() const;
     
     // Get simulation statistics
     double GetSimulationTime() const { return simulation_time; }
@@ -216,7 +216,7 @@ protected:
     std::map<std::string, int> register_map;
     
     // Components of the computer
-    std::unique_ptr<TubeClockGenerator> clock_generator;
+    std::unique_ptr<TubeClockOscillator> clock_generator;
     std::unique_ptr<TubeALU> alu;
     std::unique_ptr<TubeRegisterBank> register_bank;
     std::unique_ptr<TubeCounterArray> counter_array;

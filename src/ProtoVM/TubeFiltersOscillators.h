@@ -7,7 +7,7 @@
 #include <memory>
 
 // Class for tube-based filter circuits
-class TubeFilter : public ElectricNodeBase {
+class TubeFilterCircuit : public ElectricNodeBase {
 public:
     enum FilterType {
         LOWPASS,
@@ -25,8 +25,8 @@ public:
         TUBE_RC_LPF       // RC filter with tube buffering
     };
     
-    TubeFilter(FilterType type = LOWPASS, CircuitTopology topology = TUBE_RC_LPF);
-    virtual ~TubeFilter() = default;
+    TubeFilterCircuit(FilterType type = LOWPASS, CircuitTopology topology = TUBE_RC_LPF);
+    virtual ~TubeFilterCircuit() = default;
     
     virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
@@ -84,7 +84,7 @@ private:
 };
 
 // Class for tube-based oscillator circuits
-class TubeOscillator : public ElectricNodeBase {
+class TubeOscillatorCircuit : public ElectricNodeBase {
 public:
     enum OscillatorType {
         HARTLEY,
@@ -102,8 +102,8 @@ public:
         SQUARE
     };
     
-    TubeOscillator(OscillatorType type = WIEN_BRIDGE);
-    virtual ~TubeOscillator() = default;
+    TubeOscillatorCircuit(OscillatorType type = WIEN_BRIDGE);
+    virtual ~TubeOscillatorCircuit() = default;
     
     virtual bool Process(ProcessType type, int bytes, int bits, uint16 conn_id, ElectricNodeBase& dest, uint16 dest_conn_id) override;
     virtual bool PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) override;
@@ -175,7 +175,7 @@ private:
 };
 
 // Class for voltage-controlled tube oscillator
-class TubeVCO : public TubeOscillator {
+class TubeVCO : public TubeOscillatorCircuit {
 public:
     TubeVCO();
     virtual ~TubeVCO() = default;

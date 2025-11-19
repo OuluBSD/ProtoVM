@@ -13,6 +13,31 @@
 #include <unordered_map>
 #include <string>
 
+// Forward declarations for standard tube components
+class TubeCounterRegister;
+
+// Structure for tube information
+struct TubeInfo {
+    std::string type;                    // Type of tube (e.g., "12AX7", "6SN7", etc.)
+    std::string description;             // Description of the tube
+    int pin_count;                       // Number of pins
+    std::vector<std::string> pin_names;  // Names of pins
+    double mu;                           // Amplification factor
+    double gm;                           // Transconductance
+    double rp;                           // Plate resistance
+    double c_out;                        // Output capacitance
+    double c_in;                         // Input capacitance
+    double c_grid;                       // Grid-to-plate capacitance
+    double max_plate_voltage;            // Maximum plate voltage
+    double max_plate_dissipation;        // Maximum plate dissipation
+    double heater_voltage;               // Heater voltage
+    bool heater_ac;                      // Whether heater is AC or DC
+    double heater_current;               // Heater current
+    double base_current;                 // Base current for calculating gain
+    double min_frequency;                // Minimum operating frequency
+    double max_frequency;                // Maximum operating frequency
+};
+
 // Enum for standard logic ICs
 enum class StandardLogicIC {
     // Basic gates (equivalent to 74xx series)
@@ -244,7 +269,7 @@ protected:
     int register_width;
     std::vector<unsigned int> register_values;
     std::vector<bool> write_enables;
-    std::vector<std::unique_ptr<TubeSimpleRegister>> registers;
+    std::vector<std::unique_ptr<TubeRegister>> registers;
     double clock_signal;
     double enable_signal;
     
@@ -255,14 +280,14 @@ protected:
 };
 
 // Class for tube-based ALU
-class TubeALU : public TubeStandardLogicComponent {
+class TubeALULogicLibrary : public TubeStandardLogicComponent {
 public:
-    typedef TubeALU CLASSNAME;
+    typedef TubeALULogicLibrary CLASSNAME;
 
-    TubeALU(int data_width = 8);
-    virtual ~TubeALU() {}
+    TubeALULogicLibrary(int data_width = 8);
+    virtual ~TubeALULogicLibrary() {}
 
-    virtual String GetClassName() const override { return "TubeALU"; }
+    virtual String GetClassName() const override { return "TubeALULogicLibrary"; }
     
     // Set/get operands
     void SetOperandA(unsigned int value);
@@ -337,7 +362,7 @@ protected:
     std::vector<double> clock_signals;
     std::vector<double> enable_signals;
     std::vector<double> reset_signals;
-    std::vector<std::unique_ptr<TubeCounterRegister>> counters;
+    std::vector<std::unique_ptr<TubeCounter>> counters;
     bool cascade_enabled;
     
     virtual void ProcessComponent() override;

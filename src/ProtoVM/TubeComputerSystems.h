@@ -197,7 +197,7 @@ public:
     TubeAccumulator* getAccumulator() { return accumulator.get(); }
     
     // Get system state
-    int getProgramCounter() const { return programCounter; }
+    int getProgramCounter() const { return currentProgramCounter; }
     bool isRunning() const { return running; }
 
 private:
@@ -209,12 +209,12 @@ private:
     std::unique_ptr<TubeAccumulator> accumulator;
     
     // Control unit components
-    std::unique_ptr<TubeCounter> programCounter;
+    std::unique_ptr<TubeCounter> pcCounter;
     std::unique_ptr<TubeRegister> instructionRegister;
     std::unique_ptr<TubeCounter> stepCounter;
     
     // System state
-    int programCounter = 0;
+    int currentProgramCounter = 0;
     std::vector<std::vector<bool>> programMemory;
     bool running = false;
     bool stopped = true;

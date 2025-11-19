@@ -80,8 +80,8 @@ void TubeLatchFlipFlop::updateOutputs() {
 }
 
 
-// TubeSRLatch implementation
-TubeSRLatch::TubeSRLatch() {
+// TubeSRLatchFF implementation
+TubeSRLatchFF::TubeSRLatchFF() {
     // Set pin assignments
     clockPin = -1;  // SR latch doesn't have a clock
     dataPin = -1;   // No single data pin
@@ -93,7 +93,7 @@ TubeSRLatch::TubeSRLatch() {
     groundPin = 5;  // Ground
 }
 
-void TubeSRLatch::processOperation() {
+void TubeSRLatchFF::processOperation() {
     // The logic is handled in PutRaw when inputs change
     // This is a simple SR latch: if S=1, R=0 -> Q=1; if S=0, R=1 -> Q=0; if S=R=0 -> no change; S=R=1 -> invalid
 }
@@ -157,8 +157,8 @@ void TubeDLatch::processOperation() {
 }
 
 
-// TubeDFlipFlop implementation
-TubeDFlipFlop::TubeDFlipFlop() {
+// TubeDFlipFlopFF implementation
+TubeDFlipFlopFF::TubeDFlipFlopFF() {
     // Set pin assignments
     clockPin = 0;    // Clock input
     dataPin = 1;     // D input
@@ -177,7 +177,7 @@ TubeDFlipFlop::TubeDFlipFlop() {
     qBarState = true;
 }
 
-bool TubeDFlipFlop::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool TubeDFlipFlopFF::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
     if (conn_id == dataPin && data_bytes == sizeof(double)) {
         double value;
         memcpy(&value, data, sizeof(double));
@@ -232,14 +232,14 @@ bool TubeDFlipFlop::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_
     return false;
 }
 
-void TubeDFlipFlop::processOperation() {
+void TubeDFlipFlopFF::processOperation() {
     // The operation is handled in PutRaw for edge-based updates
     // This maintains the current state between clock edges
 }
 
 
-// TubeJKFlipFlop implementation
-TubeJKFlipFlop::TubeJKFlipFlop() {
+// TubeJKFlipFlopFF implementation
+TubeJKFlipFlopFF::TubeJKFlipFlopFF() {
     // Set pin assignments
     clockPin = 0;    // Clock input
     dataPin = -1;    // J input (will repurpose dataPin)
@@ -253,7 +253,7 @@ TubeJKFlipFlop::TubeJKFlipFlop() {
     groundPin = 8;   // Ground
 }
 
-bool TubeJKFlipFlop::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
+bool TubeJKFlipFlopFF::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data_bits) {
     if (conn_id == 1 && data_bytes == sizeof(double)) {  // J input
         double value;
         memcpy(&value, data, sizeof(double));
@@ -324,7 +324,7 @@ bool TubeJKFlipFlop::PutRaw(uint16 conn_id, byte* data, int data_bytes, int data
     return false;
 }
 
-void TubeJKFlipFlop::processOperation() {
+void TubeJKFlipFlopFF::processOperation() {
     // The operation is handled in PutRaw for edge-based updates
 }
 
@@ -403,7 +403,7 @@ TubeRegister::TubeRegister(int width) : width(width) {
     
     // Create D flip-flops for each bit
     for (int i = 0; i < width; i++) {
-        flipFlops[i] = std::make_unique<TubeDFlipFlop>();
+        flipFlops[i] = std::make_unique<TubeDFlipFlopFF>();
     }
 }
 
@@ -482,7 +482,7 @@ TubeShiftRegister::TubeShiftRegister(int width) : width(width) {
     
     // Create D flip-flops for each stage
     for (int i = 0; i < width; i++) {
-        flipFlops[i] = std::make_unique<TubeDFlipFlop>();
+        flipFlops[i] = std::make_unique<TubeDFlipFlopFF>();
     }
 }
 

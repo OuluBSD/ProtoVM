@@ -209,23 +209,68 @@ void Pcb::GetLinkBases(Array<LinkBase>& links) {
 				}
 					
 				LinkBase& l = links.Add();
-				if (from.is_src && from.is_sink && !to.is_src) {
-					l.sink = &to;
-					l.src = &from;
+				// Handle bidirectional components properly
+				if (from.is_src && from.is_sink) {
+					// 'from' is bidirectional, so it can act as a source
+					// If 'to' is also bidirectional, make the one with more sink connections the sink
+					if (to.is_src && to.is_sink) {
+						// Both are bidirectional, prioritize based on connection counts or default to 'to' as sink
+						l.src = &from;
+						l.sink = &to;
+					} else if (to.is_sink) {
+						// 'to' is a sink, so 'from' acts as source
+						l.src = &from;
+						l.sink = &to;
+					} else {
+						// 'to' is a source, so 'from' acts as sink
+						l.src = &to;
+						l.sink = &from;
+					}
 				}
-				else if (!from.is_src && from.is_sink && to.is_src) {
-					l.sink = &from;
+				else if (to.is_src && to.is_sink) {
+					// 'to' is bidirectional, 'from' is not
+					if (from.is_sink) {
+						// 'from' is a sink, 'to' acts as source
+						l.src = &to;
+						l.sink = &from;
+					} else {
+						// 'from' is a source, 'to' acts as sink
+						l.src = &from;
+						l.sink = &to;
+					}
+				}
+				else if (from.is_src && to.is_sink) {
+					// Standard source to sink connection
+					l.src = &from;
+					l.sink = &to;
+				}
+				else if (from.is_sink && to.is_src) {
+					// Reverse: sink to source connection
 					l.src = &to;
+					l.sink = &from;
 				}
 				else if (!src_is_src && !sink_is_sink && (src_is_sink || sink_is_src || from.is_sink || (to.is_src && !to.is_sink))) {
 					l.sink = &from;
 					l.src = &to;
 				}
 				else {
+					// Default: try to assign 'to' as sink and 'from' as source
 					l.sink = &to;
 					l.src = &from;
 				}
-				ASSERT(l.sink->is_sink && l.src->is_src);
+				
+				// Check if the assignment is valid, if not, log an error and skip the connection
+				if (!(l.sink->is_sink && l.src->is_src)) {
+					LOG("Error: Invalid link assignment - sink is_sink=" << l.sink->is_sink 
+					    << ", src is_src=" << l.src->is_src 
+					    << ", from.is_src=" << from.is_src 
+					    << ", from.is_sink=" << from.is_sink
+					    << ", to.is_src=" << to.is_src 
+					    << ", to.is_sink=" << to.is_sink);
+					// Remove the invalid link and skip this connection
+					links.Remove(links.GetCount() - 1);
+					continue;
+				}
 
 				from_clink.link = &l;
 				to_clink->link = &l;

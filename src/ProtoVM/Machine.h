@@ -2,6 +2,10 @@
 
 #include <queue>
 #include <functional>
+#include "Link.h"  // For LinkBaseMap definition
+#include "Pcb.h"  // For Pcb class
+#include "Component.h"  // For ElectricNodeBase
+#include "Common.h"  // For basic types
 
 
 

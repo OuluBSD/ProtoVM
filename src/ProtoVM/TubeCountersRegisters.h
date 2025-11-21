@@ -43,7 +43,7 @@ public:
 protected:
     int width;
     std::vector<bool> currentValue;
-    std::vector<std::unique_ptr<TubeDFlipFlop>> flipFlops;
+    std::vector<std::unique_ptr<TubeDFlipFlopFF>> flipFlops;
     
     // Counter configuration
     bool countingEnabled = true;
@@ -151,7 +151,7 @@ public:
 private:
     int width;
     std::vector<bool> currentValue;
-    std::vector<std::unique_ptr<TubeDFlipFlop>> flipFlops;
+    std::vector<std::unique_ptr<TubeDFlipFlopFF>> flipFlops;
     bool outputEnabled = true;
     
     // Pin assignments
@@ -207,7 +207,7 @@ public:
 private:
     int width;
     std::vector<bool> currentValue;
-    std::vector<std::unique_ptr<TubeDFlipFlop>> flipFlops;
+    std::vector<std::unique_ptr<TubeDFlipFlopFF>> flipFlops;
     
     // Control signals
     ShiftMode shiftMode = NOP;

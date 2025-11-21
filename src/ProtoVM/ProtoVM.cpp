@@ -19,20 +19,7 @@
 #include "AnalogSimulation.h"
 #include "RCOscillator.h"
 
-// Include the implementation files to be compiled as part of the main module
-#include "AnalogCommon.cpp"
-#include "AnalogComponents.cpp"
-#include "AnalogSemiconductors.cpp"
-#include "AnalogSimulation.cpp"
-#include "RCOscillator.cpp"
-#include "MinimaxCADC.cpp"
-#include "AnalogResistorTest.cpp"
-#include "AnalogCapacitorTest.cpp"
-#include "AnalogRCTest.cpp"
-#include "AnalogSimulationTest.cpp"
-#include "MDS1104SchematicTool.cpp"
-#include "TriodeTubeModel.cpp"
-// AnalogAudioTest.cpp is compiled separately in the .upp file
+
 /*
 LinkBases:
 	- https://github.com/vygr/C-PCB

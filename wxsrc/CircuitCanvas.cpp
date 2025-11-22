@@ -2,8 +2,11 @@
 #include "CircuitData.h"
 #include "UndoRedo.h"
 #include "SimulationController.h"
+#include "CircuitAnalysis.h"  // Include circuit analysis
 #include <wx/dcbuffer.h>
 #include <memory>
+#include <unordered_map>
+#include <unordered_set>
 
 // Forward declaration of MainFrame to access properties panel
 class MainFrame;
@@ -110,45 +113,32 @@ void CircuitCanvas::SerializeToData(CircuitData& data) const
         data.components.push_back(compData);
     }
     
-    // Convert each wire in the canvas to WireData
+    // Precompute component index mapping for efficient wire serialization
+    std::unordered_map<const Component*, int> compToIndex;
+    for (size_t i = 0; i < m_components.size(); ++i) {
+        compToIndex[m_components[i]] = i;
+    }
+
+    // Convert each wire in the canvas to WireData with better performance
+    data.wires.reserve(m_wires.size()); // Reserve space to avoid repeated allocations
+    
     for (size_t i = 0; i < m_wires.size(); ++i)
     {
         Wire* wire = m_wires[i];
+
+        // Use helper function to find components that own these pins
+        Component* startComp = GetComponentForPin(wire->GetStartPin());
+        Component* endComp = GetComponentForPin(wire->GetEndPin());
+
+        auto startIt = compToIndex.find(startComp);
+        auto endIt = compToIndex.find(endComp);
         
-        // Find the component indices for the start and end pins
-        int startCompId = -1;
-        int endCompId = -1;
-        
-        for (size_t j = 0; j < m_components.size(); ++j)
-        {
-            Component* comp = m_components[j];
-            bool foundStart = false;
-            bool foundEnd = false;
-            
-            // Check if the wire's start pin belongs to this component
-            for (const Pin& pin : comp->GetInputPins())
-            {
-                if (&pin == wire->GetStartPin() || &pin == wire->GetEndPin()) {
-                    if (&pin == wire->GetStartPin()) startCompId = j;
-                    if (&pin == wire->GetEndPin()) endCompId = j;
-                }
-            }
-            
-            for (const Pin& pin : comp->GetOutputPins())
-            {
-                if (&pin == wire->GetStartPin() || &pin == wire->GetEndPin()) {
-                    if (&pin == wire->GetStartPin()) startCompId = j;
-                    if (&pin == wire->GetEndPin()) endCompId = j;
-                }
-            }
-        }
-        
-        if (startCompId != -1 && endCompId != -1)
+        if (startIt != compToIndex.end() && endIt != compToIndex.end())
         {
             WireData wireData;
-            wireData.start_component_id = startCompId;
+            wireData.start_component_id = startIt->second;
             wireData.start_pin_name = wire->GetStartPin()->GetName().ToStdString();
-            wireData.end_component_id = endCompId;
+            wireData.end_component_id = endIt->second;
             wireData.end_pin_name = wire->GetEndPin()->GetName().ToStdString();
             
             data.wires.push_back(wireData);
@@ -512,9 +502,15 @@ void CircuitCanvas::OnMouseLeftDown(wxMouseEvent& event)
     }
     else
     {
-        // Check if we clicked on a component
+        // Check if we clicked on a component using spatial indexing for performance with large circuits
         bool componentClicked = false;
-        for (auto it = m_components.rbegin(); it != m_components.rend(); ++it)
+        
+        // Use spatial indexing to find components near the click position
+        wxRect searchArea(pos.x - 10, pos.y - 10, 20, 20);  // Small area around the click
+        std::vector<Component*> nearbyComponents = GetComponentsInArea(searchArea);
+        
+        // Check components in reverse order to get topmost first (like the original implementation)
+        for (auto it = nearbyComponents.rbegin(); it != nearbyComponents.rend(); ++it)
         {
             Component* comp = *it;
             if (comp->Contains(pos))
@@ -595,6 +591,12 @@ CircuitCanvas::CircuitCanvas(wxWindow* parent, wxWindowID id)
     SetBackgroundColour(*wxWHITE);
     SetFocus(); // Allow the canvas to receive keyboard events
     SetDoubleBuffered(true); // Reduce flickering
+    
+    // Initialize spatial index for performance with large circuits
+    RebuildSpatialIndex();
+    
+    // Initialize circuit analyzer
+    m_analyzer = new CircuitAnalyzer(this);
 }
 
 CircuitCanvas::~CircuitCanvas()
@@ -609,11 +611,66 @@ CircuitCanvas::~CircuitCanvas()
         delete m_animationTimer;
         m_animationTimer = nullptr;
     }
+    
+    // Clear spatial grid to avoid dangling pointers
+    m_spatialGrid.clear();
+    
+    // Clean up circuit analyzer
+    if (m_analyzer) {
+        delete m_analyzer;
+        m_analyzer = nullptr;
+    }
+}
+
+// Analysis methods implementation
+CircuitAnalyzer* CircuitCanvas::GetAnalyzer()
+{
+    return m_analyzer;
+}
+
+AnalysisResult CircuitCanvas::PerformCircuitAnalysis()
+{
+    if (m_analyzer) {
+        return m_analyzer->AnalyzeCircuit();
+    }
+    
+    // Return empty result if analyzer is not initialized
+    AnalysisResult result;
+    result.analysisSummary = "Analyzer not initialized";
+    return result;
+}
+
+Component* CircuitCanvas::GetComponentForPin(const Pin* pin) const
+{
+    // Find which component a pin belongs to - this is an expensive operation that should be optimized
+    // In a real implementation, pins would have back-references to their components
+    for (Component* comp : m_components)
+    {
+        // Check input pins
+        std::vector<Pin>& inputs = comp->GetInputPins();
+        for (Pin& p : inputs)
+        {
+            if (&p == pin) {
+                return comp;
+            }
+        }
+
+        // Check output pins
+        std::vector<Pin>& outputs = comp->GetOutputPins();
+        for (Pin& p : outputs)
+        {
+            if (&p == pin) {
+                return comp;
+            }
+        }
+    }
+    return nullptr;
 }
 
 void CircuitCanvas::AddComponent(Component* component)
 {
     m_components.push_back(component);
+    AddComponentToSpatialGrid(component);  // Add to spatial index for performance
     Refresh();
 }
 

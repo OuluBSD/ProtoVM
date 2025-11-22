@@ -21,6 +21,11 @@ set(GUI_TEST_SOURCES
     logic_test.cpp
     simulation_test.cpp
     advanced_logic_test.cpp
+    canvas_component_test.cpp
+    project_test.cpp
+    selection_test.cpp
+    undo_redo_test.cpp
+    properties_test.cpp
 )
 
 # Create executable for GUI tests

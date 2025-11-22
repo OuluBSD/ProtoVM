@@ -9,6 +9,7 @@
 #include <functional>
 #include <memory>     // For std::unique_ptr
 #include <map>        // For std::map
+#include <unordered_map> // For better performance than std::map
 
 // Forward declarations
 class Component;
@@ -18,22 +19,25 @@ class UndoCommand;      // Forward declaration for UndoCommand
 class UndoRedoManager;  // Forward declaration for UndoRedoManager
 class Pin;              // Forward declaration for Pin class
 
+// Spatial hash grid cell size (performance optimization)
+const int GRID_CELL_SIZE = 100;
+
 class CircuitCanvas : public wxPanel
 {
 public:
     CircuitCanvas(wxWindow* parent, wxWindowID id = wxID_ANY);
     virtual ~CircuitCanvas();
-    
+
     void AddComponent(Component* component);
     void AddWire(Wire* wire);
-    
+
     std::vector<Component*>& GetComponents() { return m_components; }
     std::vector<Wire*>& GetWires() { return m_wires; }
-    
+
     // Serialization methods
     void SerializeToData(CircuitData& data) const;
     void DeserializeFromData(const CircuitData& data);
-    
+
     // Animation methods
     void StartAnimation();
     void StopAnimation();
@@ -86,6 +90,13 @@ public:
     void ToggleWireCreationMode(bool enabled) { m_wireCreationMode = enabled; }
     bool IsInWireCreationMode() const { return m_wireCreationMode; }
 
+    // Performance optimization methods
+    void RebuildSpatialIndex();  // Rebuild spatial index for performance optimization
+
+    // Analysis methods
+    class CircuitAnalyzer* GetAnalyzer();  // Get the circuit analyzer instance
+    AnalysisResult PerformCircuitAnalysis();  // Perform comprehensive circuit analysis
+
 protected:
     void OnPaint(wxPaintEvent& event);
     void OnSize(wxSizeEvent& event);
@@ -96,8 +107,12 @@ protected:
     void OnKeyDown(wxKeyEvent& event);
 
 private:
+    // Optimized storage for components and wires
     std::vector<Component*> m_components;
     std::vector<Wire*> m_wires;
+
+    // Spatial index for faster component lookup (performance optimization)
+    std::unordered_map<int, std::vector<Component*>> m_spatialGrid;  // Maps grid cell to components in that cell
     
     // For dragging and selection
     bool m_dragging;
@@ -105,18 +120,18 @@ private:
     wxPoint m_originalComponentPos;  // Original position for the first selected component during drag
     Component* m_selectedComponent;  // Primary selected component
     std::vector<Component*> m_selectedComponents;  // All selected components
-    
+
     // Store original positions during drag operations for multi-selection
-    std::map<Component*, wxPoint> m_originalPositions;
-    
+    std::unordered_map<Component*, wxPoint> m_originalPositions;  // Using unordered_map for faster lookup
+
     // For wire creation
     bool m_wireCreationMode;
     Pin* m_startPin;
     wxPoint m_currentWireEndPoint;
-    
+
     // For animation
     wxTimer* m_animationTimer;
-    
+
     // For undo/redo
     class UndoRedoManager* m_undoRedoManager;
 
@@ -127,13 +142,13 @@ private:
     bool m_gridEnabled;
     bool m_snapToGrid;
     int m_gridSpacing;
-    
+
     // Zoom and pan
     double m_zoomFactor;
     wxPoint m_panOffset;
     wxPoint m_lastMousePosition;
     bool m_panning;
-    
+
     // Simulation
     class SimulationController* m_simulationController;
 
@@ -143,7 +158,14 @@ private:
     void OnMiddleMouseDown(wxMouseEvent& event);
     void OnMiddleMouseUp(wxMouseEvent& event);
     void OnMouseMove(wxMouseEvent& event);
-    
+
+    // Performance optimization helpers
+    int GetGridCellKey(const wxPoint& pos) const;  // Convert position to grid cell key
+    void AddComponentToSpatialGrid(Component* comp);  // Add component to spatial grid
+    void RemoveComponentFromSpatialGrid(Component* comp);  // Remove component from spatial grid
+    std::vector<Component*> GetComponentsInArea(const wxRect& area) const;  // Get components in a specific area
+    Component* GetComponentForPin(const Pin* pin) const;  // Find component that owns a pin (for serialization optimization)
+
     wxDECLARE_EVENT_TABLE();
 };
 
@@ -151,9 +173,9 @@ private:
 class Pin
 {
 public:
-    Pin(int x, int y, const wxString& name, bool isInput) 
+    Pin(int x, int y, const wxString& name, bool isInput)
         : m_pos(x, y), m_name(name), m_isInput(isInput), m_connected(false) {}
-    
+
     wxPoint GetPosition() const { return m_pos; }
     void SetPosition(const wxPoint& pos) { m_pos = pos; }
     wxString GetName() const { return m_name; }
@@ -174,14 +196,14 @@ class Component
 public:
     Component(int x, int y, const wxString& name) : m_pos(x, y), m_name(name), m_selected(false) {}
     virtual ~Component() {}
-    
+
     virtual void Draw(wxDC& dc) = 0;
     virtual bool Contains(const wxPoint& pos) const = 0;
     virtual void Move(int dx, int dy) { m_pos.x += dx; m_pos.y += dy; }
     virtual wxRect GetBounds() const = 0;
     virtual std::vector<Pin>& GetInputPins() = 0;
     virtual std::vector<Pin>& GetOutputPins() = 0;
-    
+
     wxPoint GetPosition() const { return m_pos; }
     void SetPosition(const wxPoint& pos) { m_pos = pos; }
     wxString GetName() const { return m_name; }
@@ -202,14 +224,14 @@ public:
     Wire(Pin* start, Pin* end)
         : m_startPin(start), m_endPin(end), m_active(false), m_propagationPosition(0.0f), m_animationActive(false) {}
     virtual ~Wire() {}
-    
+
     virtual void Draw(wxDC& dc) = 0;
-    
+
     Pin* GetStartPin() const { return m_startPin; }
     Pin* GetEndPin() const { return m_endPin; }
     bool IsActive() const { return m_active; }
     void SetActive(bool active) { m_active = active; }
-    
+
     // Animation methods
     void SetAnimationActive(bool active) { m_animationActive = active; }
     bool IsAnimationActive() const { return m_animationActive; }
@@ -230,7 +252,7 @@ class NANDGateComponent : public Component
 {
 public:
     NANDGateComponent(int x, int y);
-    
+
     virtual void Draw(wxDC& dc) override;
     virtual bool Contains(const wxPoint& pos) const override;
     virtual wxRect GetBounds() const override;
@@ -248,7 +270,7 @@ class NORGateComponent : public Component
 {
 public:
     NORGateComponent(int x, int y);
-    
+
     virtual void Draw(wxDC& dc) override;
     virtual bool Contains(const wxPoint& pos) const override;
     virtual wxRect GetBounds() const override;
@@ -266,7 +288,7 @@ class NOTGateComponent : public Component
 {
 public:
     NOTGateComponent(int x, int y);
-    
+
     virtual void Draw(wxDC& dc) override;
     virtual bool Contains(const wxPoint& pos) const override;
     virtual wxRect GetBounds() const override;
@@ -284,7 +306,7 @@ class BufferComponent : public Component
 {
 public:
     BufferComponent(int x, int y);
-    
+
     virtual void Draw(wxDC& dc) override;
     virtual bool Contains(const wxPoint& pos) const override;
     virtual wxRect GetBounds() const override;
@@ -302,7 +324,7 @@ class SimpleWire : public Wire
 {
 public:
     SimpleWire(Pin* start, Pin* end);
-    
+
     virtual void Draw(wxDC& dc) override;
 };
 

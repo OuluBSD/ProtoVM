@@ -1,12 +1,15 @@
 #ifndef CIRCUIT_ANALYSIS_H
 #define CIRCUIT_ANALYSIS_H
 
-#include "CircuitCanvas.h"
+
 #include <vector>
 #include <string>
 #include <map>
 
 // Forward declarations
+class CircuitCanvas;
+class Component;
+class Wire;
 class CircuitAnalyzer;
 
 // Represents a path in the circuit for analysis
@@ -38,7 +41,7 @@ public:
     virtual ~CircuitAnalyzer() = default;
     
     // Perform comprehensive analysis of the circuit
-    AnalysisResult AnalyzeCircuit();
+    virtual AnalysisResult AnalyzeCircuit();
     
     // Detect feedback loops (critical for sequential circuits)
     std::vector<CircuitPath> DetectFeedbackLoops();

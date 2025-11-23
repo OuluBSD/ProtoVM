@@ -1,219 +1,271 @@
-#include "../../src/ProtoVM/UndoRedo.h"
-#include "../../src/ProtoVM/CircuitCanvas.h"
-#include <cassert>
-#include <iostream>
+#include <gtest/gtest.h>
+#include "../../src/ProtoVM/gui/UndoRedoManager.h"
+#include "../../src/ProtoVM/gui/CircuitComponent.h"
+#include "../../src/ProtoVM/gui/CanvasComponent.h"
 
-void TestUndoRedoManagerBasics() {
-    std::cout << "Testing Undo/Redo Manager Basics..." << std::endl;
+// Test fixture for undo/redo tests
+class UndoRedoTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        canvas = std::make_shared<CircuitCanvas>();
+        undoMgr = std::make_unique<UndoRedoManager>(canvas.get());
+    }
 
-    UndoRedoManager manager;
+    void TearDown() override {
+        canvas.reset();
+        undoMgr.reset();
+    }
 
-    // Test initial state
-    assert(manager.CanUndo() == false);
-    assert(manager.CanRedo() == false);
-    assert(manager.GetUndoActionName() == "None");
-    assert(manager.GetRedoActionName() == "None");
-    std::cout << "✓ Initial state test passed" << std::endl;
+    std::shared_ptr<CircuitCanvas> canvas;
+    std::unique_ptr<UndoRedoManager> undoMgr;
+};
 
-    // Create a simple command for testing
-    NANDGateComponent* comp = new NANDGateComponent(100, 100);
-    CircuitCanvas* canvas = new CircuitCanvas(nullptr, wxID_ANY);
-    canvas->AddComponent(comp);
-
-    // Create an add component command
-    std::unique_ptr<UndoCommand> addCmd = std::make_unique<AddComponentCommand>(canvas, comp);
-
-    // Push the command
-    manager.PushCommand(std::move(addCmd));
-    assert(manager.CanUndo() == true);
-    assert(manager.CanRedo() == false);
-    std::cout << "✓ Command push and state check test passed" << std::endl;
-
-    // Test undo/redo capability
-    assert(manager.GetUndoActionName() != "None");
-    std::cout << "✓ Action name test passed" << std::endl;
-
-    delete canvas; // Clean up for this test
-
-    std::cout << "Undo/Redo Manager Basics tests passed!" << std::endl;
+// Test initial state of undo/redo manager
+TEST_F(UndoRedoTest, InitialState) {
+    EXPECT_FALSE(undoMgr->CanUndo());
+    EXPECT_FALSE(undoMgr->CanRedo());
+    EXPECT_EQ(undoMgr->GetUndoStackSize(), 0);
+    EXPECT_EQ(undoMgr->GetRedoStackSize(), 0);
 }
 
-void TestAddComponentUndoRedo() {
-    std::cout << "Testing Add Component Undo/Redo..." << std::endl;
-
-    CircuitCanvas canvas(nullptr, wxID_ANY);
-    UndoRedoManager manager;
-
-    // Initially, canvas should be empty
-    size_t initialCount = canvas.GetComponents().size();
-    assert(initialCount == 0);
-    std::cout << "✓ Initial canvas state test passed" << std::endl;
-
-    // Create a component to add
-    NANDGateComponent* comp = new NANDGateComponent(100, 100);
-    comp->SetName("TestComponent");
-
-    // Create and execute add command
-    std::unique_ptr<UndoCommand> addCmd = std::make_unique<AddComponentCommand>(&canvas, comp);
+// Test adding a component and undoing it
+TEST_F(UndoRedoTest, AddComponentUndo) {
+    auto nandGate = std::make_shared<NandGateComponent>(50, 50);
+    
+    // Add component with command
+    auto addCmd = std::make_unique<AddComponentCommand>(canvas.get(), nandGate);
     addCmd->Execute();
-
-    // After adding, canvas should have one component
-    assert(canvas.GetComponents().size() == 1);
-    std::cout << "✓ Component addition test passed" << std::endl;
-
-    // Push command to manager
-    manager.PushCommand(std::move(addCmd));
-
-    // Now undo the add
-    manager.Undo();
-    assert(canvas.GetComponents().size() == 0);
-    std::cout << "✓ Undo add component test passed" << std::endl;
-
-    // Now redo the add
-    manager.Redo();
-    assert(canvas.GetComponents().size() == 1);
-    std::cout << "✓ Redo add component test passed" << std::endl;
-
-    std::cout << "Add Component Undo/Redo tests passed!" << std::endl;
+    undoMgr->PushCommand(std::move(addCmd));
+    
+    EXPECT_EQ(canvas->GetComponents().size(), 1);
+    EXPECT_TRUE(undoMgr->CanUndo());
+    EXPECT_FALSE(undoMgr->CanRedo());
+    
+    // Undo the addition
+    undoMgr->Undo();
+    
+    EXPECT_EQ(canvas->GetComponents().size(), 0);
+    EXPECT_FALSE(undoMgr->CanUndo());
+    EXPECT_TRUE(undoMgr->CanRedo());
+    
+    // Redo the addition
+    undoMgr->Redo();
+    
+    EXPECT_EQ(canvas->GetComponents().size(), 1);
+    EXPECT_TRUE(undoMgr->CanUndo());
+    EXPECT_FALSE(undoMgr->CanRedo());
 }
 
-void TestDeleteComponentUndoRedo() {
-    std::cout << "Testing Delete Component Undo/Redo..." << std::endl;
-
-    CircuitCanvas canvas(nullptr, wxID_ANY);
-    UndoRedoManager manager;
-
-    // Add a component first
-    NANDGateComponent* comp = new NANDGateComponent(100, 100);
-    comp->SetName("ToDelete");
-    canvas.AddComponent(comp);
-    assert(canvas.GetComponents().size() == 1);
-    std::cout << "✓ Component preparation test passed" << std::endl;
-
-    // Create and execute delete command
-    std::unique_ptr<UndoCommand> deleteCmd = std::make_unique<DeleteComponentCommand>(&canvas, comp);
+// Test deleting a component and undoing it
+TEST_F(UndoRedoTest, DeleteComponentUndo) {
+    auto nandGate = std::make_shared<NandGateComponent>(50, 50);
+    canvas->AddComponent(nandGate);
+    
+    EXPECT_EQ(canvas->GetComponents().size(), 1);
+    
+    // Delete component with command
+    auto deleteCmd = std::make_unique<DeleteComponentCommand>(canvas.get(), nandGate);
     deleteCmd->Execute();
-
-    // After deletion, canvas should be empty
-    assert(canvas.GetComponents().size() == 0);
-    std::cout << "✓ Component deletion test passed" << std::endl;
-
-    // Push command to manager
-    manager.PushCommand(std::move(deleteCmd));
-
-    // Now undo the deletion
-    manager.Undo();
-    assert(canvas.GetComponents().size() == 1);
-    std::cout << "✓ Undo delete component test passed" << std::endl;
-
-    // Now redo the deletion
-    manager.Redo();
-    assert(canvas.GetComponents().size() == 0);
-    std::cout << "✓ Redo delete component test passed" << std::endl;
-
-    std::cout << "Delete Component Undo/Redo tests passed!" << std::endl;
+    undoMgr->PushCommand(std::move(deleteCmd));
+    
+    EXPECT_EQ(canvas->GetComponents().size(), 0);
+    EXPECT_TRUE(undoMgr->CanUndo());
+    
+    // Undo the deletion
+    undoMgr->Undo();
+    
+    EXPECT_EQ(canvas->GetComponents().size(), 1);
+    EXPECT_FALSE(undoMgr->CanUndo());
+    EXPECT_TRUE(undoMgr->CanRedo());
 }
 
-void TestMultipleUndoRedo() {
-    std::cout << "Testing Multiple Undo/Redo Operations..." << std::endl;
-
-    CircuitCanvas canvas(nullptr, wxID_ANY);
-    UndoRedoManager manager;
-
-    // Add several components with undo/redo support
-    std::vector<NANDGateComponent*> components;
-    for (int i = 0; i < 3; i++) {
-        NANDGateComponent* comp = new NANDGateComponent(50 + i*50, 50 + i*50);
-        std::string name = "Comp" + std::to_string(i);
-        comp->SetName(name);
-
-        // Execute add command
-        std::unique_ptr<UndoCommand> addCmd = std::make_unique<AddComponentCommand>(&canvas, comp);
-        addCmd->Execute();
-        manager.PushCommand(std::move(addCmd));
-        components.push_back(comp);
-    }
-
-    // Verify all components were added
-    assert(canvas.GetComponents().size() == 3);
-    std::cout << "✓ Multiple additions test passed" << std::endl;
-
-    // Undo all additions one by one
-    for (int i = 0; i < 3; i++) {
-        size_t expectedSize = 3 - i - 1;
-        manager.Undo();
-        assert(canvas.GetComponents().size() == expectedSize);
-    }
-    assert(canvas.GetComponents().size() == 0);
-    std::cout << "✓ Multiple undos test passed" << std::endl;
-
-    // Redo all additions one by one
-    for (int i = 0; i < 3; i++) {
-        manager.Redo();
-        assert(canvas.GetComponents().size() == i + 1);
-    }
-    assert(canvas.GetComponents().size() == 3);
-    std::cout << "✓ Multiple redos test passed" << std::endl;
-
-    std::cout << "Multiple Undo/Redo tests passed!" << std::endl;
+// Test moving a component and undoing it
+TEST_F(UndoRedoTest, MoveComponentUndo) {
+    auto nandGate = std::make_shared<NandGateComponent>(50, 50);
+    canvas->AddComponent(nandGate);
+    
+    int originalX = nandGate->GetX();
+    int originalY = nandGate->GetY();
+    
+    EXPECT_EQ(originalX, 50);
+    EXPECT_EQ(originalY, 50);
+    
+    // Move component with command
+    auto moveCmd = std::make_unique<MoveComponentCommand>(nandGate, 100, 100);
+    moveCmd->Execute();
+    undoMgr->PushCommand(std::move(moveCmd));
+    
+    EXPECT_EQ(nandGate->GetX(), 100);
+    EXPECT_EQ(nandGate->GetY(), 100);
+    EXPECT_TRUE(undoMgr->CanUndo());
+    
+    // Undo the move
+    undoMgr->Undo();
+    
+    EXPECT_EQ(nandGate->GetX(), originalX);
+    EXPECT_EQ(nandGate->GetY(), originalY);
+    EXPECT_FALSE(undoMgr->CanUndo());
+    EXPECT_TRUE(undoMgr->CanRedo());
+    
+    // Redo the move
+    undoMgr->Redo();
+    
+    EXPECT_EQ(nandGate->GetX(), 100);
+    EXPECT_EQ(nandGate->GetY(), 100);
+    EXPECT_TRUE(undoMgr->CanUndo());
+    EXPECT_FALSE(undoMgr->CanRedo());
 }
 
-void TestUndoRedoStateManagement() {
-    std::cout << "Testing Undo/Redo State Management..." << std::endl;
-
-    CircuitCanvas canvas(nullptr, wxID_ANY);
-    UndoRedoManager manager;
-
-    // Initially no undo/redo possible
-    assert(manager.CanUndo() == false);
-    assert(manager.CanRedo() == false);
-    std::cout << "✓ Initial state management test passed" << std::endl;
-
-    // Add a component
-    NANDGateComponent* comp = new NANDGateComponent(100, 100);
-    std::unique_ptr<UndoCommand> addCmd = std::make_unique<AddComponentCommand>(&canvas, comp);
-    addCmd->Execute();
-    manager.PushCommand(std::move(addCmd));
-
-    // Now we should be able to undo but not redo
-    assert(manager.CanUndo() == true);
-    assert(manager.CanRedo() == false);
-    std::cout << "✓ Post-add state management test passed" << std::endl;
-
-    // Undo the command
-    manager.Undo();
-    // Should be able to redo now, but not undo the original
-    assert(manager.CanUndo() == false);
-    assert(manager.CanRedo() == true);
-    std::cout << "✓ Post-undo state management test passed" << std::endl;
-
-    // Redo the command
-    manager.Redo();
-    // Should be able to undo again, but not redo the original
-    assert(manager.CanUndo() == true);
-    assert(manager.CanRedo() == false);
-    std::cout << "✓ Post-redo state management test passed" << std::endl;
-
-    std::cout << "Undo/Redo State Management tests passed!" << std::endl;
+// Test connecting wires and undoing it
+TEST_F(UndoRedoTest, ConnectWireUndo) {
+    auto nandGate1 = std::make_shared<NandGateComponent>(50, 50);
+    auto nandGate2 = std::make_shared<NandGateComponent>(150, 50);
+    
+    canvas->AddComponent(nandGate1);
+    canvas->AddComponent(nandGate2);
+    
+    // Connect with a command
+    auto connectCmd = std::make_unique<ConnectCommand>(canvas.get(), 
+        nandGate1->GetOutputPin(0), nandGate2->GetInputPin(0));
+    connectCmd->Execute();
+    undoMgr->PushCommand(std::move(connectCmd));
+    
+    EXPECT_TRUE(undoMgr->CanUndo());
+    
+    // Verify connection exists
+    // This would depend on the actual implementation of connection
+    // For now, we just test the undo/redo mechanism itself
+    
+    // Undo the connection
+    undoMgr->Undo();
+    
+    EXPECT_FALSE(undoMgr->CanUndo());
+    EXPECT_TRUE(undoMgr->CanRedo());
+    
+    // Redo the connection
+    undoMgr->Redo();
+    
+    EXPECT_TRUE(undoMgr->CanUndo());
+    EXPECT_FALSE(undoMgr->CanRedo());
 }
 
-int main() {
-    std::cout << "Starting ProtoVM Undo/Redo Tests..." << std::endl;
+// Test multiple undo operations
+TEST_F(UndoRedoTest, MultipleUndo) {
+    auto nandGate1 = std::make_shared<NandGateComponent>(50, 50);
+    auto nandGate2 = std::make_shared<NandGateComponent>(100, 100);
+    auto nandGate3 = std::make_shared<NandGateComponent>(150, 150);
+    
+    // Add first component
+    auto cmd1 = std::make_unique<AddComponentCommand>(canvas.get(), nandGate1);
+    cmd1->Execute();
+    undoMgr->PushCommand(std::move(cmd1));
+    
+    EXPECT_EQ(canvas->GetComponents().size(), 1);
+    
+    // Add second component
+    auto cmd2 = std::make_unique<AddComponentCommand>(canvas.get(), nandGate2);
+    cmd2->Execute();
+    undoMgr->PushCommand(std::move(cmd2));
+    
+    EXPECT_EQ(canvas->GetComponents().size(), 2);
+    
+    // Add third component
+    auto cmd3 = std::make_unique<AddComponentCommand>(canvas.get(), nandGate3);
+    cmd3->Execute();
+    undoMgr->PushCommand(std::move(cmd3));
+    
+    EXPECT_EQ(canvas->GetComponents().size(), 3);
+    
+    // Undo all three additions
+    undoMgr->Undo();  // Remove third
+    EXPECT_EQ(canvas->GetComponents().size(), 2);
+    
+    undoMgr->Undo();  // Remove second
+    EXPECT_EQ(canvas->GetComponents().size(), 1);
+    
+    undoMgr->Undo();  // Remove first
+    EXPECT_EQ(canvas->GetComponents().size(), 0);
+    
+    // Now redo them
+    undoMgr->Redo();  // Add first
+    EXPECT_EQ(canvas->GetComponents().size(), 1);
+    
+    undoMgr->Redo();  // Add second
+    EXPECT_EQ(canvas->GetComponents().size(), 2);
+    
+    undoMgr->Redo();  // Add third
+    EXPECT_EQ(canvas->GetComponents().size(), 3);
+}
 
-    try {
-        TestUndoRedoManagerBasics();
-        TestAddComponentUndoRedo();
-        TestDeleteComponentUndoRedo();
-        TestMultipleUndoRedo();
-        TestUndoRedoStateManagement();
+// Test clear redo stack after new command
+TEST_F(UndoRedoTest, ClearRedoStack) {
+    auto nandGate1 = std::make_shared<NandGateComponent>(50, 50);
+    auto nandGate2 = std::make_shared<NandGateComponent>(100, 100);
+    
+    // Add first component
+    auto cmd1 = std::make_unique<AddComponentCommand>(canvas.get(), nandGate1);
+    cmd1->Execute();
+    undoMgr->PushCommand(std::move(cmd1));
+    
+    // Add second component
+    auto cmd2 = std::make_unique<AddComponentCommand>(canvas.get(), nandGate2);
+    cmd2->Execute();
+    undoMgr->PushCommand(std::move(cmd2));
+    
+    EXPECT_EQ(canvas->GetComponents().size(), 2);
+    EXPECT_EQ(undoMgr->GetUndoStackSize(), 2);
+    EXPECT_EQ(undoMgr->GetRedoStackSize(), 0);
+    
+    // Undo once
+    undoMgr->Undo();
+    EXPECT_EQ(canvas->GetComponents().size(), 1);
+    EXPECT_EQ(undoMgr->GetUndoStackSize(), 1);
+    EXPECT_EQ(undoMgr->GetRedoStackSize(), 1);
+    
+    // Perform a new operation (not redo), which should clear the redo stack
+    auto nandGate3 = std::make_shared<NandGateComponent>(150, 150);
+    auto cmd3 = std::make_unique<AddComponentCommand>(canvas.get(), nandGate3);
+    cmd3->Execute();
+    undoMgr->PushCommand(std::move(cmd3));
+    
+    EXPECT_EQ(canvas->GetComponents().size(), 2);
+    EXPECT_EQ(undoMgr->GetUndoStackSize(), 2);
+    EXPECT_EQ(undoMgr->GetRedoStackSize(), 0);  // Redo stack should be cleared
+}
 
-        std::cout << "\nAll Undo/Redo tests passed successfully!" << std::endl;
-        return 0;
-    } catch (const std::exception& e) {
-        std::cerr << "Test failed with exception: " << e.what() << std::endl;
-        return 1;
-    } catch (...) {
-        std::cerr << "Test failed with unknown exception" << std::endl;
-        return 1;
+// Test undo/redo limits
+TEST_F(UndoRedoTest, UndoRedoLimits) {
+    // Set a small limit to test
+    undoMgr->SetMaxHistorySize(3);
+    
+    std::vector<std::shared_ptr<CircuitComponent>> gates;
+    std::vector<std::unique_ptr<Command>> commands;
+    
+    // Add more components than the limit
+    for (int i = 0; i < 5; i++) {
+        auto gate = std::make_shared<NandGateComponent>(50 + i * 20, 50);
+        auto cmd = std::make_unique<AddComponentCommand>(canvas.get(), gate);
+        cmd->Execute();
+        undoMgr->PushCommand(std::move(cmd));
+        gates.push_back(gate);
     }
+    
+    // Only the last 3 operations should be in the history
+    EXPECT_EQ(undoMgr->GetUndoStackSize(), 3);
+    
+    // Undo all possible operations
+    for (int i = 0; i < 3; i++) {
+        undoMgr->Undo();
+    }
+    
+    // Now there should be no more operations to undo
+    EXPECT_FALSE(undoMgr->CanUndo());
+    
+    // Redo all operations
+    for (int i = 0; i < 3; i++) {
+        undoMgr->Redo();
+    }
+    
+    // Should have 3 components (those within the history limit)
+    EXPECT_EQ(canvas->GetComponents().size(), 3);
 }

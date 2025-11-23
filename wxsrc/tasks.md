@@ -132,14 +132,14 @@
 - [x] Unit tests for component drawing and hit detection
 - [x] Unit tests for wire connection and validation
 - [x] Unit tests for simulation integration
-- [ ] Unit tests for project save/load functionality
+- [x] Unit tests for project save/load functionality
 - [x] Unit tests for component serialization
-- [ ] Unit tests for selection operations
-- [ ] Unit tests for undo/redo functionality
+- [x] Unit tests for selection operations
+- [x] Unit tests for undo/redo functionality
 - [x] Unit tests for grid and snapping operations
 - [x] Unit tests for zoom and pan operations
 - [x] Unit tests for component library operations
-- [ ] Unit tests for property panel interactions
+- [x] Unit tests for property panel interactions
 - [x] Unit tests for simulation control operations
 
 ### Test Files Created:
@@ -147,6 +147,10 @@
 - [x] tests/gui/logic_test.cpp
 - [x] tests/gui/simulation_test.cpp
 - [x] tests/gui/advanced_logic_test.cpp
+- [x] tests/gui/project_test.cpp
+- [x] tests/gui/selection_test.cpp
+- [x] tests/gui/undo_redo_test.cpp
+- [x] tests/gui/properties_test.cpp
 - [x] tests/gui/CMakeLists.txt
 
 ## Known Issues

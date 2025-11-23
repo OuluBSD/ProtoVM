@@ -2,7 +2,8 @@
 #include "CircuitData.h"
 #include "UndoRedo.h"
 #include "SimulationController.h"
-#include "CircuitAnalysis.h"  // Include circuit analysis
+#include "CircuitAnalysis.h"  // Include circuit analysis for AnalysisResult
+#include "CircuitAnalyzer.h"  // Include ConcreteCircuitAnalyzer implementation
 #include <wx/dcbuffer.h>
 #include <memory>
 #include <unordered_map>
@@ -594,9 +595,6 @@ CircuitCanvas::CircuitCanvas(wxWindow* parent, wxWindowID id)
     
     // Initialize spatial index for performance with large circuits
     RebuildSpatialIndex();
-    
-    // Initialize circuit analyzer
-    m_analyzer = new CircuitAnalyzer(this);
 }
 
 CircuitCanvas::~CircuitCanvas()
@@ -614,31 +612,9 @@ CircuitCanvas::~CircuitCanvas()
     
     // Clear spatial grid to avoid dangling pointers
     m_spatialGrid.clear();
-    
-    // Clean up circuit analyzer
-    if (m_analyzer) {
-        delete m_analyzer;
-        m_analyzer = nullptr;
-    }
 }
 
-// Analysis methods implementation
-CircuitAnalyzer* CircuitCanvas::GetAnalyzer()
-{
-    return m_analyzer;
-}
 
-AnalysisResult CircuitCanvas::PerformCircuitAnalysis()
-{
-    if (m_analyzer) {
-        return m_analyzer->AnalyzeCircuit();
-    }
-    
-    // Return empty result if analyzer is not initialized
-    AnalysisResult result;
-    result.analysisSummary = "Analyzer not initialized";
-    return result;
-}
 
 Component* CircuitCanvas::GetComponentForPin(const Pin* pin) const
 {

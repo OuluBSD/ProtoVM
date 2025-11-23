@@ -10,6 +10,7 @@
 #include <memory>     // For std::unique_ptr
 #include <map>        // For std::map
 #include <unordered_map> // For better performance than std::map
+#include <string>    // For std::string
 
 // Forward declarations
 class Component;
@@ -93,9 +94,7 @@ public:
     // Performance optimization methods
     void RebuildSpatialIndex();  // Rebuild spatial index for performance optimization
 
-    // Analysis methods
-    class CircuitAnalyzer* GetAnalyzer();  // Get the circuit analyzer instance
-    AnalysisResult PerformCircuitAnalysis();  // Perform comprehensive circuit analysis
+
 
 protected:
     void OnPaint(wxPaintEvent& event);

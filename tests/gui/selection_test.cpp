@@ -1,186 +1,153 @@
-#include "../../src/ProtoVM/CircuitCanvas.h"
-#include <cassert>
-#include <iostream>
+#include <gtest/gtest.h>
+#include "../../src/ProtoVM/gui/CircuitComponent.h"
+#include "../../src/ProtoVM/gui/CanvasComponent.h"
+#include "../../src/ProtoVM/gui/SelectionManager.h"
 
-void TestComponentSelection() {
-    std::cout << "Testing Component Selection..." << std::endl;
-
-    CircuitCanvas canvas(nullptr, wxID_ANY);
-
-    // Add some components
-    NANDGateComponent* comp1 = new NANDGateComponent(50, 50);
-    comp1->SetName("Comp1");
-    canvas.AddComponent(comp1);
-
-    NOTGateComponent* comp2 = new NOTGateComponent(100, 100);
-    comp2->SetName("Comp2");
-    canvas.AddComponent(comp2);
-
-    BufferComponent* comp3 = new BufferComponent(150, 150);
-    comp3->SetName("Comp3");
-    canvas.AddComponent(comp3);
-
-    // Test single component selection
-    canvas.SelectComponent(comp1, true);
-    assert(canvas.IsSelected(comp1) == true);
-    assert(canvas.IsSelected(comp2) == false);
-    std::cout << "✓ Single component selection test passed" << std::endl;
-
-    // Test multiple component selection
-    canvas.SelectComponent(comp2, true);
-    assert(canvas.IsSelected(comp1) == true);
-    assert(canvas.IsSelected(comp2) == true);
-    assert(canvas.IsSelected(comp3) == false);
-    std::cout << "✓ Multiple component selection test passed" << std::endl;
-
-    // Test component deselection
-    canvas.SelectComponent(comp1, false);
-    assert(canvas.IsSelected(comp1) == false);
-    assert(canvas.IsSelected(comp2) == true);
-    std::cout << "✓ Component deselection test passed" << std::endl;
-
-    // Test select all
-    canvas.SelectAllComponents();
-    assert(canvas.IsSelected(comp1) == true);
-    assert(canvas.IsSelected(comp2) == true);
-    assert(canvas.IsSelected(comp3) == true);
-    std::cout << "✓ Select all components test passed" << std::endl;
-
-    // Test clear selection
-    canvas.ClearSelection();
-    assert(canvas.IsSelected(comp1) == false);
-    assert(canvas.IsSelected(comp2) == false);
-    assert(canvas.IsSelected(comp3) == false);
-    std::cout << "✓ Clear selection test passed" << std::endl;
-
-    std::cout << "Component Selection tests passed!" << std::endl;
-}
-
-void TestSelectionByRectangle() {
-    std::cout << "Testing Selection by Rectangle..." << std::endl;
-
-    CircuitCanvas canvas(nullptr, wxID_ANY);
-
-    // Add components at specific positions
-    NANDGateComponent* comp1 = new NANDGateComponent(50, 50);
-    comp1->SetName("Comp1");
-    canvas.AddComponent(comp1);
-
-    NOTGateComponent* comp2 = new NOTGateComponent(150, 150);
-    comp2->SetName("Comp2");
-    canvas.AddComponent(comp2);
-
-    BufferComponent* comp3 = new BufferComponent(250, 250);
-    comp3->SetName("Comp3");
-    canvas.AddComponent(comp3);
-
-    // Select components within a rectangle that includes comp1 and comp2 but not comp3
-    wxRect selectionRect(40, 40, 120, 120); // Should contain comp1 and comp2 but not comp3
-
-    // We'll test this indirectly by checking if the selection mechanism works
-    canvas.SelectComponent(comp1, true);
-    assert(canvas.IsSelected(comp1) == true);
-    std::cout << "✓ Rectangle selection preparation test passed" << std::endl;
-
-    // Test getting selected components
-    std::vector<Component*> selected = canvas.GetSelectedComponents();
-    assert(selected.size() >= 1); // Should include at least comp1
-    std::cout << "✓ Get selected components test passed" << std::endl;
-
-    std::cout << "Selection by Rectangle tests passed!" << std::endl;
-}
-
-void TestSelectionTracking() {
-    std::cout << "Testing Selection Tracking..." << std::endl;
-
-    CircuitCanvas canvas(nullptr, wxID_ANY);
-
-    NANDGateComponent* comp1 = new NANDGateComponent(100, 100);
-    comp1->SetName("TrackComp1");
-    canvas.AddComponent(comp1);
-
-    NOTGateComponent* comp2 = new NOTGateComponent(200, 200);
-    comp2->SetName("TrackComp2");
-    canvas.AddComponent(comp2);
-
-    // Test selection count
-    canvas.ClearSelection();
-    size_t initialCount = canvas.GetSelectedComponents().size();
-    assert(initialCount == 0);
-    std::cout << "✓ Initial selection count test passed" << std::endl;
-
-    // Add selection and verify count
-    canvas.SelectComponent(comp1, true);
-    size_t countAfterOne = canvas.GetSelectedComponents().size();
-    assert(countAfterOne == 1);
-    std::cout << "✓ Selection count after adding one component test passed" << std::endl;
-
-    // Add another selection and verify count
-    canvas.SelectComponent(comp2, true);
-    size_t countAfterTwo = canvas.GetSelectedComponents().size();
-    assert(countAfterTwo == 2);
-    std::cout << "✓ Selection count after adding second component test passed" << std::endl;
-
-    // Deselect one and verify count
-    canvas.SelectComponent(comp1, false);
-    size_t countAfterDeselect = canvas.GetSelectedComponents().size();
-    assert(countAfterDeselect == 1);
-    std::cout << "✓ Selection count after deselecting component test passed" << std::endl;
-
-    std::cout << "Selection Tracking tests passed!" << std::endl;
-}
-
-void TestSelectionPersistence() {
-    std::cout << "Testing Selection Persistence..." << std::endl;
-
-    CircuitCanvas canvas(nullptr, wxID_ANY);
-
-    NANDGateComponent* comp1 = new NANDGateComponent(100, 100);
-    comp1->SetName("PersistComp1");
-    canvas.AddComponent(comp1);
-
-    NOTGateComponent* comp2 = new NOTGateComponent(200, 200);
-    comp2->SetName("PersistComp2");
-    canvas.AddComponent(comp2);
-
-    // Select some components
-    canvas.SelectComponent(comp1, true);
-    canvas.SelectComponent(comp2, true);
-
-    // Verify they are selected
-    assert(canvas.IsSelected(comp1) == true);
-    assert(canvas.IsSelected(comp2) == true);
-    std::cout << "✓ Selection persistence test passed" << std::endl;
-
-    // Test that selection remains when accessing selected components
-    std::vector<Component*> selected = canvas.GetSelectedComponents();
-    bool foundComp1 = false, foundComp2 = false;
-    for (auto* comp : selected) {
-        if (comp->GetName() == "PersistComp1") foundComp1 = true;
-        if (comp->GetName() == "PersistComp2") foundComp2 = true;
+// Test fixture for selection tests
+class SelectionTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        canvas = std::make_shared<CircuitCanvas>();
+        selMgr = std::make_unique<SelectionManager>(canvas.get());
     }
-    assert(foundComp1 && foundComp2);
-    std::cout << "✓ Selected components retrieval test passed" << std::endl;
 
-    std::cout << "Selection Persistence tests passed!" << std::endl;
+    void TearDown() override {
+        canvas.reset();
+        selMgr.reset();
+    }
+
+    std::shared_ptr<CircuitCanvas> canvas;
+    std::unique_ptr<SelectionManager> selMgr;
+};
+
+// Test adding single component to selection
+TEST_F(SelectionTest, SelectSingleComponent) {
+    auto nandGate = std::make_shared<NandGateComponent>(100, 100);
+    canvas->AddComponent(nandGate);
+    
+    selMgr->SelectComponent(nandGate);
+    
+    EXPECT_EQ(selMgr->GetSelectedComponents().size(), 1);
+    EXPECT_TRUE(selMgr->IsSelected(nandGate));
 }
 
-int main() {
-    std::cout << "Starting ProtoVM Selection Operation Tests..." << std::endl;
+// Test deselecting component
+TEST_F(SelectionTest, DeselectComponent) {
+    auto nandGate = std::make_shared<NandGateComponent>(100, 100);
+    canvas->AddComponent(nandGate);
+    
+    selMgr->SelectComponent(nandGate);
+    EXPECT_EQ(selMgr->GetSelectedComponents().size(), 1);
+    
+    selMgr->DeselectComponent(nandGate);
+    EXPECT_EQ(selMgr->GetSelectedComponents().size(), 0);
+    EXPECT_FALSE(selMgr->IsSelected(nandGate));
+}
 
-    try {
-        TestComponentSelection();
-        TestSelectionByRectangle();
-        TestSelectionTracking();
-        TestSelectionPersistence();
+// Test selecting multiple components
+TEST_F(SelectionTest, SelectMultipleComponents) {
+    auto nandGate = std::make_shared<NandGateComponent>(100, 100);
+    auto norGate = std::make_shared<NorGateComponent>(150, 150);
+    auto notGate = std::make_shared<NotGateComponent>(200, 200);
+    
+    canvas->AddComponent(nandGate);
+    canvas->AddComponent(norGate);
+    canvas->AddComponent(notGate);
+    
+    selMgr->SelectComponent(nandGate);
+    selMgr->SelectComponent(norGate);
+    selMgr->SelectComponent(notGate);
+    
+    EXPECT_EQ(selMgr->GetSelectedComponents().size(), 3);
+    EXPECT_TRUE(selMgr->IsSelected(nandGate));
+    EXPECT_TRUE(selMgr->IsSelected(norGate));
+    EXPECT_TRUE(selMgr->IsSelected(notGate));
+}
 
-        std::cout << "\nAll Selection Operation tests passed successfully!" << std::endl;
-        return 0;
-    } catch (const std::exception& e) {
-        std::cerr << "Test failed with exception: " << e.what() << std::endl;
-        return 1;
-    } catch (...) {
-        std::cerr << "Test failed with unknown exception" << std::endl;
-        return 1;
-    }
+// Test clearing all selections
+TEST_F(SelectionTest, ClearSelections) {
+    auto nandGate = std::make_shared<NandGateComponent>(100, 100);
+    auto norGate = std::make_shared<NorGateComponent>(150, 150);
+    
+    canvas->AddComponent(nandGate);
+    canvas->AddComponent(norGate);
+    
+    selMgr->SelectComponent(nandGate);
+    selMgr->SelectComponent(norGate);
+    EXPECT_EQ(selMgr->GetSelectedComponents().size(), 2);
+    
+    selMgr->ClearSelections();
+    EXPECT_EQ(selMgr->GetSelectedComponents().size(), 0);
+    EXPECT_FALSE(selMgr->IsSelected(nandGate));
+    EXPECT_FALSE(selMgr->IsSelected(norGate));
+}
+
+// Test rectangle selection
+TEST_F(SelectionTest, SelectInRectangle) {
+    auto nandGate = std::make_shared<NandGateComponent>(50, 50);
+    auto norGate = std::make_shared<NorGateComponent>(150, 150);
+    auto notGate = std::make_shared<NotGateComponent>(250, 250);
+    
+    canvas->AddComponent(nandGate);
+    canvas->AddComponent(norGate);
+    canvas->AddComponent(notGate);
+    
+    // Select components within rectangle (0,0) to (100,100)
+    // This should only select nandGate at (50,50)
+    selMgr->SelectInRectangle(0, 0, 100, 100);
+    
+    EXPECT_EQ(selMgr->GetSelectedComponents().size(), 1);
+    EXPECT_TRUE(selMgr->IsSelected(nandGate));
+    EXPECT_FALSE(selMgr->IsSelected(norGate));
+    EXPECT_FALSE(selMgr->IsSelected(notGate));
+}
+
+// Test selection of components by type
+TEST_F(SelectionTest, SelectByType) {
+    auto nandGate1 = std::make_shared<NandGateComponent>(50, 50);
+    auto nandGate2 = std::make_shared<NandGateComponent>(100, 100);
+    auto norGate = std::make_shared<NorGateComponent>(150, 150);
+    
+    canvas->AddComponent(nandGate1);
+    canvas->AddComponent(nandGate2);
+    canvas->AddComponent(norGate);
+    
+    // Select all NAND gates
+    selMgr->SelectByType("NAND");
+    
+    EXPECT_EQ(selMgr->GetSelectedComponents().size(), 2);
+    EXPECT_TRUE(selMgr->IsSelected(nandGate1));
+    EXPECT_TRUE(selMgr->IsSelected(nandGate2));
+    EXPECT_FALSE(selMgr->IsSelected(norGate));
+}
+
+// Test selection after movement operations
+TEST_F(SelectionTest, SelectionAfterMove) {
+    auto nandGate = std::make_shared<NandGateComponent>(100, 100);
+    canvas->AddComponent(nandGate);
+    
+    selMgr->SelectComponent(nandGate);
+    EXPECT_EQ(selMgr->GetSelectedComponents().size(), 1);
+    
+    // Simulate moving the component
+    nandGate->SetPosition(200, 200);
+    
+    // Selection should still be valid after movement
+    EXPECT_EQ(selMgr->GetSelectedComponents().size(), 1);
+    EXPECT_TRUE(selMgr->IsSelected(nandGate));
+}
+
+// Test if selection works correctly with deletion
+TEST_F(SelectionTest, SelectionAfterDeletion) {
+    auto nandGate = std::make_shared<NandGateComponent>(100, 100);
+    canvas->AddComponent(nandGate);
+    
+    selMgr->SelectComponent(nandGate);
+    EXPECT_EQ(selMgr->GetSelectedComponents().size(), 1);
+    
+    // Remove component from canvas
+    canvas->RemoveComponent(nandGate);
+    
+    // After component removal, it should no longer be selected
+    EXPECT_EQ(selMgr->GetSelectedComponents().size(), 0);
 }

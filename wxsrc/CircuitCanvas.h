@@ -12,6 +12,9 @@
 #include <unordered_map> // For better performance than std::map
 #include <string>    // For std::string
 
+// Spatial hash grid cell size (performance optimization)
+const int GRID_CELL_SIZE = 100;
+
 // Forward declarations
 class Component;
 class Wire;
@@ -90,6 +93,11 @@ public:
     // Wire creation mode methods
     void ToggleWireCreationMode(bool enabled) { m_wireCreationMode = enabled; }
     bool IsInWireCreationMode() const { return m_wireCreationMode; }
+    
+    // Connection validation methods
+    bool ValidateConnection(Pin* startPin, Pin* endPin, wxString& errorMessage) const;
+    bool IsPinConnected(Pin* pin) const;
+    bool CheckForMultipleOutputs(Pin* startPin, Pin* endPin) const;
 
     // Performance optimization methods
     void RebuildSpatialIndex();  // Rebuild spatial index for performance optimization

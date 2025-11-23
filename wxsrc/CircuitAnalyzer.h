@@ -23,6 +23,12 @@ public:
     AnalysisResult CheckForFloatingInputs();
     AnalysisResult PerformTimingAnalysis();
     AnalysisResult AnalyzeCircuitComplexity();
+    
+    // Advanced analysis features
+    AnalysisResult PerformPathAnalysis();  // Analyze signal paths in the circuit
+    AnalysisResult AnalyzePowerConsumption();  // Estimate power consumption
+    AnalysisResult DetectRaceConditions();  // Detect potential race conditions
+    AnalysisResult AnalyzeFanout();  // Analyze fanout for each component
 
 private:
     // Private implementation details

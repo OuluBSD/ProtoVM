@@ -8,6 +8,7 @@
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
+#include <set>
 
 // Forward declaration of MainFrame to access properties panel
 class MainFrame;
@@ -404,16 +405,31 @@ void CircuitCanvas::OnMouseLeftDown(wxMouseEvent& event)
                         
                         if (startComp)
                         {
-                            // Create and execute the add wire command
-                            std::unique_ptr<AddWireCommand> cmd = std::make_unique<AddWireCommand>(this, m_startPin, &pin);
-                            PushUndoCommand(std::move(cmd));
-                            
-                            // Mark pins as connected
-                            m_startPin->SetConnected(true);
-                            pin.SetConnected(true);
+                            // Validate the connection
+                            wxString errorMessage;
+                            if (ValidateConnection(m_startPin, &pin, errorMessage))
+                            {
+                                // Connection is valid, create and execute the add wire command
+                                std::unique_ptr<AddWireCommand> cmd = std::make_unique<AddWireCommand>(this, m_startPin, &pin);
+                                PushUndoCommand(std::move(cmd));
+                                
+                                // Mark pins as connected
+                                m_startPin->SetConnected(true);
+                                pin.SetConnected(true);
+                                
+                                // Display warning message if any
+                                if (!errorMessage.IsEmpty()) {
+                                    wxMessageBox(errorMessage, wxT("Connection Warning"), wxOK | wxICON_WARNING, this);
+                                }
+                            }
+                            else
+                            {
+                                // Display error message to user
+                                wxMessageBox(errorMessage, wxT("Connection Error"), wxOK | wxICON_ERROR, this);
+                            }
                         }
                         
-                        // Exit wire creation mode
+                        // Exit wire creation mode regardless of validation result
                         m_wireCreationMode = false;
                         m_startPin = nullptr;
                     }
@@ -473,16 +489,31 @@ void CircuitCanvas::OnMouseLeftDown(wxMouseEvent& event)
                         
                         if (startComp)
                         {
-                            // Create and execute the add wire command
-                            std::unique_ptr<AddWireCommand> cmd = std::make_unique<AddWireCommand>(this, m_startPin, &pin);
-                            PushUndoCommand(std::move(cmd));
-                            
-                            // Mark pins as connected
-                            m_startPin->SetConnected(true);
-                            pin.SetConnected(true);
+                            // Validate the connection
+                            wxString errorMessage;
+                            if (ValidateConnection(m_startPin, &pin, errorMessage))
+                            {
+                                // Connection is valid, create and execute the add wire command
+                                std::unique_ptr<AddWireCommand> cmd = std::make_unique<AddWireCommand>(this, m_startPin, &pin);
+                                PushUndoCommand(std::move(cmd));
+                                
+                                // Mark pins as connected
+                                m_startPin->SetConnected(true);
+                                pin.SetConnected(true);
+                                
+                                // Display warning message if any
+                                if (!errorMessage.IsEmpty()) {
+                                    wxMessageBox(errorMessage, wxT("Connection Warning"), wxOK | wxICON_WARNING, this);
+                                }
+                            }
+                            else
+                            {
+                                // Display error message to user
+                                wxMessageBox(errorMessage, wxT("Connection Error"), wxOK | wxICON_ERROR, this);
+                            }
                         }
                         
-                        // Exit wire creation mode
+                        // Exit wire creation mode regardless of validation result
                         m_wireCreationMode = false;
                         m_startPin = nullptr;
                     }
@@ -1649,6 +1680,188 @@ void CircuitCanvas::OnKeyDown(wxKeyEvent& event)
     } else {
         event.Skip();  // Let other keys be handled normally
     }
+}
+
+void CircuitCanvas::RebuildSpatialIndex() {
+    // Clear existing spatial grid
+    m_spatialGrid.clear();
+    
+    // Add all current components to the spatial grid
+    for (Component* comp : m_components) {
+        AddComponentToSpatialGrid(comp);
+    }
+}
+
+int CircuitCanvas::GetGridCellKey(const wxPoint& pos) const {
+    // Calculate grid cell coordinates
+    int cellX = pos.x / GRID_CELL_SIZE;
+    int cellY = pos.y / GRID_CELL_SIZE;
+    
+    // Return a unique key for the cell (using a simple hash-like function)
+    return cellX * 10000 + cellY;  // Assuming max 10000 cells in Y direction
+}
+
+void CircuitCanvas::AddComponentToSpatialGrid(Component* comp) {
+    if (!comp) return;
+    
+    // Get component's bounding rectangle
+    wxRect bounds = comp->GetBounds();
+    
+    // Calculate the grid cells that this component occupies
+    int minX = bounds.x / GRID_CELL_SIZE;
+    int maxX = (bounds.x + bounds.width) / GRID_CELL_SIZE;
+    int minY = bounds.y / GRID_CELL_SIZE;
+    int maxY = (bounds.y + bounds.height) / GRID_CELL_SIZE;
+    
+    // Add the component to all grid cells it overlaps
+    for (int y = minY; y <= maxY; y++) {
+        for (int x = minX; x <= maxX; x++) {
+            int cellKey = x * 10000 + y;  // Same hash as in GetGridCellKey
+            m_spatialGrid[cellKey].push_back(comp);
+        }
+    }
+}
+
+void CircuitCanvas::RemoveComponentFromSpatialGrid(Component* comp) {
+    if (!comp) return;
+    
+    // Get component's bounding rectangle
+    wxRect bounds = comp->GetBounds();
+    
+    // Calculate the grid cells that this component occupies
+    int minX = bounds.x / GRID_CELL_SIZE;
+    int maxX = (bounds.x + bounds.width) / GRID_CELL_SIZE;
+    int minY = bounds.y / GRID_CELL_SIZE;
+    int maxY = (bounds.y + bounds.height) / GRID_CELL_SIZE;
+    
+    // Remove the component from all grid cells it overlaps
+    for (int y = minY; y <= maxY; y++) {
+        for (int x = minX; x <= maxX; x++) {
+            int cellKey = x * 10000 + y;  // Same hash as in GetGridCellKey
+            auto& cellComponents = m_spatialGrid[cellKey];
+            
+            // Find and remove the component from this cell
+            auto it = std::find(cellComponents.begin(), cellComponents.end(), comp);
+            if (it != cellComponents.end()) {
+                cellComponents.erase(it);
+            }
+        }
+    }
+}
+
+std::vector<Component*> CircuitCanvas::GetComponentsInArea(const wxRect& area) const {
+    std::vector<Component*> result;
+    std::set<Component*> resultSet;  // Use set to avoid duplicates
+    
+    // Calculate the grid cells that the area overlaps
+    int minX = area.x / GRID_CELL_SIZE;
+    int maxX = (area.x + area.width) / GRID_CELL_SIZE;
+    int minY = area.y / GRID_CELL_SIZE;
+    int maxY = (area.y + area.height) / GRID_CELL_SIZE;
+    
+    // Check all components in all overlapping grid cells
+    for (int y = minY; y <= maxY; y++) {
+        for (int x = minX; x <= maxX; x++) {
+            int cellKey = x * 10000 + y;  // Same hash as in GetGridCellKey
+            
+            auto it = m_spatialGrid.find(cellKey);
+            if (it != m_spatialGrid.end()) {
+                for (Component* comp : it->second) {
+                    // Add component to result if it's not already there and actually intersects with the area
+                    if (resultSet.find(comp) == resultSet.end()) {
+                        wxRect compBounds = comp->GetBounds();
+                        if (area.Intersects(compBounds)) {
+                            result.push_back(comp);
+                            resultSet.insert(comp);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    return result;
+}
+
+// Connection validation methods implementation
+bool CircuitCanvas::ValidateConnection(Pin* startPin, Pin* endPin, wxString& errorMessage) const {
+    if (!startPin || !endPin) {
+        errorMessage = "Invalid pin connection - one or both pins are null";
+        return false;
+    }
+    
+    // Check if trying to connect input to input
+    if (startPin->IsInput() && endPin->IsInput()) {
+        errorMessage = "Cannot connect input pin to input pin - only connect input to output";
+        return false;
+    }
+    
+    // Check if trying to connect output to output
+    if (!startPin->IsInput() && !endPin->IsInput()) {
+        errorMessage = "Cannot connect output pin to output pin - only connect input to output";
+        return false;
+    }
+    
+    // Determine which is the input and which is the output
+    Pin* inputPin = startPin->IsInput() ? startPin : endPin;
+    Pin* outputPin = startPin->IsInput() ? endPin : startPin;
+    
+    // Check if the input pin is already connected to another output (multiple inputs not currently supported)
+    if (IsPinConnected(inputPin)) {
+        errorMessage = "Input pin is already connected to another output";
+        return false;
+    }
+    
+    // Check if the output pin already has multiple connections (fan-out limitations)
+    // For now, we'll allow multiple connections from an output but warn the user
+    if (CheckForMultipleOutputs(outputPin, inputPin)) {
+        // This is allowed but we might want to warn about fanout limitations
+        errorMessage = "Output pin already connected to another input (possible fanout limitation)";
+        // For this implementation, we'll allow it but return as a warning
+        // We'll return true but with a warning message
+        return true;
+    }
+    
+    // Check for direct feedback connections (output to input of same component)
+    Component* startComp = GetComponentForPin(startPin);
+    Component* endComp = GetComponentForPin(endPin);
+    
+    if (startComp && endComp && startComp == endComp) {
+        // Check if this is a feedback from output to input of the same component
+        if (!startPin->IsInput() && endPin->IsInput()) {  // Output to input on same component
+            errorMessage = "Direct feedback connection from output to input on same component";
+            // Note: This is sometimes valid in flip-flops, so we'll allow it but warn
+            return true;
+        } else if (startPin->IsInput() && !endPin->IsInput()) {
+            errorMessage = "Direct feedback connection from output to input on same component";
+            return true;
+        }
+    }
+    
+    // All checks passed
+    errorMessage = ""; // Clear any error message
+    return true;
+}
+
+bool CircuitCanvas::IsPinConnected(Pin* pin) const {
+    if (!pin) return false;
+    return pin->IsConnected();
+}
+
+bool CircuitCanvas::CheckForMultipleOutputs(Pin* outputPin, Pin* newInputPin) const {
+    if (!outputPin || outputPin->IsInput()) return false;
+    
+    int connectionCount = 0;
+    for (Wire* wire : m_wires) {
+        if (wire->GetStartPin() == outputPin || wire->GetEndPin() == outputPin) {
+            connectionCount++;
+        }
+    }
+    
+    // If this is a new connection, we'll be adding one, so check if it'll exceed our limit
+    // For this implementation, let's set a reasonable fanout limit
+    const int FANOUT_LIMIT = 10;
+    return connectionCount >= FANOUT_LIMIT;
 }
 
 wxBEGIN_EVENT_TABLE(CircuitCanvas, wxPanel)

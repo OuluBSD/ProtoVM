@@ -332,3 +332,16 @@
 - [x] Resolved assertion errors in Pcb.cpp for circuit connections
 - [x] Improved bidirectional component connection logic
 - [x] Verified multiple circuit types are working properly (6502, AND gate, CADC, triode, etc.)
+### Future Development Opportunities
+- [ ] Multi-Clock Domain Support: Handling circuits with multiple clock sources
+- [ ] Detailed Timing Analysis: Explicit propagation delay modeling
+- [ ] Formal Verification Integration: Mathematical proof of circuit correctness
+- [ ] Advanced Bus Protocols: SPI, I2C, and other communication standards
+- [ ] Topological Sorting: Component evaluation order optimization
+- [ ] Parallel Processing: Multi-threaded simulation for complex circuits
+- [ ] Incremental Simulation: Selective re-evaluation of changed portions
+- [ ] Memory Management: Optimized data structures for large circuits
+- [ ] Graphical Interface: Visual representation of circuit behavior
+- [ ] Waveform Display: Signal tracing and analysis
+- [ ] Interactive Debugging: Breakpoints and state inspection
+- [ ] Performance Profiling: Component usage and bottleneck analysis

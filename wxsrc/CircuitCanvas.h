@@ -12,9 +12,6 @@
 #include <unordered_map> // For better performance than std::map
 #include <string>    // For std::string
 
-// Spatial hash grid cell size (performance optimization)
-const int GRID_CELL_SIZE = 100;
-
 // Forward declarations
 class Component;
 class Wire;
@@ -22,9 +19,6 @@ class CircuitData;      // Forward declaration for CircuitData
 class UndoCommand;      // Forward declaration for UndoCommand
 class UndoRedoManager;  // Forward declaration for UndoRedoManager
 class Pin;              // Forward declaration for Pin class
-
-// Spatial hash grid cell size (performance optimization)
-const int GRID_CELL_SIZE = 100;
 
 class CircuitCanvas : public wxPanel
 {

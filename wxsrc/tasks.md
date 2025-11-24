@@ -122,7 +122,6 @@
 3. [ ] Implement basic debugging tools (probes, logic analyzer) - PENDING
 4. [ ] Improve hierarchical design capabilities - PENDING
 5. [ ] Add educational aids (truth tables, boolean simplification) - PENDING
-5. Add educational aids (truth tables, boolean simplification)
 
 ## GUI Unit Testing
 

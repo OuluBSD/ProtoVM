@@ -111,17 +111,11 @@
 - Component library system with search capabilities
 
 ### Critical Missing Features vs. Educational Circuit Software:
-1. **Expanded Component Library**: Currently limited to basic gates; needs microcontrollers, memory, complex ICs, input/output devices - PENDING
-2. **Accurate Simulation**: Missing detailed timing models, propagation delays, and signal state visualization - PENDING
-3. **Debugging Tools**: No probe tools, logic analyzers, or waveform viewers for circuit analysis - PENDING
-4. **Hierarchical Design**: Lacks subcircuit capabilities for building complex systems - PENDING
-5. **Educational Features**: Missing truth table generators, boolean algebra tools, and interactive tutorials - PENDING
-
-1. [ ] Expand component library with common digital ICs (7400 series) - PENDING
-2. [ ] Add timing models and propagation delay simulation - PENDING
-3. [ ] Implement basic debugging tools (probes, logic analyzer) - PENDING
-4. [ ] Improve hierarchical design capabilities - PENDING
-5. [ ] Add educational aids (truth tables, boolean simplification) - PENDING
+1. **Expanded Component Library**: Currently limited to basic gates; needs microcontrollers, memory, complex ICs, input/output devices
+2. **Accurate Simulation**: Missing detailed timing models, propagation delays, and signal state visualization
+3. **Debugging Tools**: No probe tools, logic analyzers, or waveform viewers for circuit analysis
+4. **Hierarchical Design**: Lacks subcircuit capabilities for building complex systems
+5. **Educational Features**: Missing truth table generators, boolean algebra tools, and interactive tutorials
 
 ## GUI Unit Testing
 

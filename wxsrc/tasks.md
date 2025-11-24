@@ -163,22 +163,22 @@
 - [ ] Implement input/output devices (buttons, displays, etc.)
 
 ### Task 6.2: Accurate Simulation with Timing Models
-- [ ] Design propagation delay system for components
-- [ ] Implement timing analysis tools
+- [x] Design propagation delay system for components
+- [x] Implement timing analysis tools
 - [ ] Add signal state visualization with timing info
-- [ ] Create timing violation detection system
-- [ ] Implement clock domain crossing simulation
+- [x] Create timing violation detection system
+- [x] Implement clock domain crossing simulation
 - [ ] Add setup and hold time simulation
 - [ ] Design timing delay visualization in UI
 
 ### Task 6.3: Debugging Tools Implementation
-- [ ] Implement signal probe tool for real-time monitoring
+- [x] Implement signal probe tool for real-time monitoring
 - [ ] Create waveform viewer with time-based signal display
 - [ ] Add logic analyzer for complex signal pattern analysis
-- [ ] Implement timing analysis tools
-- [ ] Add signal value display during simulation
+- [x] Implement timing analysis tools
+- [x] Add signal value display during simulation
 - [ ] Create breakpoint system for simulation debugging
-- [ ] Add signal tracer for tracking signal changes
+- [x] Add signal tracer for tracking signal changes
 
 ### Task 6.4: Hierarchical Design Capabilities
 - [ ] Design subcircuit creation system

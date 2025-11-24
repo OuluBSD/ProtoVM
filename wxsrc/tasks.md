@@ -173,7 +173,7 @@
 
 ### Task 6.3: Debugging Tools Implementation
 - [x] Implement signal probe tool for real-time monitoring
-- [ ] Create waveform viewer with time-based signal display
+- [x] Create waveform viewer with time-based signal display
 - [ ] Add logic analyzer for complex signal pattern analysis
 - [x] Implement timing analysis tools
 - [x] Add signal value display during simulation

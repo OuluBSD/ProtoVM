@@ -38,11 +38,15 @@ private:
     void OnZoomIn(wxCommandEvent& event);
     void OnZoomOut(wxCommandEvent& event);
     void OnZoomReset(wxCommandEvent& event);
+    
+    // Helper methods
+    void InitializeSimulationBridge();
 
     CircuitCanvas* m_canvas;
     PropertiesPanel* m_propertiesPanel;
     ComponentPalette* m_componentPalette;
     class SimulationController* m_simulationController;
+    class SimulationBridge* m_simulationBridge;
     wxString m_currentFilePath;  // Path of currently loaded project file
 
     wxDECLARE_EVENT_TABLE();

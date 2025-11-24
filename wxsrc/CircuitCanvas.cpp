@@ -7,6 +7,7 @@
 #include <wx/dcbuffer.h>
 #include <memory>
 #include <unordered_map>
+#include "SimulationBridge.h"
 #include <unordered_set>
 #include <set>
 
@@ -24,7 +25,7 @@ void CircuitCanvas::OnMouseRightDown(wxMouseEvent& event)
     for (Component* comp : m_components)
     {
         // Check input pins
-        for (Pin& pin : comp->GetInputPins())
+        for (GuiPin& pin : comp->GetInputPins())
         {
             wxPoint pinPos = pin.GetPosition();
             if (wxRect(pinPos.x - 4, pinPos.y - 4, 8, 8).Contains(pos))
@@ -42,7 +43,7 @@ void CircuitCanvas::OnMouseRightDown(wxMouseEvent& event)
         if (pinFound) break;
         
         // Check output pins
-        for (Pin& pin : comp->GetOutputPins())
+        for (GuiPin& pin : comp->GetOutputPins())
         {
             wxPoint pinPos = pin.GetPosition();
             if (wxRect(pinPos.x - 4, pinPos.y - 4, 8, 8).Contains(pos))
@@ -89,7 +90,7 @@ void CircuitCanvas::SerializeToData(CircuitData& data) const
         compData.y = pos.y;
         
         // Add input pins
-        for (const Pin& pin : comp->GetInputPins())
+        for (const GuiPin& pin : comp->GetInputPins())
         {
             PinData pinData;
             pinData.name = pin.GetName().ToStdString();
@@ -101,7 +102,7 @@ void CircuitCanvas::SerializeToData(CircuitData& data) const
         }
         
         // Add output pins
-        for (const Pin& pin : comp->GetOutputPins())
+        for (const GuiPin& pin : comp->GetOutputPins())
         {
             PinData pinData;
             pinData.name = pin.GetName().ToStdString();
@@ -195,18 +196,18 @@ void CircuitCanvas::DeserializeFromData(const CircuitData& data)
             Component* endComp = m_components[wireData.end_component_id];
             
             // Find the specific pins to connect
-            Pin* startPin = nullptr;
-            Pin* endPin = nullptr;
+            GuiPin* startPin = nullptr;
+            GuiPin* endPin = nullptr;
             
             // Look for the start pin in the start component
-            for (Pin& pin : startComp->GetInputPins()) {
+            for (GuiPin& pin : startComp->GetInputPins()) {
                 if (pin.GetName().ToStdString() == wireData.start_pin_name) {
                     startPin = &pin;
                     break;
                 }
             }
             if (!startPin) {
-                for (Pin& pin : startComp->GetOutputPins()) {
+                for (GuiPin& pin : startComp->GetOutputPins()) {
                     if (pin.GetName().ToStdString() == wireData.start_pin_name) {
                         startPin = &pin;
                         break;
@@ -215,14 +216,14 @@ void CircuitCanvas::DeserializeFromData(const CircuitData& data)
             }
             
             // Look for the end pin in the end component
-            for (Pin& pin : endComp->GetInputPins()) {
+            for (GuiPin& pin : endComp->GetInputPins()) {
                 if (pin.GetName().ToStdString() == wireData.end_pin_name) {
                     endPin = &pin;
                     break;
                 }
             }
             if (!endPin) {
-                for (Pin& pin : endComp->GetOutputPins()) {
+                for (GuiPin& pin : endComp->GetOutputPins()) {
                     if (pin.GetName().ToStdString() == wireData.end_pin_name) {
                         endPin = &pin;
                         break;
@@ -357,7 +358,7 @@ void CircuitCanvas::OnMouseLeftDown(wxMouseEvent& event)
         for (Component* comp : m_components)
         {
             // Check input pins
-            for (Pin& pin : comp->GetInputPins())
+            for (GuiPin& pin : comp->GetInputPins())
             {
                 wxPoint pinPos = pin.GetPosition();
                 if (wxRect(pinPos.x - 4, pinPos.y - 4, 8, 8).Contains(pos))
@@ -379,7 +380,7 @@ void CircuitCanvas::OnMouseLeftDown(wxMouseEvent& event)
                             
                             // Check if m_startPin is in this component's pins
                             bool isStartInThisComp = false;
-                            for (Pin& p : inputs)
+                            for (GuiPin& p : inputs)
                             {
                                 if (&p == m_startPin)
                                 {
@@ -389,7 +390,7 @@ void CircuitCanvas::OnMouseLeftDown(wxMouseEvent& event)
                                 }
                             }
                             if (!isStartInThisComp) {
-                                for (Pin& p : outputs)
+                                for (GuiPin& p : outputs)
                                 {
                                     if (&p == m_startPin)
                                     {
@@ -441,7 +442,7 @@ void CircuitCanvas::OnMouseLeftDown(wxMouseEvent& event)
             if (pinFound) break;
             
             // Check output pins
-            for (Pin& pin : comp->GetOutputPins())
+            for (GuiPin& pin : comp->GetOutputPins())
             {
                 wxPoint pinPos = pin.GetPosition();
                 if (wxRect(pinPos.x - 4, pinPos.y - 4, 8, 8).Contains(pos))
@@ -463,7 +464,7 @@ void CircuitCanvas::OnMouseLeftDown(wxMouseEvent& event)
                             
                             // Check if m_startPin is in this component's pins
                             bool isStartInThisComp = false;
-                            for (Pin& p : inputs)
+                            for (GuiPin& p : inputs)
                             {
                                 if (&p == m_startPin)
                                 {
@@ -473,7 +474,7 @@ void CircuitCanvas::OnMouseLeftDown(wxMouseEvent& event)
                                 }
                             }
                             if (!isStartInThisComp) {
-                                for (Pin& p : outputs)
+                                for (GuiPin& p : outputs)
                                 {
                                     if (&p == m_startPin)
                                     {
@@ -647,15 +648,15 @@ CircuitCanvas::~CircuitCanvas()
 
 
 
-Component* CircuitCanvas::GetComponentForPin(const Pin* pin) const
+Component* CircuitCanvas::GetComponentForPin(const GuiPin* pin) const
 {
     // Find which component a pin belongs to - this is an expensive operation that should be optimized
     // In a real implementation, pins would have back-references to their components
     for (Component* comp : m_components)
     {
         // Check input pins
-        std::vector<Pin>& inputs = comp->GetInputPins();
-        for (Pin& p : inputs)
+        std::vector<GuiPin>& inputs = comp->GetInputPins();
+        for (GuiPin& p : inputs)
         {
             if (&p == pin) {
                 return comp;
@@ -663,8 +664,8 @@ Component* CircuitCanvas::GetComponentForPin(const Pin* pin) const
         }
 
         // Check output pins
-        std::vector<Pin>& outputs = comp->GetOutputPins();
-        for (Pin& p : outputs)
+        std::vector<GuiPin>& outputs = comp->GetOutputPins();
+        for (GuiPin& p : outputs)
         {
             if (&p == pin) {
                 return comp;
@@ -731,7 +732,7 @@ void NANDGateComponent::Draw(wxDC& dc)
     // Draw input pins and labels
     for (size_t i = 0; i < m_inputPins.size(); i++)
     {
-        Pin& pin = m_inputPins[i];
+        GuiPin& pin = m_inputPins[i];
         wxPoint pinPos = pin.GetPosition();
         
         // Draw line from pin to gate
@@ -747,7 +748,7 @@ void NANDGateComponent::Draw(wxDC& dc)
     
     // Draw output pin and label
     if (!m_outputPins.empty()) {
-        Pin& pin = m_outputPins[0];  // NAND gate has one output
+        GuiPin& pin = m_outputPins[0];  // NAND gate has one output
         wxPoint pinPos = pin.GetPosition();
         
         // Draw line from gate to pin
@@ -791,12 +792,12 @@ wxRect NANDGateComponent::GetBodyRect() const
     return wxRect(pos.x, pos.y, 60, 50);
 }
 
-std::vector<Pin>& NANDGateComponent::GetInputPins()
+std::vector<GuiPin>& NANDGateComponent::GetInputPins()
 {
     return m_inputPins;
 }
 
-std::vector<Pin>& NANDGateComponent::GetOutputPins()
+std::vector<GuiPin>& NANDGateComponent::GetOutputPins()
 {
     return m_outputPins;
 }
@@ -852,7 +853,7 @@ void NORGateComponent::Draw(wxDC& dc)
     // Draw input pins and labels
     for (size_t i = 0; i < m_inputPins.size(); i++)
     {
-        Pin& pin = m_inputPins[i];
+        GuiPin& pin = m_inputPins[i];
         wxPoint pinPos = pin.GetPosition();
         
         // Draw line from pin to gate
@@ -868,7 +869,7 @@ void NORGateComponent::Draw(wxDC& dc)
     
     // Draw output pin and label
     if (!m_outputPins.empty()) {
-        Pin& pin = m_outputPins[0];  // NOR gate has one output
+        GuiPin& pin = m_outputPins[0];  // NOR gate has one output
         wxPoint pinPos = pin.GetPosition();
         
         // Draw line from gate to pin
@@ -912,12 +913,12 @@ wxRect NORGateComponent::GetBodyRect() const
     return wxRect(pos.x, pos.y, 60, 50);
 }
 
-std::vector<Pin>& NORGateComponent::GetInputPins()
+std::vector<GuiPin>& NORGateComponent::GetInputPins()
 {
     return m_inputPins;
 }
 
-std::vector<Pin>& NORGateComponent::GetOutputPins()
+std::vector<GuiPin>& NORGateComponent::GetOutputPins()
 {
     return m_outputPins;
 }
@@ -963,7 +964,7 @@ void NOTGateComponent::Draw(wxDC& dc)
     
     // Draw input pin and label
     if (!m_inputPins.empty()) {
-        Pin& pin = m_inputPins[0];  // NOT gate has one input
+        GuiPin& pin = m_inputPins[0];  // NOT gate has one input
         wxPoint pinPos = pin.GetPosition();
         
         // Draw line from pin to gate
@@ -979,7 +980,7 @@ void NOTGateComponent::Draw(wxDC& dc)
     
     // Draw output pin and label
     if (!m_outputPins.empty()) {
-        Pin& pin = m_outputPins[0];  // NOT gate has one output
+        GuiPin& pin = m_outputPins[0];  // NOT gate has one output
         wxPoint pinPos = pin.GetPosition();
         
         // Draw line from gate to pin
@@ -1023,12 +1024,12 @@ wxRect NOTGateComponent::GetBodyRect() const
     return wxRect(pos.x, pos.y, 40, 40);
 }
 
-std::vector<Pin>& NOTGateComponent::GetInputPins()
+std::vector<GuiPin>& NOTGateComponent::GetInputPins()
 {
     return m_inputPins;
 }
 
-std::vector<Pin>& NOTGateComponent::GetOutputPins()
+std::vector<GuiPin>& NOTGateComponent::GetOutputPins()
 {
     return m_outputPins;
 }
@@ -1069,7 +1070,7 @@ void BufferComponent::Draw(wxDC& dc)
     
     // Draw input pin and label
     if (!m_inputPins.empty()) {
-        Pin& pin = m_inputPins[0];  // Buffer has one input
+        GuiPin& pin = m_inputPins[0];  // Buffer has one input
         wxPoint pinPos = pin.GetPosition();
         
         // Draw line from pin to gate
@@ -1085,7 +1086,7 @@ void BufferComponent::Draw(wxDC& dc)
     
     // Draw output pin and label
     if (!m_outputPins.empty()) {
-        Pin& pin = m_outputPins[0];  // Buffer has one output
+        GuiPin& pin = m_outputPins[0];  // Buffer has one output
         wxPoint pinPos = pin.GetPosition();
         
         // Draw line from gate to pin
@@ -1129,18 +1130,18 @@ wxRect BufferComponent::GetBodyRect() const
     return wxRect(pos.x, pos.y, 40, 40);
 }
 
-std::vector<Pin>& BufferComponent::GetInputPins()
+std::vector<GuiPin>& BufferComponent::GetInputPins()
 {
     return m_inputPins;
 }
 
-std::vector<Pin>& BufferComponent::GetOutputPins()
+std::vector<GuiPin>& BufferComponent::GetOutputPins()
 {
     return m_outputPins;
 }
 
 // Simple Wire Implementation
-SimpleWire::SimpleWire(Pin* start, Pin* end)
+SimpleWire::SimpleWire(GuiPin* start, GuiPin* end)
     : Wire(start, end)
 {
 }
@@ -1784,7 +1785,7 @@ std::vector<Component*> CircuitCanvas::GetComponentsInArea(const wxRect& area) c
 }
 
 // Connection validation methods implementation
-bool CircuitCanvas::ValidateConnection(Pin* startPin, Pin* endPin, wxString& errorMessage) const {
+bool CircuitCanvas::ValidateConnection(GuiPin* startPin, GuiPin* endPin, wxString& errorMessage) const {
     if (!startPin || !endPin) {
         errorMessage = "Invalid pin connection - one or both pins are null";
         return false;
@@ -1803,8 +1804,8 @@ bool CircuitCanvas::ValidateConnection(Pin* startPin, Pin* endPin, wxString& err
     }
     
     // Determine which is the input and which is the output
-    Pin* inputPin = startPin->IsInput() ? startPin : endPin;
-    Pin* outputPin = startPin->IsInput() ? endPin : startPin;
+    GuiPin* inputPin = startPin->IsInput() ? startPin : endPin;
+    GuiPin* outputPin = startPin->IsInput() ? endPin : startPin;
     
     // Check if the input pin is already connected to another output (multiple inputs not currently supported)
     if (IsPinConnected(inputPin)) {
@@ -1843,12 +1844,12 @@ bool CircuitCanvas::ValidateConnection(Pin* startPin, Pin* endPin, wxString& err
     return true;
 }
 
-bool CircuitCanvas::IsPinConnected(Pin* pin) const {
+bool CircuitCanvas::IsPinConnected(GuiPin* pin) const {
     if (!pin) return false;
     return pin->IsConnected();
 }
 
-bool CircuitCanvas::CheckForMultipleOutputs(Pin* outputPin, Pin* newInputPin) const {
+bool CircuitCanvas::CheckForMultipleOutputs(GuiPin* outputPin, GuiPin* newInputPin) const {
     if (!outputPin || outputPin->IsInput()) return false;
     
     int connectionCount = 0;

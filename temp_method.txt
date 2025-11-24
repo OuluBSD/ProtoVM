@@ -1,0 +1,90 @@
+// This is the updated InitializeSimulation method content
+void SimulationBridge::InitializeSimulation()
+{
+    if (!m_engine || !m_canvas) {
+        return;
+    }
+
+    // Clear any existing mappings
+    m_guiToSimMap.clear();
+    m_simToGuiMap.clear();
+    m_pinToNodeMap.clear();
+
+    // Create simulation components for each GUI component
+    for (Component* guiComp : m_canvas->GetComponents()) {
+        ISimulationComponent* simComp = nullptr;
+
+        // Create corresponding simulation component based on GUI component type
+        if (guiComp->GetName() == "NAND") {
+            simComp = m_engine->CreateComponent("NAND");
+        } else if (guiComp->GetName() == "NOR") {
+            simComp = m_engine->CreateComponent("NOR");
+        } else if (guiComp->GetName() == "NOT") {
+            simComp = m_engine->CreateComponent("NOT");
+        } else if (guiComp->GetName() == "BUF") {
+            simComp = m_engine->CreateComponent("BUF");
+        } else {
+            // Default to a basic gate
+            simComp = m_engine->CreateComponent("BUF");
+        }
+
+        if (simComp) {
+            // Add to mapping
+            AddComponent(guiComp, simComp);
+            
+            // Initialize the simulation component properties based on GUI component properties
+            // For example, set position, name, etc.
+            simComp->SetName(guiComp->GetName().ToStdString() + " (sim)");
+        }
+    }
+
+    // Now connect simulation components based on GUI wire connections
+    for (Wire* guiWire : m_canvas->GetWires()) {
+        GuiPin* startPin = guiWire->GetStartPin();
+        GuiPin* endPin = guiWire->GetEndPin();
+
+        // Find which GUI components these pins belong to
+        Component* startComp = nullptr;
+        Component* endComp = nullptr;
+
+        for (Component* comp : m_canvas->GetComponents()) {
+            auto& inputPins = comp->GetInputPins();
+            auto& outputPins = comp->GetOutputPins();
+
+            // Check if start pin belongs to this component
+            for (const auto& pin : inputPins) {
+                if (&pin == startPin) {
+                    startComp = comp;
+                }
+            }
+            for (const auto& pin : outputPins) {
+                if (&pin == startPin) {
+                    startComp = comp;
+                }
+            }
+            
+            // Check if end pin belongs to this component
+            for (const auto& pin : inputPins) {
+                if (&pin == endPin) {
+                    endComp = comp;
+                }
+            }
+            for (const auto& pin : outputPins) {
+                if (&pin == endPin) {
+                    endComp = comp;
+                }
+            }
+        }
+
+        // If both components were found, connect their simulation counterparts
+        if (startComp && endComp) {
+            ISimulationComponent* simStart = GetSimComponent(startComp);
+            ISimulationComponent* simEnd = GetSimComponent(endComp);
+
+            if (simStart && simEnd) {
+                // For this simplified interface, we'll connect output 0 of start to input 0 of end
+                m_engine->ConnectComponents(simStart, 0, simEnd, 0);
+            }
+        }
+    }
+}

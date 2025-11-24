@@ -26,7 +26,7 @@ execute_process(
 # Add the flags to the compilation
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WX_CXX_FLAGS}")
 
-# Add all source files
+# Add all source files (GUI components only)
 set(SOURCES
     wxsrc/main.cpp
     wxsrc/ProtoVMApp.cpp
@@ -38,6 +38,7 @@ set(SOURCES
     wxsrc/ComponentLibrary.cpp
     wxsrc/ComponentPalette.cpp
     wxsrc/SimulationController.cpp
+    wxsrc/SimulationBridge.cpp
 )
 
 set(HEADERS
@@ -51,10 +52,16 @@ set(HEADERS
     wxsrc/ComponentLibrary.h
     wxsrc/ComponentPalette.h
     wxsrc/SimulationController.h
+    wxsrc/SimulationBridge.h
 )
 
 # Create executable
 add_executable(protovm_gui ${SOURCES} ${HEADERS})
+
+# Add include directories
+target_include_directories(protovm_gui PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/wxsrc
+)
 
 # Separate the libraries for target_link_libraries
 separate_arguments(WX_LIBS_LIST NATIVE_COMMAND "${WX_LIBS}")

@@ -53,14 +53,14 @@ void PropertiesPanel::UpdateProperties(Component* component)
     m_propertyGrid->Append(new wxPropertyCategory("Pins"));
     
     // Add input pins
-    for (const Pin& pin : component->GetInputPins()) {
+    for (const GuiPin& pin : component->GetInputPins()) {
         wxString pinName = "Input: " + pin.GetName();
         wxString pinPos = wxString::Format("%d, %d", pin.GetPosition().x, pin.GetPosition().y);
         m_propertyGrid->Append(new wxStringProperty(pinName, pin.GetName() + "_input", pinPos));
     }
     
     // Add output pins
-    for (const Pin& pin : component->GetOutputPins()) {
+    for (const GuiPin& pin : component->GetOutputPins()) {
         wxString pinName = "Output: " + pin.GetName();
         wxString pinPos = wxString::Format("%d, %d", pin.GetPosition().x, pin.GetPosition().y);
         m_propertyGrid->Append(new wxStringProperty(pinName, pin.GetName() + "_output", pinPos));

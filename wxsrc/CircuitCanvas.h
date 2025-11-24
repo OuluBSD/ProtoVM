@@ -4,6 +4,7 @@
 #include <wx/wx.h>
 #include <wx/dcclient.h>
 #include <wx/timer.h>
+#define GRID_CELL_SIZE 50  // Grid cell size in pixels for spatial indexing
 #include <vector>
 #include <algorithm>  // For std::find
 #include <functional>
@@ -18,7 +19,7 @@ class Wire;
 class CircuitData;      // Forward declaration for CircuitData
 class UndoCommand;      // Forward declaration for UndoCommand
 class UndoRedoManager;  // Forward declaration for UndoRedoManager
-class Pin;              // Forward declaration for Pin class
+class GuiPin;           // Forward declaration for GuiPin class
 
 class CircuitCanvas : public wxPanel
 {
@@ -89,9 +90,9 @@ public:
     bool IsInWireCreationMode() const { return m_wireCreationMode; }
     
     // Connection validation methods
-    bool ValidateConnection(Pin* startPin, Pin* endPin, wxString& errorMessage) const;
-    bool IsPinConnected(Pin* pin) const;
-    bool CheckForMultipleOutputs(Pin* startPin, Pin* endPin) const;
+    bool ValidateConnection(GuiPin* startPin, GuiPin* endPin, wxString& errorMessage) const;
+    bool IsPinConnected(GuiPin* pin) const;
+    bool CheckForMultipleOutputs(GuiPin* startPin, GuiPin* endPin) const;
 
     // Performance optimization methods
     void RebuildSpatialIndex();  // Rebuild spatial index for performance optimization
@@ -127,7 +128,7 @@ private:
 
     // For wire creation
     bool m_wireCreationMode;
-    Pin* m_startPin;
+    GuiPin* m_startPin;
     wxPoint m_currentWireEndPoint;
 
     // For animation
@@ -165,16 +166,16 @@ private:
     void AddComponentToSpatialGrid(Component* comp);  // Add component to spatial grid
     void RemoveComponentFromSpatialGrid(Component* comp);  // Remove component from spatial grid
     std::vector<Component*> GetComponentsInArea(const wxRect& area) const;  // Get components in a specific area
-    Component* GetComponentForPin(const Pin* pin) const;  // Find component that owns a pin (for serialization optimization)
+    Component* GetComponentForPin(const GuiPin* pin) const;  // Find component that owns a pin (for serialization optimization)
 
     wxDECLARE_EVENT_TABLE();
 };
 
 // Pin class to represent connection points on components
-class Pin
+class GuiPin
 {
 public:
-    Pin(int x, int y, const wxString& name, bool isInput)
+    GuiPin(int x, int y, const wxString& name, bool isInput)
         : m_pos(x, y), m_name(name), m_isInput(isInput), m_connected(false) {}
 
     wxPoint GetPosition() const { return m_pos; }
@@ -202,8 +203,8 @@ public:
     virtual bool Contains(const wxPoint& pos) const = 0;
     virtual void Move(int dx, int dy) { m_pos.x += dx; m_pos.y += dy; }
     virtual wxRect GetBounds() const = 0;
-    virtual std::vector<Pin>& GetInputPins() = 0;
-    virtual std::vector<Pin>& GetOutputPins() = 0;
+    virtual std::vector<GuiPin>& GetInputPins() = 0;
+    virtual std::vector<GuiPin>& GetOutputPins() = 0;
 
     wxPoint GetPosition() const { return m_pos; }
     void SetPosition(const wxPoint& pos) { m_pos = pos; }
@@ -222,14 +223,14 @@ protected:
 class Wire
 {
 public:
-    Wire(Pin* start, Pin* end)
+    Wire(GuiPin* start, GuiPin* end)
         : m_startPin(start), m_endPin(end), m_active(false), m_propagationPosition(0.0f), m_animationActive(false) {}
     virtual ~Wire() {}
 
     virtual void Draw(wxDC& dc) = 0;
 
-    Pin* GetStartPin() const { return m_startPin; }
-    Pin* GetEndPin() const { return m_endPin; }
+    GuiPin* GetStartPin() const { return m_startPin; }
+    GuiPin* GetEndPin() const { return m_endPin; }
     bool IsActive() const { return m_active; }
     void SetActive(bool active) { m_active = active; }
 
@@ -241,8 +242,8 @@ public:
     void ResetPropagation() { m_propagationPosition = 0.0f; }
 
 private:
-    Pin* m_startPin;
-    Pin* m_endPin;
+    GuiPin* m_startPin;
+    GuiPin* m_endPin;
     bool m_active;  // Whether the wire is carrying a signal
     float m_propagationPosition;  // Position of signal propagation [0.0-1.0]
     bool m_animationActive;  // Whether animation is currently running
@@ -257,13 +258,13 @@ public:
     virtual void Draw(wxDC& dc) override;
     virtual bool Contains(const wxPoint& pos) const override;
     virtual wxRect GetBounds() const override;
-    virtual std::vector<Pin>& GetInputPins() override;
-    virtual std::vector<Pin>& GetOutputPins() override;
+    virtual std::vector<GuiPin>& GetInputPins() override;
+    virtual std::vector<GuiPin>& GetOutputPins() override;
 
 private:
     wxRect GetBodyRect() const;
-    std::vector<Pin> m_inputPins;
-    std::vector<Pin> m_outputPins;
+    std::vector<GuiPin> m_inputPins;
+    std::vector<GuiPin> m_outputPins;
 };
 
 // Concrete implementation of a NOR gate component
@@ -275,13 +276,13 @@ public:
     virtual void Draw(wxDC& dc) override;
     virtual bool Contains(const wxPoint& pos) const override;
     virtual wxRect GetBounds() const override;
-    virtual std::vector<Pin>& GetInputPins() override;
-    virtual std::vector<Pin>& GetOutputPins() override;
+    virtual std::vector<GuiPin>& GetInputPins() override;
+    virtual std::vector<GuiPin>& GetOutputPins() override;
 
 private:
     wxRect GetBodyRect() const;
-    std::vector<Pin> m_inputPins;
-    std::vector<Pin> m_outputPins;
+    std::vector<GuiPin> m_inputPins;
+    std::vector<GuiPin> m_outputPins;
 };
 
 // Concrete implementation of a NOT gate (inverter) component
@@ -293,13 +294,13 @@ public:
     virtual void Draw(wxDC& dc) override;
     virtual bool Contains(const wxPoint& pos) const override;
     virtual wxRect GetBounds() const override;
-    virtual std::vector<Pin>& GetInputPins() override;
-    virtual std::vector<Pin>& GetOutputPins() override;
+    virtual std::vector<GuiPin>& GetInputPins() override;
+    virtual std::vector<GuiPin>& GetOutputPins() override;
 
 private:
     wxRect GetBodyRect() const;
-    std::vector<Pin> m_inputPins;
-    std::vector<Pin> m_outputPins;
+    std::vector<GuiPin> m_inputPins;
+    std::vector<GuiPin> m_outputPins;
 };
 
 // Concrete implementation of a buffer component
@@ -311,20 +312,20 @@ public:
     virtual void Draw(wxDC& dc) override;
     virtual bool Contains(const wxPoint& pos) const override;
     virtual wxRect GetBounds() const override;
-    virtual std::vector<Pin>& GetInputPins() override;
-    virtual std::vector<Pin>& GetOutputPins() override;
+    virtual std::vector<GuiPin>& GetInputPins() override;
+    virtual std::vector<GuiPin>& GetOutputPins() override;
 
 private:
     wxRect GetBodyRect() const;
-    std::vector<Pin> m_inputPins;
-    std::vector<Pin> m_outputPins;
+    std::vector<GuiPin> m_inputPins;
+    std::vector<GuiPin> m_outputPins;
 };
 
 // Wire implementation with visual feedback
 class SimpleWire : public Wire
 {
 public:
-    SimpleWire(Pin* start, Pin* end);
+    SimpleWire(GuiPin* start, GuiPin* end);
 
     virtual void Draw(wxDC& dc) override;
 };

@@ -1,0 +1,365 @@
+#include "SimulationBridge.h"
+#include <iostream>
+
+SimulationBridge::SimulationBridge(ISimulationEngine* engine, CircuitCanvas* canvas)
+    : m_engine(engine), m_canvas(canvas)
+{
+    // Initialize the bridge between GUI and simulation
+}
+
+SimulationBridge::~SimulationBridge()
+{
+    // Clean up mappings
+    m_guiToSimMap.clear();
+    m_simToGuiMap.clear();
+    m_pinToNodeMap.clear();
+}
+
+void SimulationBridge::Initialize()
+{
+    if (!m_machine || !m_canvas) {
+        return;
+    }
+
+    // Clear any existing mappings
+    m_guiToSimMap.clear();
+    m_simToGuiMap.clear();
+    m_pinToNodeMap.clear();
+
+    // Create simulation PCB if not present
+    Pcb& pcb = m_machine->AddPcb();
+
+    // Add GUI components to simulation
+    for (Component* guiComp : m_canvas->GetComponents()) {
+        ElectricNodeBase* simComp = nullptr;
+
+        // Create corresponding simulation component based on GUI component type
+        if (guiComp->GetName() == "NAND") {
+            simComp = &pcb.Create<ElcNand>();
+        } else if (guiComp->GetName() == "NOR") {
+            simComp = &pcb.Create<ElcNor>();
+        } else if (guiComp->GetName() == "NOT") {
+            simComp = &pcb.Create<ElcNot>();
+        } else if (guiComp->GetName() == "BUF") {
+            simComp = &pcb.Create<ElcBase>(); // Using base class for buffer as example
+        } else if (guiComp->GetName() == "D-FF") {
+            simComp = &pcb.Create<FlipFlopD>();
+        } else if (guiComp->GetName() == "JK-FF") {
+            simComp = &pcb.Create<FlipFlopJK>();
+        } else {
+            // Default case - use generic component
+            simComp = &pcb.Create<ElcBase>();
+        }
+
+        // Set position and other properties from GUI component 
+        if (simComp) {
+            // Add to mapping
+            AddComponent(guiComp, simComp);
+        }
+    }
+
+    // Now connect the simulation components based on GUI wire connections
+    for (Wire* guiWire : m_canvas->GetWires()) {
+        Pin* startPin = guiWire->GetStartPin();
+        Pin* endPin = guiWire->GetEndPin();
+
+        // Find the corresponding GUI components
+        Component* startComp = nullptr;
+        Component* endComp = nullptr;
+
+        // Find which GUI components these pins belong to
+        for (Component* comp : m_canvas->GetComponents()) {
+            auto& inputPins = comp->GetInputPins();
+            auto& outputPins = comp->GetOutputPins();
+
+            // Check if start/end pin belongs to this component
+            bool isStartInComp = false, isEndInComp = false;
+            for (const Pin& pin : inputPins) {
+                if (&pin == startPin || &pin == endPin) {
+                    if (&pin == startPin) isStartInComp = true;
+                    if (&pin == endPin) isEndInComp = true;
+                }
+            }
+            for (const Pin& pin : outputPins) {
+                if (&pin == startPin || &pin == endPin) {
+                    if (&pin == startPin) isStartInComp = true;
+                    if (&pin == endPin) isEndInComp = true;
+                }
+            }
+
+            if (isStartInComp) startComp = comp;
+            if (isEndInComp) endComp = comp;
+        }
+
+        // If both components were found, connect their simulation counterparts
+        if (startComp && endComp) {
+            ElectricNodeBase* simStart = GetSimComponent(startComp);
+            ElectricNodeBase* simEnd = GetSimComponent(endComp);
+
+            if (simStart && simEnd) {
+                // Connect the simulation components
+                // This is a simplified approach - in a real implementation, 
+                // you'd need to connect the specific pins/ports
+                for (int i = 0; i < simStart->GetConnectorCount(); i++) {
+                    auto& srcConn = simStart->GetConnector(i);
+                    if (srcConn.is_src) {  // It's an output
+                        for (int j = 0; j < simEnd->GetConnectorCount(); j++) {
+                            auto& destConn = simEnd->GetConnector(j);
+                            if (!destConn.is_src) {  // It's an input
+                                // Connect the source to destination
+                                srcConn.Add(&destConn);
+                                break; // For this example, we just connect to the first input
+                            }
+                        }
+                        break; // Connect only one output to one input for this example
+                    }
+                }
+            }
+        }
+    }
+}
+
+void SimulationBridge::UpdateGUI()
+{
+    if (!m_machine || !m_canvas) {
+        return;
+    }
+
+    // Update wire states based on simulation results
+    for (Wire* guiWire : m_canvas->GetWires()) {
+        // For this example, we'll just toggle wire states periodically
+        // In a real implementation, we would get the actual state from the simulation
+        static int stateCounter = 0;
+        guiWire->SetActive(stateCounter % 2 == 0);
+    }
+    stateCounter++;
+
+    // Update the canvas to reflect changes
+    m_canvas->Refresh();
+}
+
+void SimulationBridge::AddComponent(Component* guiComponent, ElectricNodeBase* simComponent)
+{
+    if (guiComponent && simComponent) {
+        m_guiToSimMap[guiComponent] = simComponent;
+        m_simToGuiMap[simComponent] = guiComponent;
+    }
+}
+
+void SimulationBridge::RemoveComponent(Component* guiComponent)
+{
+    if (!guiComponent) return;
+
+    auto it = m_guiToSimMap.find(guiComponent);
+    if (it != m_guiToSimMap.end()) {
+        ElectricNodeBase* simComponent = it->second;
+        m_simToGuiMap.erase(simComponent);
+        m_guiToSimMap.erase(it);
+    }
+}
+
+ElectricNodeBase* SimulationBridge::GetSimComponent(Component* guiComponent) const
+{
+    if (!guiComponent) return nullptr;
+
+    auto it = m_guiToSimMap.find(guiComponent);
+    if (it != m_guiToSimMap.end()) {
+        return it->second;
+    }
+    return nullptr;
+}
+
+Component* SimulationBridge::GetGUIComponent(ElectricNodeBase* simComponent) const
+{
+    if (!simComponent) return nullptr;
+
+    auto it = m_simToGuiMap.find(simComponent);
+    if (it != m_simToGuiMap.end()) {
+        return it->second;
+    }
+    return nullptr;
+}
+
+void SimulationBridge::SynchronizeGUItoSimulation()
+{
+    if (!m_machine || !m_canvas) {
+        return;
+    }
+
+    // This function would synchronize any changes made in the GUI to the simulation
+    // For example, adding/removing components or changing properties
+
+    // For now, this is a placeholder
+}
+
+void SimulationBridge::SynchronizeSimulationToGUI()
+{
+    if (!m_machine || !m_canvas) {
+        return;
+    }
+
+    // This function would synchronize the simulation state back to the GUI
+    // For example, updating component states or wire values based on simulation
+
+    // For now, this is a placeholder
+}
+
+void SimulationBridge::InitializeSimulation()
+{
+    if (!m_machine || !m_canvas) {
+        return;
+    }
+
+    // Clear any existing mappings
+    m_guiToSimMap.clear();
+    m_simToGuiMap.clear();
+    m_pinToNodeMap.clear();
+
+    // Add the PCB to the machine if not present
+    if (m_machine->pcbs.GetCount() == 0) {
+        m_machine->AddPcb();
+    }
+    
+    Pcb& pcb = m_machine->pcbs[0];
+
+    // Clear existing simulation components
+    // In a real implementation, we'd want to clear the PCB properly
+    pcb.Clear();
+
+    // Create simulation components for each GUI component
+    for (Component* guiComp : m_canvas->GetComponents()) {
+        ElectricNodeBase* simComp = nullptr;
+
+        // Create corresponding simulation component based on GUI component type
+        if (guiComp->GetName() == "NAND") {
+            simComp = &pcb.Create<ElcNand>();
+        } else if (guiComp->GetName() == "NOR") {
+            simComp = &pcb.Create<ElcNor>();
+        } else if (guiComp->GetName() == "NOT") {
+            simComp = &pcb.Create<ElcNot>();
+        } else if (guiComp->GetName() == "D-FF") {
+            simComp = &pcb.Create<FlipFlopD>();
+        } else if (guiComp->GetName() == "JK-FF") {
+            simComp = &pcb.Create<FlipFlopJK>();
+        } else {
+            // Default to base ElcBase for other components
+            simComp = &pcb.Create<ElcBase>();
+        }
+
+        if (simComp) {
+            // Add to mapping
+            AddComponent(guiComp, simComp);
+            
+            // Initialize the simulation component properties based on GUI component properties
+            // For example, set position, name, etc.
+            simComp->SetName(guiComp->GetName() + " (sim)");
+        }
+    }
+
+    // Now connect simulation components based on GUI wire connections
+    for (Wire* guiWire : m_canvas->GetWires()) {
+        Pin* startPin = guiWire->GetStartPin();
+        Pin* endPin = guiWire->GetEndPin();
+
+        // Find which GUI components these pins belong to
+        Component* startComp = nullptr;
+        Component* endComp = nullptr;
+
+        for (Component* comp : m_canvas->GetComponents()) {
+            auto& inputPins = comp->GetInputPins();
+            auto& outputPins = comp->GetOutputPins();
+
+            // Check if start pin belongs to this component
+            for (const auto& pin : inputPins) {
+                if (&pin == startPin || &pin == endPin) {
+                    if (&pin == startPin) startComp = comp;
+                    if (&pin == endPin) startComp = comp;
+                }
+            }
+            for (const auto& pin : outputPins) {
+                if (&pin == startPin || &pin == endPin) {
+                    if (&pin == startPin) startComp = comp;
+                    if (&pin == endPin) startComp = comp;
+                }
+            }
+            
+            // Check if end pin belongs to this component
+            for (const auto& pin : inputPins) {
+                if (&pin == endPin || &pin == startPin) {
+                    if (&pin == endPin) endComp = comp;
+                    if (&pin == startPin) endComp = comp;
+                }
+            }
+            for (const auto& pin : outputPins) {
+                if (&pin == endPin || &pin == startPin) {
+                    if (&pin == endPin) endComp = comp;
+                    if (&pin == startPin) endComp = comp;
+                }
+            }
+        }
+
+        // If both components were found, connect their simulation counterparts
+        if (startComp && endComp) {
+            ElectricNodeBase* simStart = GetSimComponent(startComp);
+            ElectricNodeBase* simEnd = GetSimComponent(endComp);
+
+            if (simStart && simEnd) {
+                // Find appropriate connectors to connect
+                // Connect the output of start component to the input of end component
+                for (int i = 0; i < simStart->GetConnectorCount(); i++) {
+                    auto& srcConn = simStart->GetConnector(i);
+                    if (srcConn.is_src) {  // It's an output
+                        for (int j = 0; j < simEnd->GetConnectorCount(); j++) {
+                            auto& destConn = simEnd->GetConnector(j);
+                            if (!destConn.is_src) {  // It's an input
+                                // Connect the source to destination
+                                srcConn.Add(&destConn);
+                                break; // Connect to first available input
+                            }
+                        }
+                        break; // Connect only one output for this example
+                    }
+                }
+            }
+        }
+    }
+}
+
+void SimulationBridge::RunSimulationStep()
+{
+    if (!m_machine) {
+        return;
+    }
+
+    // Run a single step of the simulation
+    m_machine->Tick();
+
+    // Update the GUI to reflect the simulation state
+    UpdateGUI();
+}
+
+void SimulationBridge::ResetSimulation()
+{
+    // Reset the simulation to initial state
+    if (m_machine) {
+        m_machine->current_tick = 0;
+        
+        // Reset all simulation components
+        for (int pcb_idx = 0; pcb_idx < m_machine->pcbs.GetCount(); pcb_idx++) {
+            Pcb& pcb = m_machine->pcbs[pcb_idx];
+            for (int comp_idx = 0; comp_idx < pcb.GetNodeCount(); comp_idx++) {
+                ElectricNodeBase& comp = pcb.GetNode(comp_idx);
+                // Reset component state - this is specific to each component type
+                comp.Reset();
+            }
+        }
+    }
+    
+    // Also reset the GUI component states
+    if (m_canvas) {
+        for (Wire* wire : m_canvas->GetWires()) {
+            wire->SetActive(false);
+        }
+        m_canvas->Refresh();
+    }
+}

@@ -3,6 +3,8 @@
 #include "PropertiesPanel.h"
 #include "ComponentPalette.h"
 #include "SimulationController.h"
+#include "SimulationBridge.h"
+#include "SimulationInterface.h"
 #include "CircuitData.h"
 #include "CircuitSerializer.h"
 #include <wx/artprov.h>
@@ -30,7 +32,7 @@ wxEND_EVENT_TABLE()
 
 MainFrame::MainFrame(const wxString& title)
     : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(1200, 800)), 
-      m_canvas(nullptr), m_propertiesPanel(nullptr), m_componentPalette(nullptr), m_simulationController(nullptr)
+      m_canvas(nullptr), m_propertiesPanel(nullptr), m_componentPalette(nullptr), m_simulationController(nullptr), m_simulationBridge(nullptr)
 {
     CreateMenus();
     CreateToolbar();
@@ -58,6 +60,8 @@ MainFrame::MainFrame(const wxString& title)
         });
     }
 
+    // Initialize the bridge between GUI and simulation engine
+    InitializeSimulationBridge();
     Centre();
 }
 
@@ -344,6 +348,22 @@ void MainFrame::OnStartSimulation(wxCommandEvent& event)
 {
     if (m_simulationController)
     {
+        // Initialize the simulation bridge if not already done
+        if (!m_simulationBridge) {
+            // Create a mock simulation engine for the bridge
+            // In a real implementation, this would connect to the actual ProtoVM engine
+            void* dummyEngine = nullptr;  // Placeholder - would be actual engine in real implementation
+            
+            // Create the simulation bridge
+            m_simulationBridge = new SimulationBridge(reinterpret_cast<ISimulationEngine*>(dummyEngine), m_canvas);
+            
+            // Connect the bridge to the simulation controller
+            m_simulationController->SetSimulationBridge(m_simulationBridge);
+            
+            // Initialize the bridge with current circuit
+            m_simulationBridge->InitializeSimulation();
+        }
+        
         m_simulationController->StartSimulation();
         SetStatusText("Simulation started", 0);
     }
@@ -365,6 +385,11 @@ void MainFrame::OnStopSimulation(wxCommandEvent& event)
         m_simulationController->StopSimulation();
         SetStatusText("Simulation stopped", 0);
     }
+    
+    // Reset the simulation bridge to initial state
+    if (m_simulationBridge) {
+        m_simulationBridge->ResetSimulation();
+    }
 }
 
 void MainFrame::OnStepSimulation(wxCommandEvent& event)
@@ -373,6 +398,11 @@ void MainFrame::OnStepSimulation(wxCommandEvent& event)
     {
         m_simulationController->StepSimulation();
         SetStatusText("Single simulation step executed", 0);
+        
+        // If we have a simulation bridge, run the bridge's step as well
+        if (m_simulationBridge) {
+            m_simulationBridge->RunSimulationStep();
+        }
     }
 }
 
@@ -444,5 +474,20 @@ void MainFrame::OnZoomReset(wxCommandEvent& event)
     if (m_canvas)
     {
         m_canvas->ResetZoom();
+    }
+}
+void MainFrame::InitializeSimulationBridge()
+{
+    if (m_canvas && m_simulationController) {
+        // For now, we'll create a mock Machine for the bridge
+        // In a real implementation, we'd connect to the actual ProtoVM Machine
+
+        // Since we can't directly include Machine here due to header complexity,
+        // we'll implement the bridge initialization when the user starts simulation
+        m_simulationController->SetUpdateCallback([this]() {
+            if (m_canvas) {
+                m_canvas->Refresh();
+            }
+        });
     }
 }

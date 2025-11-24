@@ -155,8 +155,8 @@ AddWireCommand::AddWireCommand(CircuitCanvas* canvas, void* startPin, void* endP
 void AddWireCommand::Execute()
 {
     if (!m_executed) {
-        Pin* start = static_cast<Pin*>(m_startPin);
-        Pin* end = static_cast<Pin*>(m_endPin);
+        GuiPin* start = static_cast<GuiPin*>(m_startPin);
+        GuiPin* end = static_cast<GuiPin*>(m_endPin);
         Wire* wire = new SimpleWire(start, end);
         m_canvas->AddWire(wire);
         m_wire = wire;
@@ -210,8 +210,8 @@ void DeleteWireCommand::Execute()
 void DeleteWireCommand::Undo()
 {
     if (m_executed) {
-        Pin* start = static_cast<Pin*>(m_startPin);
-        Pin* end = static_cast<Pin*>(m_endPin);
+        GuiPin* start = static_cast<GuiPin*>(m_startPin);
+        GuiPin* end = static_cast<GuiPin*>(m_endPin);
         Wire* wire = new SimpleWire(start, end);
         m_canvas->AddWire(wire);
         m_executed = false;

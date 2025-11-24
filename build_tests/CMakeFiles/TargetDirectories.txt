@@ -1,0 +1,3 @@
+/home/sblo/Dev/ProtoVM/build_tests/CMakeFiles/gui_tests.dir
+/home/sblo/Dev/ProtoVM/build_tests/CMakeFiles/edit_cache.dir
+/home/sblo/Dev/ProtoVM/build_tests/CMakeFiles/rebuild_cache.dir

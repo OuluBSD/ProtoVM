@@ -23,6 +23,7 @@ public:
     SimulationController();
     
     void SetCanvas(void* canvas); // void* to avoid including CircuitCanvas in header
+    void SetSimulationBridge(class SimulationBridge* bridge) { m_simulationBridge = bridge; }
     
     // Simulation control methods
     void StartSimulation();
@@ -63,6 +64,7 @@ private:
     
     // Canvas reference (as void* to avoid header dependency)
     void* m_canvas;
+    class SimulationBridge* m_simulationBridge;
     
     // Callback for UI updates
     std::function<void()> m_updateCallback;

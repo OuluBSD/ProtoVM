@@ -1,5 +1,6 @@
 #include "SimulationController.h"
 #include "CircuitCanvas.h"
+#include "SimulationBridge.h"
 #include <wx/timer.h>
 
 wxBEGIN_EVENT_TABLE(SimulationController, wxEvtHandler)
@@ -153,14 +154,18 @@ void SimulationController::CircuitChanged()
 
 void SimulationController::OnSimulationTimer(wxTimerEvent& event)
 {
-    // In a real implementation, this would run one step of the simulation
-    // by evaluating all components based on their inputs and updating their outputs
-    
-    m_currentTime++;
-    
-    // For demonstration purposes, we'll just toggle wire states periodically
-    // In a real implementation, this would involve complex logic to evaluate
-    // the circuit based on component types and connections
+    if (m_simulationBridge) {
+        m_simulationBridge->RunSimulationStep();
+    } else {
+        // In a real implementation, this would run one step of the simulation
+        // by evaluating all components based on their inputs and updating their outputs
+        
+        m_currentTime++;
+        
+        // For demonstration purposes, we'll just toggle wire states periodically
+        // In a real implementation, this would involve complex logic to evaluate
+        // the circuit based on component types and connections
+    }
     
     if (m_updateCallback) {
         m_updateCallback();

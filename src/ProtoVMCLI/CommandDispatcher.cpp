@@ -3,295 +3,377 @@
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
 
 namespace fs = std::filesystem;
 
 namespace ProtoVMCLI {
 
-CommandDispatcher::CommandDispatcher(std::unique_ptr<ISessionStore> store) 
+CommandDispatcher::CommandDispatcher(std::unique_ptr<ISessionStore> store)
     : session_store_(std::move(store)) {
+}
+
+// Helper function to generate ISO 8601 timestamp
+std::string GetCurrentTimestamp() {
+    auto now = std::chrono::system_clock::now();
+    auto time_t = std::chrono::system_clock::to_time_t(now);
+    std::tm tm = *std::gmtime(&time_t);
+    char buffer[32];
+    std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", &tm);
+    return std::string(buffer);
 }
 
 Upp::String CommandDispatcher::RunInitWorkspace(const CommandOptions& opts) {
     if (opts.workspace.empty()) {
-        return JsonIO::ErrorResponse("Workspace path is required", "INVALID_ARGUMENT");
+        return JsonIO::ErrorResponse("init-workspace", "Workspace path is required", "INVALID_ARGUMENT");
     }
-    
+
     try {
         fs::path workspace_path(opts.workspace);
-        
-        // Create workspace directory if it doesn't exist
-        if (!fs::exists(workspace_path)) {
+
+        // Check if workspace exists and contains workspace.json
+        fs::path workspace_json_path = workspace_path / "workspace.json";
+        bool already_exists = fs::exists(workspace_path) && fs::is_directory(workspace_path);
+        bool has_workspace_json = fs::exists(workspace_json_path);
+
+        if (already_exists && !has_workspace_json) {
+            // Existing directory but no workspace.json - invalid workspace
+            return JsonIO::ErrorResponse("init-workspace",
+                                       "Directory exists but is not a valid ProtoVM workspace (missing workspace.json)",
+                                       "INVALID_WORKSPACE");
+        }
+
+        // If workspace doesn't exist, create it
+        if (!already_exists) {
             fs::create_directories(workspace_path);
         }
-        
+
         // Create subdirectories
         fs::create_directories(workspace_path / "sessions");
         fs::create_directories(workspace_path / "logs");
         fs::create_directories(workspace_path / "artifacts");
-        
-        // Write workspace.json
-        Upp::ValueMap workspace_config;
-        workspace_config.Add("version", "0.1");
-        workspace_config.Add("created_at", "2025-01-01T00:00:00Z");  // In real implementation, use current time
-        
-        std::ofstream config_file(workspace_path / "workspace.json");
-        config_file << Upp::String().Cat() << workspace_config;
-        config_file.close();
-        
+
+        // If workspace.json doesn't exist, create it with initial configuration
+        if (!has_workspace_json) {
+            Upp::ValueMap workspace_config;
+            workspace_config.Add("schema_version", 1);
+            workspace_config.Add("created_at", Upp::String(GetCurrentTimestamp().c_str()));
+            workspace_config.Add("created_with", Upp::String("proto-vm-cli/0.1.0"));
+            workspace_config.Add("engine_version", Upp::String("unknown"));
+            workspace_config.Add("next_session_id", 1);
+
+            std::ofstream config_file(workspace_json_path);
+            config_file << Upp::String().Cat() << workspace_config;
+            config_file.close();
+        }
+
         Upp::ValueMap response_data;
         response_data.Add("workspace", Upp::String(opts.workspace.c_str()));
-        response_data.Add("created", true);
+        response_data.Add("created", !already_exists);  // true if we just created it
         response_data.Add("version", "0.1");
-        
-        return JsonIO::SuccessResponse(response_data);
+
+        return JsonIO::SuccessResponse("init-workspace", response_data);
     } catch (const std::exception& e) {
-        return JsonIO::ErrorResponse("Failed to initialize workspace: " + std::string(e.what()), 
-                                    "WORKSPACE_INITIALIZATION_ERROR");
+        return JsonIO::ErrorResponse("init-workspace",
+                                   "Failed to initialize workspace: " + std::string(e.what()),
+                                   "WORKSPACE_INITIALIZATION_ERROR");
     }
 }
 
 Upp::String CommandDispatcher::RunCreateSession(const CommandOptions& opts) {
     if (opts.workspace.empty()) {
-        return JsonIO::ErrorResponse("Workspace path is required", "INVALID_ARGUMENT");
+        return JsonIO::ErrorResponse("create-session", "Workspace path is required", "INVALID_ARGUMENT");
     }
-    
+
     if (!opts.circuit_file.has_value()) {
-        return JsonIO::ErrorResponse("Circuit file path is required", "INVALID_ARGUMENT");
+        return JsonIO::ErrorResponse("create-session", "Circuit file path is required", "INVALID_ARGUMENT");
     }
-    
+
     if (!ValidateWorkspace(opts.workspace)) {
-        return JsonIO::ErrorResponse("Invalid workspace path", "INVALID_WORKSPACE");
+        return JsonIO::ErrorResponse("create-session", "Invalid workspace path", "INVALID_WORKSPACE");
     }
-    
+
     // Check if circuit file exists
     if (!fs::exists(opts.circuit_file.value())) {
-        return JsonIO::ErrorResponse("Circuit file does not exist: " + opts.circuit_file.value(), 
+        return JsonIO::ErrorResponse("create-session",
+                                    "Circuit file does not exist: " + opts.circuit_file.value(),
                                     "CIRCUIT_FILE_NOT_FOUND");
     }
-    
+
     try {
         SessionCreateInfo create_info(opts.workspace, opts.circuit_file.value());
         auto result = session_store_->CreateSession(create_info);
-        
-        if (!result.success) {
-            return JsonIO::ErrorResponse(result.error.c_str(), result.error_code.c_str());
+
+        if (!result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(result.error_code);
+            return JsonIO::ErrorResponse("create-session", result.error_message, error_code_str);
         }
-        
+
         Upp::ValueMap response_data;
-        response_data.Add("session_id", result.value);
+        response_data.Add("session_id", result.data);
         response_data.Add("workspace", Upp::String(opts.workspace.c_str()));
         response_data.Add("circuit_file", Upp::String(opts.circuit_file.value().c_str()));
-        
-        return JsonIO::SuccessResponse(response_data);
+
+        return JsonIO::SuccessResponse("create-session", response_data);
     } catch (const std::exception& e) {
-        return JsonIO::ErrorResponse("Failed to create session: " + std::string(e.what()), 
-                                    "SESSION_CREATION_ERROR");
+        return JsonIO::ErrorResponse("create-session",
+                                   "Failed to create session: " + std::string(e.what()),
+                                   "SESSION_CREATION_ERROR");
     }
 }
 
 Upp::String CommandDispatcher::RunListSessions(const CommandOptions& opts) {
     if (opts.workspace.empty()) {
-        return JsonIO::ErrorResponse("Workspace path is required", "INVALID_ARGUMENT");
+        return JsonIO::ErrorResponse("list-sessions", "Workspace path is required", "INVALID_ARGUMENT");
     }
-    
+
     if (!ValidateWorkspace(opts.workspace)) {
-        return JsonIO::ErrorResponse("Invalid workspace path", "INVALID_WORKSPACE");
+        return JsonIO::ErrorResponse("list-sessions", "Invalid workspace path", "INVALID_WORKSPACE");
     }
-    
+
     try {
         auto result = session_store_->ListSessions();
-        
-        if (!result.success) {
-            return JsonIO::ErrorResponse(result.error.c_str(), result.error_code.c_str());
+
+        if (!result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(result.error_code);
+            return JsonIO::ErrorResponse("list-sessions", result.error_message, error_code_str);
         }
-        
+
         Upp::ValueArray sessions_array;
-        
-        for (const auto& session : result.value) {
+
+        for (const auto& session : result.data.sessions) {
             Upp::ValueMap session_obj;
             session_obj.Add("session_id", session.session_id);
             session_obj.Add("state", static_cast<int>(session.state));
             session_obj.Add("circuit_file", Upp::String(session.circuit_file.c_str()));
             session_obj.Add("created_at", Upp::String(session.created_at.c_str()));
             session_obj.Add("last_used_at", Upp::String(session.last_used_at.c_str()));
+            session_obj.Add("total_ticks", session.total_ticks);
             sessions_array.Add(session_obj);
         }
-        
+
+        Upp::ValueArray corrupt_sessions_array;
+        for (const auto& corrupt_id : result.data.corrupt_sessions) {
+            corrupt_sessions_array.Add(corrupt_id);
+        }
+
         Upp::ValueMap response_data;
         response_data.Add("sessions", sessions_array);
-        
-        return JsonIO::SuccessResponse(response_data);
+        response_data.Add("corrupt_sessions", corrupt_sessions_array);
+
+        return JsonIO::SuccessResponse("list-sessions", response_data);
     } catch (const std::exception& e) {
-        return JsonIO::ErrorResponse("Failed to list sessions: " + std::string(e.what()), 
-                                    "SESSION_LIST_ERROR");
+        return JsonIO::ErrorResponse("list-sessions",
+                                   "Failed to list sessions: " + std::string(e.what()),
+                                   "SESSION_LIST_ERROR");
     }
 }
 
 Upp::String CommandDispatcher::RunRunTicks(const CommandOptions& opts) {
     if (opts.workspace.empty()) {
-        return JsonIO::ErrorResponse("Workspace path is required", "INVALID_ARGUMENT");
+        return JsonIO::ErrorResponse("run-ticks", "Workspace path is required", "INVALID_ARGUMENT");
     }
-    
+
     if (!opts.session_id.has_value()) {
-        return JsonIO::ErrorResponse("Session ID is required", "INVALID_ARGUMENT");
+        return JsonIO::ErrorResponse("run-ticks", "Session ID is required", "INVALID_ARGUMENT");
     }
-    
+
     int ticks = opts.ticks.value_or(1);
     if (ticks <= 0) {
-        return JsonIO::ErrorResponse("Ticks must be positive", "INVALID_ARGUMENT");
+        return JsonIO::ErrorResponse("run-ticks", "Ticks must be positive", "INVALID_ARGUMENT");
     }
-    
+
     try {
         // In a real implementation, this would:
         // 1. Load the session's machine instance
         // 2. Execute ticks on the machine
         // 3. Update session metadata with new tick count
         // 4. Save session state
-        
+
         // For now, we'll simulate the update
         auto load_result = session_store_->LoadSession(opts.session_id.value());
-        if (!load_result.success) {
-            return JsonIO::ErrorResponse(load_result.error.c_str(), load_result.error_code.c_str());
+        if (!load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("run-ticks", load_result.error_message, error_code_str);
         }
-        
+
         // Update the tick count
-        SessionMetadata metadata = load_result.value;
+        SessionMetadata metadata = load_result.data;
         metadata.total_ticks += ticks;
-        
+
+        // Update last_used_at timestamp
+        auto now = std::chrono::system_clock::now();
+        auto time_t = std::chrono::system_clock::to_time_t(now);
+        std::tm tm = *std::gmtime(&time_t);
+        char buffer[32];
+        std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", &tm);
+        metadata.last_used_at = std::string(buffer);
+
         auto save_result = session_store_->SaveSession(metadata);
-        if (!save_result.success) {
-            return JsonIO::ErrorResponse(save_result.error.c_str(), save_result.error_code.c_str());
+        if (!save_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(save_result.error_code);
+            return JsonIO::ErrorResponse("run-ticks", save_result.error_message, error_code_str);
         }
-        
+
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
         response_data.Add("ticks_run", ticks);
         response_data.Add("total_ticks", metadata.total_ticks);
-        
-        return JsonIO::SuccessResponse(response_data);
+
+        return JsonIO::SuccessResponse("run-ticks", response_data);
     } catch (const std::exception& e) {
-        return JsonIO::ErrorResponse("Failed to run ticks: " + std::string(e.what()), 
-                                    "RUN_TICKS_ERROR");
+        return JsonIO::ErrorResponse("run-ticks",
+                                   "Failed to run ticks: " + std::string(e.what()),
+                                   "RUN_TICKS_ERROR");
     }
 }
 
 Upp::String CommandDispatcher::RunGetState(const CommandOptions& opts) {
     if (opts.workspace.empty()) {
-        return JsonIO::ErrorResponse("Workspace path is required", "INVALID_ARGUMENT");
+        return JsonIO::ErrorResponse("get-state", "Workspace path is required", "INVALID_ARGUMENT");
     }
-    
+
     if (!opts.session_id.has_value()) {
-        return JsonIO::ErrorResponse("Session ID is required", "INVALID_ARGUMENT");
+        return JsonIO::ErrorResponse("get-state", "Session ID is required", "INVALID_ARGUMENT");
     }
-    
+
     try {
         auto result = session_store_->LoadSession(opts.session_id.value());
-        
-        if (!result.success) {
-            return JsonIO::ErrorResponse(result.error.c_str(), result.error_code.c_str());
+
+        if (!result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(result.error_code);
+            return JsonIO::ErrorResponse("get-state", result.error_message, error_code_str);
         }
-        
-        const auto& metadata = result.value;
-        
+
+        const auto& metadata = result.data;
+
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
-        response_data.Add("circuit_name", Upp::String(metadata.circuit_file.c_str()));
+        response_data.Add("state", static_cast<int>(metadata.state));
+        response_data.Add("circuit_file", Upp::String(metadata.circuit_file.c_str()));
         response_data.Add("total_ticks", metadata.total_ticks);
-        
+        response_data.Add("created_at", Upp::String(metadata.created_at.c_str()));
+        response_data.Add("last_used_at", Upp::String(metadata.last_used_at.c_str()));
+
         Upp::ValueArray breakpoints_array;
-        response_data.Add("breakpoints_hit", breakpoints_array);
-        
+        response_data.Add("breakpoints", breakpoints_array);
+
         Upp::ValueArray traces_array;
         response_data.Add("traces", traces_array);
-        
-        return JsonIO::SuccessResponse(response_data);
+
+        Upp::ValueArray signals_array;
+        response_data.Add("signals", signals_array);
+
+        return JsonIO::SuccessResponse("get-state", response_data);
     } catch (const std::exception& e) {
-        return JsonIO::ErrorResponse("Failed to get state: " + std::string(e.what()), 
-                                    "GET_STATE_ERROR");
+        return JsonIO::ErrorResponse("get-state",
+                                   "Failed to get state: " + std::string(e.what()),
+                                   "GET_STATE_ERROR");
     }
 }
 
 Upp::String CommandDispatcher::RunExportNetlist(const CommandOptions& opts) {
     if (opts.workspace.empty()) {
-        return JsonIO::ErrorResponse("Workspace path is required", "INVALID_ARGUMENT");
+        return JsonIO::ErrorResponse("export-netlist", "Workspace path is required", "INVALID_ARGUMENT");
     }
-    
+
     if (!opts.session_id.has_value()) {
-        return JsonIO::ErrorResponse("Session ID is required", "INVALID_ARGUMENT");
+        return JsonIO::ErrorResponse("export-netlist", "Session ID is required", "INVALID_ARGUMENT");
     }
-    
+
     int pcb_id = opts.pcb_id.value_or(0);
-    
+
     try {
         // In a real implementation, this would:
         // 1. Load the session's machine instance
         // 2. Call Machine::GenerateNetlist(pcb_id)
         // 3. Write the result to a file in the session directory
-        
+
         // For now, we'll just return a placeholder
-        std::string netlist_file = opts.workspace + "/sessions/" + 
-                                  std::to_string(opts.session_id.value()) + 
+        std::string netlist_file = opts.workspace + "/sessions/" +
+                                  std::to_string(opts.session_id.value()) +
                                   "/netlists/netlist_" + std::to_string(pcb_id) + ".txt";
-        
+
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
         response_data.Add("pcb_id", pcb_id);
         response_data.Add("netlist_file", Upp::String(netlist_file.c_str()));
-        
-        return JsonIO::SuccessResponse(response_data);
+
+        return JsonIO::SuccessResponse("export-netlist", response_data);
     } catch (const std::exception& e) {
-        return JsonIO::ErrorResponse("Failed to export netlist: " + std::string(e.what()), 
-                                    "NETLIST_EXPORT_ERROR");
+        return JsonIO::ErrorResponse("export-netlist",
+                                   "Failed to export netlist: " + std::string(e.what()),
+                                   "NETLIST_EXPORT_ERROR");
     }
 }
 
 Upp::String CommandDispatcher::RunDestroySession(const CommandOptions& opts) {
     if (opts.workspace.empty()) {
-        return JsonIO::ErrorResponse("Workspace path is required", "INVALID_ARGUMENT");
+        return JsonIO::ErrorResponse("destroy-session", "Workspace path is required", "INVALID_ARGUMENT");
     }
-    
+
     if (!opts.session_id.has_value()) {
-        return JsonIO::ErrorResponse("Session ID is required", "INVALID_ARGUMENT");
+        return JsonIO::ErrorResponse("destroy-session", "Session ID is required", "INVALID_ARGUMENT");
     }
-    
+
     try {
         // In a real implementation, this would:
         // 1. Remove the session's machine instance from memory
         // 2. Delete the session directory and all its contents
-        
+
         // For now, we'll just call the store's delete function
         auto result = session_store_->DeleteSession(opts.session_id.value());
-        
-        if (!result.success) {
-            return JsonIO::ErrorResponse(result.error.c_str(), result.error_code.c_str());
+
+        if (!result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(result.error_code);
+            return JsonIO::ErrorResponse("destroy-session", result.error_message, error_code_str);
         }
-        
+
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
-        response_data.Add("deleted", result.value);
-        
-        return JsonIO::SuccessResponse(response_data);
+        response_data.Add("deleted", result.data);
+
+        return JsonIO::SuccessResponse("destroy-session", response_data);
     } catch (const std::exception& e) {
-        return JsonIO::ErrorResponse("Failed to destroy session: " + std::string(e.what()), 
-                                    "SESSION_DELETION_ERROR");
+        return JsonIO::ErrorResponse("destroy-session",
+                                   "Failed to destroy session: " + std::string(e.what()),
+                                   "SESSION_DELETION_ERROR");
     }
 }
 
 bool CommandDispatcher::ValidateWorkspace(const std::string& workspace_path) {
     try {
         fs::path path(workspace_path);
-        return fs::exists(path) && fs::is_directory(path);
+
+        // Check if path exists and is a directory
+        if (!fs::exists(path) || !fs::is_directory(path)) {
+            return false;
+        }
+
+        // Check if workspace.json exists
+        fs::path ws_json_path = path / "workspace.json";
+        if (!fs::exists(ws_json_path)) {
+            return false;
+        }
+
+        // Optionally validate the workspace.json structure
+        std::ifstream file(ws_json_path);
+        if (!file.is_open()) {
+            return false;
+        }
+
+        std::string content((std::istreambuf_iterator<char>(file)),
+                           std::istreambuf_iterator<char>());
+        file.close();
+
+        // Basic validation that it contains required fields
+        return content.find("\"schema_version\"") != std::string::npos &&
+               content.find("\"next_session_id\"") != std::string::npos;
     } catch (...) {
         return false;
     }
-}
-
-int CommandDispatcher::GetNextSessionId() {
-    // In a real implementation, this would scan the sessions directory
-    // and find the next available ID
-    // For now, we'll just return 1 (this would need to be more sophisticated in real impl)
-    return 1;
 }
 
 Upp::String CommandDispatcher::RunDebugProcessLogs(int process_id) {

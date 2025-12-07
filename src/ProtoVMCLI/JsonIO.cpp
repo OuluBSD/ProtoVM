@@ -4,23 +4,103 @@
 
 namespace ProtoVMCLI {
 
-Upp::String JsonIO::SuccessResponse(const Upp::ValueMap& data) {
+Upp::String JsonIO::SuccessResponse(const std::string& command, const Upp::ValueMap& data) {
     Upp::ValueMap response;
     response.Add("ok", true);
+    response.Add("command", Upp::String(command.c_str()));
+    response.Add("error_code", Upp::Value());
+    response.Add("error", Upp::Value());
     if (!data.IsEmpty()) {
         response.Add("data", data);
+    } else {
+        response.Add("data", Upp::Value());
     }
     return ValueMapToJson(response);
 }
 
-Upp::String JsonIO::ErrorResponse(const std::string& error_msg, const std::string& error_code) {
+Upp::String JsonIO::ErrorResponse(const std::string& command, const std::string& error_msg, const std::string& error_code) {
     Upp::ValueMap response;
     response.Add("ok", false);
-    response.Add("error", Upp::String(error_msg.c_str()));
+    response.Add("command", Upp::String(command.c_str()));
     if (!error_code.empty()) {
         response.Add("error_code", Upp::String(error_code.c_str()));
+    } else {
+        response.Add("error_code", Upp::Value());
     }
+    response.Add("error", Upp::String(error_msg.c_str()));
+    response.Add("data", Upp::Value());
     return ValueMapToJson(response);
+}
+
+template<typename T>
+Upp::String JsonIO::FromResult(const std::string& command, const Result<T>& result,
+                               std::function<Upp::ValueMap(const T&)> converter) {
+    if (result.ok) {
+        Upp::ValueMap data;
+        if (converter) {
+            data = converter(result.data);
+        } else {
+            // For simple types, just return an empty object or add a value field
+            data.Add("value", Upp::Value(result.data));
+        }
+        return SuccessResponse(command, data);
+    } else {
+        std::string code_str = ErrorCodeToString(result.error_code);
+        return ErrorResponse(command, result.error_message, code_str);
+    }
+}
+
+std::string JsonIO::ErrorCodeToString(ErrorCode code) {
+    switch (code) {
+        case ErrorCode::None:
+            return "NONE";
+        case ErrorCode::WorkspaceNotFound:
+            return "WORKSPACE_NOT_FOUND";
+        case ErrorCode::InvalidWorkspace:
+            return "INVALID_WORKSPACE";
+        case ErrorCode::WorkspaceCorrupt:
+            return "WORKSPACE_CORRUPT";
+        case ErrorCode::SessionNotFound:
+            return "SESSION_NOT_FOUND";
+        case ErrorCode::SessionCorrupt:
+            return "SESSION_CORRUPT";
+        case ErrorCode::SessionDeleted:
+            return "SESSION_DELETED";
+        case ErrorCode::SessionIdConflict:
+            return "SESSION_ID_CONFLICT";
+        case ErrorCode::CircuitFileNotFound:
+            return "CIRCUIT_FILE_NOT_FOUND";
+        case ErrorCode::CircuitFileUnreadable:
+            return "CIRCUIT_FILE_UNREADABLE";
+        case ErrorCode::StorageIoError:
+            return "STORAGE_IO_ERROR";
+        case ErrorCode::StorageSchemaMismatch:
+            return "STORAGE_SCHEMA_MISMATCH";
+        case ErrorCode::CommandParseError:
+            return "COMMAND_PARSE_ERROR";
+        case ErrorCode::InternalError:
+            return "INTERNAL_ERROR";
+        default:
+            return "UNKNOWN_ERROR";
+    }
+}
+
+ErrorCode JsonIO::StringToErrorCode(const std::string& s) {
+    if (s == "NONE") return ErrorCode::None;
+    if (s == "WORKSPACE_NOT_FOUND") return ErrorCode::WorkspaceNotFound;
+    if (s == "INVALID_WORKSPACE") return ErrorCode::InvalidWorkspace;
+    if (s == "WORKSPACE_CORRUPT") return ErrorCode::WorkspaceCorrupt;
+    if (s == "SESSION_NOT_FOUND") return ErrorCode::SessionNotFound;
+    if (s == "SESSION_CORRUPT") return ErrorCode::SessionCorrupt;
+    if (s == "SESSION_DELETED") return ErrorCode::SessionDeleted;
+    if (s == "SESSION_ID_CONFLICT") return ErrorCode::SessionIdConflict;
+    if (s == "CIRCUIT_FILE_NOT_FOUND") return ErrorCode::CircuitFileNotFound;
+    if (s == "CIRCUIT_FILE_UNREADABLE") return ErrorCode::CircuitFileUnreadable;
+    if (s == "STORAGE_IO_ERROR") return ErrorCode::StorageIoError;
+    if (s == "STORAGE_SCHEMA_MISMATCH") return ErrorCode::StorageSchemaMismatch;
+    if (s == "COMMAND_PARSE_ERROR") return ErrorCode::CommandParseError;
+    if (s == "INTERNAL_ERROR") return ErrorCode::InternalError;
+    return ErrorCode::InternalError;  // default for unknown error codes
 }
 
 Upp::ValueMap JsonIO::ParseArgs(int argc, char** argv) {

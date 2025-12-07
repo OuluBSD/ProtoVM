@@ -13,21 +13,21 @@ namespace ProtoVMCLI {
 int main(int argc, char** argv) {
     // Parse command-line arguments
     auto args = ProtoVMCLI::JsonIO::ParseArgs(argc, argv);
-    
+
     // Extract command
     Upp::String command = args.Get("command", Upp::String(""));
     if (command.IsEmpty()) {
         // No command provided, return an error
         Upp::String error_response = ProtoVMCLI::JsonIO::ErrorResponse(
-            "No command specified", "MISSING_COMMAND");
+            "unknown", "No command specified", "MISSING_COMMAND");
         std::cout << error_response.ToStd() << std::endl;
         return 1;
     }
-    
+
     // Extract common options
     ProtoVMCLI::CommandOptions opts;
     opts.workspace = args.Get("workspace", Upp::String("")).ToStd();
-    
+
     // Extract optional parameters
     if (args.Find("session-id") >= 0) {
         try {
@@ -56,19 +56,19 @@ int main(int argc, char** argv) {
     if (args.Find("netlist-file") >= 0) {
         opts.netlist_file = args.Get("netlist-file", Upp::String("")).ToStd();
     }
-    
+
     // Create session store
     auto session_store = ProtoVMCLI::CreateFilesystemSessionStore(opts.workspace);
     if (!session_store) {
         Upp::String error_response = ProtoVMCLI::JsonIO::ErrorResponse(
-            "Failed to create session store", "SESSION_STORE_INIT_ERROR");
+            command.ToStd(), "Failed to create session store", "SESSION_STORE_INIT_ERROR");
         std::cout << error_response.ToStd() << std::endl;
         return 1;
     }
-    
+
     // Create command dispatcher
     ProtoVMCLI::CommandDispatcher dispatcher(std::move(session_store));
-    
+
     // Dispatch to appropriate command handler
     Upp::String result;
 
@@ -104,14 +104,14 @@ int main(int argc, char** argv) {
                 int process_id = args.Get("id", -1);
                 if (process_id == -1) {
                     result = ProtoVMCLI::JsonIO::ErrorResponse(
-                        "Process ID is required for logs command", "MISSING_ID");
+                        "debug-process-logs", "Process ID is required for logs command", "MISSING_ID");
                 } else {
                     // Start streaming process logs
                     result = dispatcher.RunDebugProcessLogs(process_id);
                 }
             } else {
                 result = ProtoVMCLI::JsonIO::ErrorResponse(
-                    "Unknown debug process action: " + action.ToStd(), "UNKNOWN_ACTION");
+                    "debug-process-logs", "Unknown debug process action: " + action.ToStd(), "UNKNOWN_ACTION");
             }
         }
         else if (subcommand == "websocket") {
@@ -121,14 +121,14 @@ int main(int argc, char** argv) {
                 Upp::String ws_id = args.Get("id", Upp::String(""));
                 if (ws_id.IsEmpty()) {
                     result = ProtoVMCLI::JsonIO::ErrorResponse(
-                        "WebSocket ID is required for stream command", "MISSING_ID");
+                        "debug-websocket-stream", "WebSocket ID is required for stream command", "MISSING_ID");
                 } else {
                     // Start streaming websocket frames
                     result = dispatcher.RunDebugWebSocketStream(ws_id);
                 }
             } else {
                 result = ProtoVMCLI::JsonIO::ErrorResponse(
-                    "Unknown debug websocket action: " + action.ToStd(), "UNKNOWN_ACTION");
+                    "debug-websocket-stream", "Unknown debug websocket action: " + action.ToStd(), "UNKNOWN_ACTION");
             }
         }
         else if (subcommand == "poll") {
@@ -138,24 +138,24 @@ int main(int argc, char** argv) {
                 Upp::String poll_id = args.Get("id", Upp::String(""));
                 if (poll_id.IsEmpty()) {
                     result = ProtoVMCLI::JsonIO::ErrorResponse(
-                        "Poll ID is required for stream command", "MISSING_ID");
+                        "debug-poll-stream", "Poll ID is required for stream command", "MISSING_ID");
                 } else {
                     // Start streaming poll events
                     result = dispatcher.RunDebugPollStream(poll_id);
                 }
             } else {
                 result = ProtoVMCLI::JsonIO::ErrorResponse(
-                    "Unknown debug poll action: " + action.ToStd(), "UNKNOWN_ACTION");
+                    "debug-poll-stream", "Unknown debug poll action: " + action.ToStd(), "UNKNOWN_ACTION");
             }
         }
         else {
             result = ProtoVMCLI::JsonIO::ErrorResponse(
-                "Unknown debug subcommand: " + subcommand.ToStd(), "UNKNOWN_SUBCOMMAND");
+                "debug", "Unknown debug subcommand: " + subcommand.ToStd(), "UNKNOWN_SUBCOMMAND");
         }
     }
     else {
         result = ProtoVMCLI::JsonIO::ErrorResponse(
-            "Unknown command: " + command.ToStd(), "UNKNOWN_COMMAND");
+            command.ToStd(), "Unknown command: " + command.ToStd(), "UNKNOWN_COMMAND");
     }
 
     // Output result as JSON

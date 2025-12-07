@@ -32,8 +32,6 @@ private:
     // Helper to validate workspace path
     bool ValidateWorkspace(const std::string& workspace_path);
     
-    // Helper to get the next available session ID
-    int GetNextSessionId();
 };
 
 } // namespace ProtoVMCLI

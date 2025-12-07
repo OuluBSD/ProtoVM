@@ -9,24 +9,43 @@
 
 namespace ProtoVMCLI {
 
+// Error codes for the CLI system
+enum class ErrorCode {
+    None = 0,
+    WorkspaceNotFound,
+    InvalidWorkspace,
+    WorkspaceCorrupt,
+    SessionNotFound,
+    SessionCorrupt,
+    SessionDeleted,
+    SessionIdConflict,
+    CircuitFileNotFound,
+    CircuitFileUnreadable,
+    StorageIoError,
+    StorageSchemaMismatch,
+    CommandParseError,
+    InternalError
+    // add more if needed
+};
+
 // Result template to encapsulate success/error responses
 template<typename T>
 struct Result {
-    bool success;
-    T value;
-    std::string error;
-    std::string error_code;
+    bool ok;
+    ErrorCode error_code;
+    std::string error_message;  // human-readable message
+    T data;
 
-    Result(T val) : success(true), value(val) {}
-    Result(bool is_success, T val, const std::string& err = "", const std::string& code = "") 
-        : success(is_success), value(val), error(err), error_code(code) {}
-    
-    static Result<T> Success(T val) {
-        return Result<T>(true, val, "", "");
+    Result(T val) : ok(true), error_code(ErrorCode::None), error_message(""), data(val) {}
+    Result(bool is_ok, ErrorCode code, const std::string& msg, T val)
+        : ok(is_ok), error_code(code), error_message(msg), data(val) {}
+
+    static Result<T> MakeOk(const T& data) {
+        return Result<T>(true, ErrorCode::None, "", data);
     }
-    
-    static Result<T> Error(const std::string& msg, const std::string& code = "") {
-        return Result<T>(false, T{}, msg, code);
+
+    static Result<T> MakeError(ErrorCode code, const std::string& message) {
+        return Result<T>(false, code, message, T{});
     }
 };
 

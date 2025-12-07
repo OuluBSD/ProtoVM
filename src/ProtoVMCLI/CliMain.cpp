@@ -56,6 +56,9 @@ int main(int argc, char** argv) {
     if (args.Find("netlist-file") >= 0) {
         opts.netlist_file = args.Get("netlist-file", Upp::String("")).ToStd();
     }
+    if (args.Find("user-id") >= 0) {
+        opts.user_id = args.Get("user-id", Upp::String("anonymous")).ToStd();
+    }
 
     // Create session store
     auto session_store = ProtoVMCLI::CreateFilesystemSessionStore(opts.workspace);

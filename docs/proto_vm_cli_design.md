@@ -15,8 +15,11 @@ The ProtoVM CLI is a new command-line interface designed specifically for progra
 All commands follow the pattern: `proto-vm-cli <command> [options]`
 
 ### Input Methods
-- CLI flags: `--workspace`, `--session-id`, `--ticks`, etc.
+- CLI flags: `--workspace`, `--session-id`, `--ticks`, `--user-id`, etc.
 - JSON on stdin: For complex payloads in future extensions
+
+### Global Options
+- `--user-id <string>`: Optional user identifier for event logging (default: "anonymous")
 
 ### Available Commands
 
@@ -50,7 +53,7 @@ All commands follow the pattern: `proto-vm-cli <command> [options]`
 ```
 
 #### 2.2 `create-session`
-- Purpose: Create a new simulation session
+- Purpose: Create a new simulation session and initialize its Machine from circuit file
 - Options:
   - `--workspace <path>` (required)
   - `--circuit-file <path>` (required for now)
@@ -64,10 +67,15 @@ All commands follow the pattern: `proto-vm-cli <command> [options]`
   "data": {
     "session_id": 1,
     "workspace": "/path/to/workspace",
-    "circuit_file": "/path/to/circuit.circuit"
+    "circuit_file": "/path/to/circuit.circuit",
+    "state": "ready",
+    "total_ticks": 0,
+    "last_snapshot_file": "/path/to/workspace/sessions/1/snapshots/snapshot_00000001.bin"
   }
 }
 ```
+
+This command also creates initial snapshot files in `workspace/sessions/<id>/snapshots/` and logs the operation to `workspace/sessions/<id>/events.log`.
 
 #### 2.3 `list-sessions`
 - Purpose: List existing sessions in workspace
@@ -112,10 +120,14 @@ All commands follow the pattern: `proto-vm-cli <command> [options]`
   "data": {
     "session_id": 1,
     "ticks_run": 100,
-    "total_ticks": 1234
+    "total_ticks": 1234,
+    "last_snapshot_file": "/path/to/workspace/sessions/1/snapshots/snapshot_00000002.bin",
+    "state": "ready"
   }
 }
 ```
+
+This command loads the machine from the latest snapshot, runs the specified number of ticks, creates a new snapshot, and logs the operation to `workspace/sessions/<id>/events.log`.
 
 #### 2.5 `get-state`
 - Purpose: Get current state of a session
@@ -138,7 +150,8 @@ All commands follow the pattern: `proto-vm-cli <command> [options]`
     "last_used_at": "2025-01-01T13:00:00Z",
     "breakpoints": [],
     "traces": [],
-    "signals": []
+    "signals": [],
+    "last_snapshot_file": "/path/to/workspace/sessions/1/snapshots/snapshot_00000002.bin"
   }
 }
 ```
@@ -397,27 +410,76 @@ public:
 ### 7.2 Concrete Implementation
 - `JsonFilesystemSessionStore`: File-based storage using JSON files with atomic writes and schema validation
 
-## 8. Integration with Existing Engine
+## 8. Engine Integration and Snapshot Model
 
-### 8.1 Core Components Used
+### 8.1 EngineFacade Layer
+An `EngineFacade` class provides the integration layer between the CLI and the core simulation engine:
+- Handles machine creation from circuit files
+- Manages snapshot creation and loading
+- Performs simulation operations (ticks, netlist generation)
+- Provides a clean abstraction over the `Machine` class
+
+### 8.2 Snapshot Model
+- Each session stores its simulation state as binary snapshot files in `workspace/sessions/<id>/snapshots/`
+- Snapshot files follow the naming pattern `snapshot_0000000N.bin`
+- The `session.json` file tracks `last_snapshot_file`, `last_snapshot_at`, and `total_ticks`
+- CLI commands operate on snapshots: load from latest, process, save new snapshot
+
+### 8.3 Core Components Used
 - `Machine`: Main simulation orchestrator
 - `Pcb`: Circuit board representation
 - `ElectricNodeBase`: Base class for all electronic components
 - `CircuitSerializer`: For loading/saving circuit files
 
-### 8.2 Key Integration Points
-- **Circuit Loading**: Use existing GUI serializers (`CircuitSerializer::LoadCircuit`) or core methods
-- **Simulation Execution**: Call `Machine::Tick()` repeatedly for `run-ticks` command
-- **Netlist Generation**: Use `Machine::GenerateNetlist()` for `export-netlist`
-- **State Querying**: Access `Machine` and component state through public methods
+### 8.4 Key Integration Points
+- **Circuit Loading**: Use existing GUI serializers (`CircuitSerializer::LoadCircuit`) to initialize Machine
+- **Simulation Execution**: Load machine from snapshot, run ticks on it, then save new snapshot
+- **Netlist Generation**: Load machine from snapshot, generate netlist from PCB data
+- **State Querying**: Access machine state through snapshot and session metadata
 
-### 8.3 Assumptions and Limitations
+### 8.5 Assumptions and Limitations
 - The `Machine` class can be instantiated and used independently from GUI components
-- Circuit files in `.circuit` format can be loaded into a `Machine` instance
+- Snapshot I/O provides serialization for the entire simulation state
 - Components maintain their state between simulation ticks
 - Thread safety is not required for this initial implementation (single-threaded usage)
 
-## 9. File Directory Structure
+## 9. Multi-User & Event Log Foundation
+
+For collaborative workflows, the system provides event logging foundations:
+
+### 9.1 User Identification
+- Commands accept optional `--user-id <string>` parameter
+- Default value is "anonymous" if not provided
+- User ID is opaque string with no authentication/permission checking
+
+### 9.2 Event Logging
+- Each session maintains an event log at `workspace/sessions/<id>/events.log`
+- Events are JSON lines format with structure:
+```json
+{
+  "timestamp": "2025-01-01T12:34:56Z",
+  "user_id": "alice",
+  "session_id": 1,
+  "command": "run-ticks",
+  "params": {
+    "ticks": 100
+  },
+  "result": {
+    "total_ticks": 1234
+  }
+}
+```
+
+### 9.3 Logged Commands
+Events are recorded for all mutating operations:
+- `create-session`
+- `run-ticks`
+- `export-netlist` (if it writes artifacts)
+- `destroy-session`
+
+This provides a foundation for future multi-user collaboration features.
+
+## 10. File Directory Structure
 
 New source files are located in:
 ```
@@ -430,9 +492,14 @@ src/
     ├── JsonIO.cpp
     ├── SessionStore.h        # Storage abstraction interface
     ├── JsonFilesystemSessionStore.cpp  # File-based session storage
-    └── SessionTypes.h        # Type definitions for sessions
+    ├── EngineFacade.h        # Engine integration layer
+    ├── EngineFacade.cpp
+    ├── MachineSnapshot.h     # Machine serialization
+    ├── MachineSnapshot.cpp
+    ├── EventLogger.h         # Event logging utilities
+    └── EventLogger.cpp
 ```
 
-## 10. Build Integration
+## 11. Build Integration
 
 The new CLI is built as an additional executable target in the existing CMake build system, linking against the core ProtoVM engine components. This preserves existing build functionality while adding the new CLI binary.

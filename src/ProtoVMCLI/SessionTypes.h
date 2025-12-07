@@ -111,7 +111,8 @@ struct CommandOptions {
     std::optional<std::string> circuit_file;
     std::optional<std::string> netlist_file;
     std::optional<bool> soft_delete;
-    
+    std::string user_id = "anonymous";  // Default user ID
+
     // Add more options as needed
 };
 

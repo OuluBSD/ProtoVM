@@ -1,5 +1,7 @@
 #include "CommandDispatcher.h"
 #include "JsonIO.h"
+#include "EngineFacade.h"
+#include "EventLogger.h"
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
@@ -111,10 +113,60 @@ Upp::String CommandDispatcher::RunCreateSession(const CommandOptions& opts) {
             return JsonIO::ErrorResponse("create-session", result.error_message, error_code_str);
         }
 
+        // Create the session directory structure
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(result.data);
+        fs::create_directories(session_dir + "/snapshots");
+        fs::create_directories(session_dir + "/netlists");
+
+        // Initialize the engine facade and create the initial snapshot
+        ProtoVMCLI::EngineFacade engine_facade;
+        auto session_metadata = session_store_->LoadSession(result.data);
+        if (session_metadata.ok) {
+            auto init_result = engine_facade.InitializeNewSession(
+                session_metadata.data,
+                opts.circuit_file.value(),
+                session_dir
+            );
+
+            if (!init_result.ok) {
+                // Rollback: delete the session if engine initialization failed
+                session_store_->DeleteSession(result.data);
+                fs::remove_all(session_dir);
+                std::string error_code_str = JsonIO::ErrorCodeToString(init_result.error_code);
+                return JsonIO::ErrorResponse("create-session", init_result.error_message, error_code_str);
+            }
+
+            // Update the session metadata with snapshot information
+            session_metadata.data.total_ticks = init_result.data.total_ticks;
+            session_store_->SaveSession(session_metadata.data);
+        }
+
         Upp::ValueMap response_data;
         response_data.Add("session_id", result.data);
         response_data.Add("workspace", Upp::String(opts.workspace.c_str()));
         response_data.Add("circuit_file", Upp::String(opts.circuit_file.value().c_str()));
+        response_data.Add("state", "ready");
+        response_data.Add("total_ticks", 0);
+        response_data.Add("last_snapshot_file", Upp::String(init_result.data.snapshot_file.c_str()));
+
+        // Log the event
+        EventLogEntry event;
+        event.timestamp = init_result.data.timestamp;
+        event.user_id = opts.user_id;
+        event.session_id = result.data;
+        event.command = "create-session";
+
+        Upp::ValueMap params;
+        params.Add("circuit_file", Upp::String(opts.circuit_file.value().c_str()));
+        event.params = Upp::String().Cat() << params;
+
+        Upp::ValueMap results;
+        results.Add("session_id", result.data);
+        results.Add("total_ticks", 0);
+        results.Add("snapshot_file", Upp::String(init_result.data.snapshot_file.c_str()));
+        event.result = Upp::String().Cat() << results;
+
+        EventLogger::LogEvent(session_dir, event);
 
         return JsonIO::SuccessResponse("create-session", response_data);
     } catch (const std::exception& e) {
@@ -186,22 +238,38 @@ Upp::String CommandDispatcher::RunRunTicks(const CommandOptions& opts) {
     }
 
     try {
-        // In a real implementation, this would:
-        // 1. Load the session's machine instance
-        // 2. Execute ticks on the machine
-        // 3. Update session metadata with new tick count
-        // 4. Save session state
-
-        // For now, we'll simulate the update
+        // Load the session metadata
         auto load_result = session_store_->LoadSession(opts.session_id.value());
         if (!load_result.ok) {
             std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
             return JsonIO::ErrorResponse("run-ticks", load_result.error_message, error_code_str);
         }
 
-        // Update the tick count
         SessionMetadata metadata = load_result.data;
-        metadata.total_ticks += ticks;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(opts.session_id.value());
+
+        // Use EngineFacade to run ticks and create snapshot
+        ProtoVMCLI::EngineFacade engine_facade;
+        std::unique_ptr<Machine> machine;
+
+        auto load_snapshot_result = engine_facade.LoadFromLatestSnapshot(
+            metadata, session_dir, machine);
+
+        if (!load_snapshot_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_snapshot_result.error_code);
+            return JsonIO::ErrorResponse("run-ticks", load_snapshot_result.error_message, error_code_str);
+        }
+
+        auto run_result = engine_facade.RunTicksAndSnapshot(
+            metadata, machine, ticks, session_dir);
+
+        if (!run_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(run_result.error_code);
+            return JsonIO::ErrorResponse("run-ticks", run_result.error_message, error_code_str);
+        }
+
+        // Update the session metadata with new tick count
+        metadata.total_ticks = run_result.data.total_ticks;
 
         // Update last_used_at timestamp
         auto now = std::chrono::system_clock::now();
@@ -221,6 +289,27 @@ Upp::String CommandDispatcher::RunRunTicks(const CommandOptions& opts) {
         response_data.Add("session_id", opts.session_id.value());
         response_data.Add("ticks_run", ticks);
         response_data.Add("total_ticks", metadata.total_ticks);
+        response_data.Add("last_snapshot_file", Upp::String(run_result.data.snapshot_file.c_str()));
+        response_data.Add("state", "ready");
+
+        // Log the event
+        EventLogEntry event;
+        event.timestamp = run_result.data.timestamp;
+        event.user_id = opts.user_id;
+        event.session_id = opts.session_id.value();
+        event.command = "run-ticks";
+
+        Upp::ValueMap params;
+        params.Add("ticks", ticks);
+        event.params = Upp::String().Cat() << params;
+
+        Upp::ValueMap results;
+        results.Add("ticks_run", ticks);
+        results.Add("total_ticks", metadata.total_ticks);
+        results.Add("snapshot_file", Upp::String(run_result.data.snapshot_file.c_str()));
+        event.result = Upp::String().Cat() << results;
+
+        EventLogger::LogEvent(session_dir, event);
 
         return JsonIO::SuccessResponse("run-ticks", response_data);
     } catch (const std::exception& e) {
@@ -248,7 +337,16 @@ Upp::String CommandDispatcher::RunGetState(const CommandOptions& opts) {
         }
 
         const auto& metadata = result.data;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(opts.session_id.value());
 
+        // Use EngineFacade to query the state of the latest snapshot
+        ProtoVMCLI::EngineFacade engine_facade;
+        std::unique_ptr<Machine> machine;
+
+        auto load_snapshot_result = engine_facade.LoadFromLatestSnapshot(
+            const_cast<SessionMetadata&>(metadata), session_dir, machine);
+
+        // If loading the snapshot failed, we still return the session metadata but with less detail
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
         response_data.Add("state", static_cast<int>(metadata.state));
@@ -265,6 +363,12 @@ Upp::String CommandDispatcher::RunGetState(const CommandOptions& opts) {
 
         Upp::ValueArray signals_array;
         response_data.Add("signals", signals_array);
+
+        // Add snapshot information if available
+        std::string latest_snapshot = engine_facade.GetLatestSnapshotFile(session_dir);
+        if (!latest_snapshot.empty()) {
+            response_data.Add("last_snapshot_file", Upp::String(latest_snapshot.c_str()));
+        }
 
         return JsonIO::SuccessResponse("get-state", response_data);
     } catch (const std::exception& e) {
@@ -286,20 +390,57 @@ Upp::String CommandDispatcher::RunExportNetlist(const CommandOptions& opts) {
     int pcb_id = opts.pcb_id.value_or(0);
 
     try {
-        // In a real implementation, this would:
-        // 1. Load the session's machine instance
-        // 2. Call Machine::GenerateNetlist(pcb_id)
-        // 3. Write the result to a file in the session directory
+        // Load the session metadata
+        auto load_result = session_store_->LoadSession(opts.session_id.value());
+        if (!load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("export-netlist", load_result.error_message, error_code_str);
+        }
 
-        // For now, we'll just return a placeholder
-        std::string netlist_file = opts.workspace + "/sessions/" +
-                                  std::to_string(opts.session_id.value()) +
-                                  "/netlists/netlist_" + std::to_string(pcb_id) + ".txt";
+        SessionMetadata metadata = load_result.data;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(opts.session_id.value());
+
+        // Use EngineFacade to load the machine and export netlist
+        ProtoVMCLI::EngineFacade engine_facade;
+        std::unique_ptr<Machine> machine;
+
+        auto load_snapshot_result = engine_facade.LoadFromLatestSnapshot(
+            metadata, session_dir, machine);
+
+        if (!load_snapshot_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_snapshot_result.error_code);
+            return JsonIO::ErrorResponse("export-netlist", load_snapshot_result.error_message, error_code_str);
+        }
+
+        auto export_result = engine_facade.ExportNetlist(
+            metadata, machine, pcb_id);
+
+        if (!export_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(export_result.error_code);
+            return JsonIO::ErrorResponse("export-netlist", export_result.error_message, error_code_str);
+        }
 
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
         response_data.Add("pcb_id", pcb_id);
-        response_data.Add("netlist_file", Upp::String(netlist_file.c_str()));
+        response_data.Add("netlist_file", Upp::String(export_result.data.c_str()));
+
+        // Log the event
+        EventLogEntry event;
+        event.timestamp = GetCurrentTimestamp();
+        event.user_id = opts.user_id;
+        event.session_id = opts.session_id.value();
+        event.command = "export-netlist";
+
+        Upp::ValueMap params;
+        params.Add("pcb_id", pcb_id);
+        event.params = Upp::String().Cat() << params;
+
+        Upp::ValueMap results;
+        results.Add("netlist_file", Upp::String(export_result.data.c_str()));
+        event.result = Upp::String().Cat() << results;
+
+        EventLogger::LogEvent(session_dir, event);
 
         return JsonIO::SuccessResponse("export-netlist", response_data);
     } catch (const std::exception& e) {
@@ -319,10 +460,6 @@ Upp::String CommandDispatcher::RunDestroySession(const CommandOptions& opts) {
     }
 
     try {
-        // In a real implementation, this would:
-        // 1. Remove the session's machine instance from memory
-        // 2. Delete the session directory and all its contents
-
         // For now, we'll just call the store's delete function
         auto result = session_store_->DeleteSession(opts.session_id.value());
 
@@ -331,9 +468,32 @@ Upp::String CommandDispatcher::RunDestroySession(const CommandOptions& opts) {
             return JsonIO::ErrorResponse("destroy-session", result.error_message, error_code_str);
         }
 
+        // Delete the session directory and its contents
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(opts.session_id.value());
+        if (fs::exists(session_dir)) {
+            fs::remove_all(session_dir);
+        }
+
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
         response_data.Add("deleted", result.data);
+
+        // Log the event
+        EventLogEntry event;
+        event.timestamp = GetCurrentTimestamp();
+        event.user_id = opts.user_id;
+        event.session_id = opts.session_id.value();
+        event.command = "destroy-session";
+
+        Upp::ValueMap params;
+        params.Add("session_id", opts.session_id.value());
+        event.params = Upp::String().Cat() << params;
+
+        Upp::ValueMap results;
+        results.Add("deleted", result.data);
+        event.result = Upp::String().Cat() << results;
+
+        EventLogger::LogEvent(session_dir, event);
 
         return JsonIO::SuccessResponse("destroy-session", response_data);
     } catch (const std::exception& e) {

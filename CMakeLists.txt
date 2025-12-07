@@ -223,6 +223,9 @@ if(BUILD_PROTOVM_CLI)
         src/ProtoVMCLI/CommandDispatcher.cpp
         src/ProtoVMCLI/JsonIO.cpp
         src/ProtoVMCLI/JsonFilesystemSessionStore.cpp
+        src/ProtoVMCLI/EngineFacade.cpp
+        src/ProtoVMCLI/MachineSnapshot.cpp
+        src/ProtoVMCLI/EventLogger.cpp
     )
 
     add_executable(proto-vm-cli ${CLI_SOURCES})

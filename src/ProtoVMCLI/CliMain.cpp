@@ -222,6 +222,18 @@ int main(int argc, char** argv) {
     else if (command == "refactor-apply") {
         result = dispatcher.RunRefactorApply(opts);
     }
+    else if (command == "schedule-block") {
+        result = dispatcher.RunScheduleBlock(opts);
+    }
+    else if (command == "schedule-node-region") {
+        result = dispatcher.RunScheduleNodeRegion(opts);
+    }
+    else if (command == "pipeline-block") {
+        result = dispatcher.RunPipelineBlock(opts);
+    }
+    else if (command == "pipeline-subsystem") {
+        result = dispatcher.RunPipelineSubsystem(opts);
+    }
     else if (command == "debug") {
         // Extract subcommand for debug
         Upp::String subcommand = args.Get("subcommand", Upp::String(""));

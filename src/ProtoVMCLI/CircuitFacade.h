@@ -6,6 +6,12 @@
 #include "ProtoVM.h"      // For Upp types
 #include "CollaborationTypes.h"  // For collaboration features
 #include "BehavioralAnalysis.h"  // For behavioral analysis
+#include "ScheduledIr.h"         // For scheduled IR
+#include "Scheduling.h"          // For scheduling engine
+#include "PipelineModel.h"       // For pipeline analysis
+#include "PipelineAnalysis.h"    // For pipeline analysis engine
+#include "CdcModel.h"            // For CDC analysis
+#include "CdcAnalysis.h"         // For CDC analysis engine
 #include <string>
 #include <vector>
 #include <optional>
@@ -236,6 +242,57 @@ public:
         const std::string& branch_name,
         const std::string& block_id,
         const std::vector<IrOptPassKind>& passes_to_run
+    );
+
+    // Scheduled IR analysis methods
+    Result<ScheduledModule> BuildScheduledIrForBlockInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id,
+        const SchedulingConfig& config
+    );
+
+    Result<ScheduledModule> BuildScheduledIrForNodeRegionInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& node_id,
+        const std::string& node_kind_hint,
+        int max_depth,
+        const SchedulingConfig& config
+    );
+
+    // Pipeline analysis methods
+    Result<PipelineMap> BuildPipelineMapForBlockInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id
+    );
+
+    Result<PipelineMap> BuildPipelineMapForSubsystemInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& subsystem_id,
+        const std::vector<std::string>& block_ids
+    );
+
+    // CDC analysis methods
+    Result<CdcReport> BuildCdcReportForBlockInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id
+    );
+
+    Result<CdcReport> BuildCdcReportForSubsystemInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& subsystem_id,
+        const std::vector<std::string>& block_ids
     );
 
 private:

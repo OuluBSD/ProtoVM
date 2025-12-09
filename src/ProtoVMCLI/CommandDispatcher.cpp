@@ -4792,4 +4792,460 @@ Upp::String CommandDispatcher::RunDesignerRunPlaybook(const CommandOptions& opts
     }
 }
 
+Upp::String CommandDispatcher::RunScheduleBlock(const CommandOptions& opts) {
+    if (opts.workspace.empty()) {
+        return JsonIO::ErrorResponse("schedule-block", "Workspace path is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.session_id.has_value()) {
+        return JsonIO::ErrorResponse("schedule-block", "Session ID is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.block_id.has_value()) {
+        return JsonIO::ErrorResponse("schedule-block", "Block ID is required", "INVALID_ARGUMENT");
+    }
+
+    try {
+        // Create CircuitFacade to access scheduled IR functionality
+        CircuitFacade facade;
+
+        // Load session metadata
+        auto load_result = session_store_->LoadSession(opts.session_id.value());
+        if (!load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("schedule-block", load_result.error_message, error_code_str);
+        }
+
+        SessionMetadata metadata = load_result.data;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(opts.session_id.value());
+
+        // Determine which branch to use
+        std::string branch_name = opts.branch.value_or(metadata.current_branch);
+
+        // Parse scheduling configuration from options
+        SchedulingConfig config;
+
+        // Strategy
+        std::string strategy_str = "SingleStage";
+        if (opts.payload.IsKey("strategy")) {
+            strategy_str = opts.payload.Get("strategy").ToString().ToStd();
+        }
+
+        if (strategy_str == "SingleStage") {
+            config.strategy = SchedulingStrategy::SingleStage;
+        } else if (strategy_str == "DepthBalancedStages") {
+            config.strategy = SchedulingStrategy::DepthBalancedStages;
+        } else if (strategy_str == "FixedStageCount") {
+            config.strategy = SchedulingStrategy::FixedStageCount;
+        } else {
+            return JsonIO::ErrorResponse("schedule-block",
+                                       "Invalid strategy: " + strategy_str +
+                                       ". Must be SingleStage, DepthBalancedStages, or FixedStageCount",
+                                       "INVALID_ARGUMENT");
+        }
+
+        // Requested stages
+        int requested_stages = 1;
+        if (opts.payload.IsKey("requested_stages")) {
+            requested_stages = opts.payload.Get("requested_stages").ToInt();
+        } else if (opts.payload.IsKey("stages")) {
+            requested_stages = opts.payload.Get("stages").ToInt();
+        }
+        config.requested_stages = requested_stages;
+
+        // Build scheduled IR for the specified block
+        auto scheduled_ir_result = facade.BuildScheduledIrForBlockInBranch(
+            metadata, session_dir, branch_name, opts.block_id.value(), config);
+
+        if (!scheduled_ir_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(scheduled_ir_result.error_code);
+            return JsonIO::ErrorResponse("schedule-block", scheduled_ir_result.error_message, error_code_str);
+        }
+
+        // Convert the scheduled IR module to JSON
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", opts.session_id.value());
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(opts.block_id.value().c_str()));
+
+        // Use JsonIO to serialize the scheduled IR module
+        response_data.Add("scheduled_ir", JsonIO::ScheduledModuleToValueMap(scheduled_ir_result.data));
+
+        return JsonIO::SuccessResponse("schedule-block", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("schedule-block",
+                                   "Failed to build scheduled IR for block: " + std::string(e.what()),
+                                   "SCHEDULE_BLOCK_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunScheduleNodeRegion(const CommandOptions& opts) {
+    if (opts.workspace.empty()) {
+        return JsonIO::ErrorResponse("schedule-node-region", "Workspace path is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.session_id.has_value()) {
+        return JsonIO::ErrorResponse("schedule-node-region", "Session ID is required", "INVALID_ARGUMENT");
+    }
+
+    if (opts.node_id.empty()) {
+        // Try to get node_id from payload if not in opts
+        if (opts.payload.IsKey("node_id")) {
+            opts.node_id = opts.payload.Get("node_id").ToString().ToStd();
+        }
+    }
+
+    if (opts.node_id.empty()) {
+        return JsonIO::ErrorResponse("schedule-node-region", "Node ID is required", "INVALID_ARGUMENT");
+    }
+
+    try {
+        // Extract optional parameters
+        std::string node_kind_hint = opts.node_kind;
+        if (opts.payload.IsKey("node_kind")) {
+            node_kind_hint = opts.payload.Get("node_kind").ToString().ToStd();
+        }
+
+        int max_depth = 4; // default
+        if (opts.payload.IsKey("max_depth")) {
+            max_depth = opts.payload.Get("max_depth").ToInt();
+        }
+
+        // Create CircuitFacade to access scheduled IR functionality
+        CircuitFacade facade;
+
+        // Load session metadata
+        auto load_result = session_store_->LoadSession(opts.session_id.value());
+        if (!load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("schedule-node-region", load_result.error_message, error_code_str);
+        }
+
+        SessionMetadata metadata = load_result.data;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(opts.session_id.value());
+
+        // Determine which branch to use
+        std::string branch_name = opts.branch.value_or(metadata.current_branch);
+
+        // Parse scheduling configuration from options
+        SchedulingConfig config;
+
+        // Strategy
+        std::string strategy_str = "SingleStage";
+        if (opts.payload.IsKey("strategy")) {
+            strategy_str = opts.payload.Get("strategy").ToString().ToStd();
+        }
+
+        if (strategy_str == "SingleStage") {
+            config.strategy = SchedulingStrategy::SingleStage;
+        } else if (strategy_str == "DepthBalancedStages") {
+            config.strategy = SchedulingStrategy::DepthBalancedStages;
+        } else if (strategy_str == "FixedStageCount") {
+            config.strategy = SchedulingStrategy::FixedStageCount;
+        } else {
+            return JsonIO::ErrorResponse("schedule-node-region",
+                                       "Invalid strategy: " + strategy_str +
+                                       ". Must be SingleStage, DepthBalancedStages, or FixedStageCount",
+                                       "INVALID_ARGUMENT");
+        }
+
+        // Requested stages
+        int requested_stages = 1;
+        if (opts.payload.IsKey("requested_stages")) {
+            requested_stages = opts.payload.Get("requested_stages").ToInt();
+        } else if (opts.payload.IsKey("stages")) {
+            requested_stages = opts.payload.Get("stages").ToInt();
+        }
+        config.requested_stages = requested_stages;
+
+        // Build scheduled IR for the node region
+        auto scheduled_ir_result = facade.BuildScheduledIrForNodeRegionInBranch(
+            metadata, session_dir, branch_name, opts.node_id, node_kind_hint, max_depth, config);
+
+        if (!scheduled_ir_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(scheduled_ir_result.error_code);
+            return JsonIO::ErrorResponse("schedule-node-region", scheduled_ir_result.error_message, error_code_str);
+        }
+
+        // Convert the scheduled IR module to JSON
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", opts.session_id.value());
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("node_id", Upp::String(opts.node_id.c_str()));
+
+        // Use JsonIO to serialize the scheduled IR module
+        response_data.Add("scheduled_ir", JsonIO::ScheduledModuleToValueMap(scheduled_ir_result.data));
+
+        return JsonIO::SuccessResponse("schedule-node-region", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("schedule-node-region",
+                                   "Failed to build scheduled IR for node region: " + std::string(e.what()),
+                                   "SCHEDULE_NODE_REGION_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunPipelineBlock(const CommandOptions& opts) {
+    if (opts.workspace.empty()) {
+        return JsonIO::ErrorResponse("pipeline-block", "Workspace path is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.session_id.has_value()) {
+        return JsonIO::ErrorResponse("pipeline-block", "Session ID is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.block_id.has_value()) {
+        return JsonIO::ErrorResponse("pipeline-block", "Block ID is required", "INVALID_ARGUMENT");
+    }
+
+    try {
+        // Create CircuitFacade to access pipeline analysis functionality
+        CircuitFacade facade;
+
+        // Load session metadata
+        auto load_result = session_store_->LoadSession(opts.session_id.value());
+        if (!load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("pipeline-block", load_result.error_message, error_code_str);
+        }
+
+        SessionMetadata metadata = load_result.data;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(opts.session_id.value());
+
+        // Determine which branch to use
+        std::string branch_name = opts.branch.value_or(metadata.current_branch);
+
+        // Build pipeline map for the specified block
+        auto pipeline_map_result = facade.BuildPipelineMapForBlockInBranch(
+            metadata, session_dir, branch_name, opts.block_id.value());
+
+        if (!pipeline_map_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(pipeline_map_result.error_code);
+            return JsonIO::ErrorResponse("pipeline-block", pipeline_map_result.error_message, error_code_str);
+        }
+
+        // Convert the pipeline map to JSON
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", opts.session_id.value());
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(opts.block_id.value().c_str()));
+
+        // Use JsonIO to serialize the pipeline map
+        response_data.Add("pipeline_map", JsonIO::PipelineMapToValueMap(pipeline_map_result.data));
+
+        return JsonIO::SuccessResponse("pipeline-block", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("pipeline-block",
+                                   "Failed to build pipeline map for block: " + std::string(e.what()),
+                                   "PIPELINE_BLOCK_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunPipelineSubsystem(const CommandOptions& opts) {
+    if (opts.workspace.empty()) {
+        return JsonIO::ErrorResponse("pipeline-subsystem", "Workspace path is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.session_id.has_value()) {
+        return JsonIO::ErrorResponse("pipeline-subsystem", "Session ID is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.subsystem_id.has_value()) {
+        return JsonIO::ErrorResponse("pipeline-subsystem", "Subsystem ID is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.block_ids.has_value()) {
+        return JsonIO::ErrorResponse("pipeline-subsystem", "Block IDs list is required", "INVALID_ARGUMENT");
+    }
+
+    try {
+        // Create CircuitFacade to access pipeline analysis functionality
+        CircuitFacade facade;
+
+        // Load session metadata
+        auto load_result = session_store_->LoadSession(opts.session_id.value());
+        if (!load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("pipeline-subsystem", load_result.error_message, error_code_str);
+        }
+
+        SessionMetadata metadata = load_result.data;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(opts.session_id.value());
+
+        // Determine which branch to use
+        std::string branch_name = opts.branch.value_or(metadata.current_branch);
+
+        // Convert block IDs string to vector
+        std::vector<std::string> block_ids;
+        std::string block_ids_str = opts.block_ids.value();
+        if (!block_ids_str.empty()) {
+            // Simple parsing of comma-separated values
+            size_t start = 0;
+            size_t end = block_ids_str.find(',');
+            while (end != std::string::npos) {
+                block_ids.push_back(block_ids_str.substr(start, end - start));
+                start = end + 1;
+                end = block_ids_str.find(',', start);
+            }
+            block_ids.push_back(block_ids_str.substr(start));
+        }
+
+        // Build pipeline map for the specified subsystem
+        auto pipeline_map_result = facade.BuildPipelineMapForSubsystemInBranch(
+            metadata, session_dir, branch_name, opts.subsystem_id.value(), block_ids);
+
+        if (!pipeline_map_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(pipeline_map_result.error_code);
+            return JsonIO::ErrorResponse("pipeline-subsystem", pipeline_map_result.error_message, error_code_str);
+        }
+
+        // Convert the pipeline map to JSON
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", opts.session_id.value());
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("subsystem_id", Upp::String(opts.subsystem_id.value().c_str()));
+        response_data.Add("block_ids", JsonIO::VectorToStringValueArray(block_ids));
+
+        // Use JsonIO to serialize the pipeline map
+        response_data.Add("pipeline_map", JsonIO::PipelineMapToValueMap(pipeline_map_result.data));
+
+        return JsonIO::SuccessResponse("pipeline-subsystem", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("pipeline-subsystem",
+                                   "Failed to build pipeline map for subsystem: " + std::string(e.what()),
+                                   "PIPELINE_SUBSYSTEM_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunCdcBlock(const CommandOptions& opts) {
+    if (opts.workspace.empty()) {
+        return JsonIO::ErrorResponse("cdc-block", "Workspace path is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.session_id.has_value()) {
+        return JsonIO::ErrorResponse("cdc-block", "Session ID is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.block_id.has_value()) {
+        return JsonIO::ErrorResponse("cdc-block", "Block ID is required", "INVALID_ARGUMENT");
+    }
+
+    try {
+        // Create CircuitFacade to access CDC analysis functionality
+        CircuitFacade facade;
+
+        // Load session metadata
+        auto load_result = session_store_->LoadSession(opts.session_id.value());
+        if (!load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("cdc-block", load_result.error_message, error_code_str);
+        }
+
+        SessionMetadata metadata = load_result.data;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(opts.session_id.value());
+
+        // Determine which branch to use
+        std::string branch_name = opts.branch.value_or(metadata.current_branch);
+
+        // Build CDC report for the specified block
+        auto cdc_report_result = facade.BuildCdcReportForBlockInBranch(
+            metadata, session_dir, branch_name, opts.block_id.value());
+
+        if (!cdc_report_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(cdc_report_result.error_code);
+            return JsonIO::ErrorResponse("cdc-block", cdc_report_result.error_message, error_code_str);
+        }
+
+        // Convert the CDC report to JSON
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", opts.session_id.value());
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(opts.block_id.value().c_str()));
+
+        // Use JsonIO to serialize the CDC report (after implementing JsonIO serialization)
+        response_data.Add("cdc_report", JsonIO::CdcReportToValueMap(cdc_report_result.data));
+
+        return JsonIO::SuccessResponse("cdc-block", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("cdc-block",
+                                   "Failed to build CDC report for block: " + std::string(e.what()),
+                                   "CDC_BLOCK_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunCdcSubsystem(const CommandOptions& opts) {
+    if (opts.workspace.empty()) {
+        return JsonIO::ErrorResponse("cdc-subsystem", "Workspace path is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.session_id.has_value()) {
+        return JsonIO::ErrorResponse("cdc-subsystem", "Session ID is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.subsystem_id.has_value()) {
+        return JsonIO::ErrorResponse("cdc-subsystem", "Subsystem ID is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.block_ids.has_value()) {
+        return JsonIO::ErrorResponse("cdc-subsystem", "Block IDs list is required", "INVALID_ARGUMENT");
+    }
+
+    try {
+        // Create CircuitFacade to access CDC analysis functionality
+        CircuitFacade facade;
+
+        // Load session metadata
+        auto load_result = session_store_->LoadSession(opts.session_id.value());
+        if (!load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("cdc-subsystem", load_result.error_message, error_code_str);
+        }
+
+        SessionMetadata metadata = load_result.data;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(opts.session_id.value());
+
+        // Determine which branch to use
+        std::string branch_name = opts.branch.value_or(metadata.current_branch);
+
+        // Convert block IDs string to vector
+        std::vector<std::string> block_ids;
+        std::string block_ids_str = opts.block_ids.value();
+        if (!block_ids_str.empty()) {
+            // Simple parsing of comma-separated values
+            size_t start = 0;
+            size_t end = block_ids_str.find(',');
+            while (end != std::string::npos) {
+                block_ids.push_back(block_ids_str.substr(start, end - start));
+                start = end + 1;
+                end = block_ids_str.find(',', start);
+            }
+            block_ids.push_back(block_ids_str.substr(start));
+        }
+
+        // Build CDC report for the specified subsystem
+        auto cdc_report_result = facade.BuildCdcReportForSubsystemInBranch(
+            metadata, session_dir, branch_name, opts.subsystem_id.value(), block_ids);
+
+        if (!cdc_report_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(cdc_report_result.error_code);
+            return JsonIO::ErrorResponse("cdc-subsystem", cdc_report_result.error_message, error_code_str);
+        }
+
+        // Convert the CDC report to JSON
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", opts.session_id.value());
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("subsystem_id", Upp::String(opts.subsystem_id.value().c_str()));
+        response_data.Add("block_ids", JsonIO::VectorToStringValueArray(block_ids));
+
+        // Use JsonIO to serialize the CDC report (after implementing JsonIO serialization)
+        response_data.Add("cdc_report", JsonIO::CdcReportToValueMap(cdc_report_result.data));
+
+        return JsonIO::SuccessResponse("cdc-subsystem", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("cdc-subsystem",
+                                   "Failed to build CDC report for subsystem: " + std::string(e.what()),
+                                   "CDC_SUBSYSTEM_ERROR");
+    }
+}
+
 } // namespace ProtoVMCLI

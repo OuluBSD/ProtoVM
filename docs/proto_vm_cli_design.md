@@ -2023,13 +2023,430 @@ Response:
 }
 ```
 
+#### 21.3.7 `schedule-block`
+Generate scheduled (pipelined) HLS IR for a specific circuit block with configurable pipeline stages.
+
+CLI usage:
+```
+proto-vm-cli schedule-block --workspace <workspace> --session-id <session_id> --block-id <block_id> [--branch <branch_name>] --strategy <SingleStage|DepthBalancedStages|FixedStageCount> [--stages <int>]
+```
+
+Daemon request:
+```json
+{
+  "id": "req1",
+  "command": "schedule-block",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "payload": {
+    "branch": "main",
+    "block_id": "B3",
+    "strategy": "DepthBalancedStages",
+    "stages": 3
+  }
+}
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "command": "schedule-block",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "block_id": "B3",
+    "scheduled_ir": {
+      "id": "B3",
+      "num_stages": 3,
+      "inputs": [
+        { "name": "A", "bit_width": 4, "is_literal": false, "literal": null },
+        { "name": "B", "bit_width": 4, "is_literal": false, "literal": null },
+        { "name": "CIN", "bit_width": 1, "is_literal": false, "literal": null }
+      ],
+      "outputs": [
+        { "name": "SUM", "bit_width": 4, "is_literal": false, "literal": null },
+        { "name": "COUT", "bit_width": 1, "is_literal": false, "literal": null }
+      ],
+      "comb_ops": [
+        {
+          "stage": 0,
+          "expr": {
+            "kind": "Add",
+            "target": { "name": "SUM", "bit_width": 4, "is_literal": false, "literal": null },
+            "args": [
+              { "name": "A", "bit_width": 4, "is_literal": false, "literal": null },
+              { "name": "B", "bit_width": 4, "is_literal": false, "literal": null }
+            ]
+          }
+        }
+      ],
+      "reg_ops": [
+        {
+          "stage": 2,
+          "reg_assign": {
+            "target": { "name": "Q", "bit_width": 4, "is_literal": false, "literal": null },
+            "expr": { ... },
+            "clock": "CLK",
+            "reset": "RST"
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+#### 21.3.8 `schedule-node-region`
+Generate scheduled (pipelined) HLS IR for a small region around a specific node with configurable pipeline stages.
+
+CLI usage:
+```
+proto-vm-cli schedule-node-region --workspace <workspace> --session-id <session_id> --node-id <node_id> [--node-kind <Pin|Component|Net>] [--max-depth <int>] [--branch <branch_name>] --strategy <SingleStage|DepthBalancedStages|FixedStageCount> [--stages <int>]
+```
+
+Daemon request:
+```json
+{
+  "id": "req1",
+  "command": "schedule-node-region",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "payload": {
+    "branch": "main",
+    "node_id": "C10:OUT",
+    "node_kind": "Pin",
+    "max_depth": 4,
+    "strategy": "DepthBalancedStages",
+    "stages": 2
+  }
+}
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "command": "schedule-node-region",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "node_id": "C10:OUT",
+    "scheduled_ir": {
+      "id": "C10:OUT_region",
+      "num_stages": 2,
+      "inputs": [
+        { "name": "A", "bit_width": 1, "is_literal": false, "literal": null },
+        { "name": "B", "bit_width": 1, "is_literal": false, "literal": null }
+      ],
+      "outputs": [
+        { "name": "OUT", "bit_width": 1, "is_literal": false, "literal": null }
+      ],
+      "comb_ops": [
+        {
+          "stage": 0,
+          "expr": {
+            "kind": "And",
+            "target": { "name": "TMP1", "bit_width": 1, "is_literal": false, "literal": null },
+            "args": [
+              { "name": "A", "bit_width": 1, "is_literal": false, "literal": null },
+              { "name": "B", "bit_width": 1, "is_literal": false, "literal": null }
+            ]
+          }
+        },
+        {
+          "stage": 1,
+          "expr": {
+            "kind": "Not",
+            "target": { "name": "OUT", "bit_width": 1, "is_literal": false, "literal": null },
+            "args": [
+              { "name": "TMP1", "bit_width": 1, "is_literal": false, "literal": null }
+            ]
+          }
+        }
+      ],
+      "reg_ops": []
+    }
+  }
+}
+```
+
+#### 21.3.9 `pipeline-block`
+Analyze a circuit block to identify clock domains, pipeline stages, and register-to-register paths.
+
+CLI usage:
+```
+proto-vm-cli pipeline-block --workspace <workspace> --session-id <session_id> --block-id <block_id> [--branch <branch_name>]
+```
+
+Daemon request:
+```json
+{
+  "id": "req1",
+  "command": "pipeline-block",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "payload": {
+    "branch": "main",
+    "block_id": "B_PIPE_STAGE1"
+  }
+}
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "command": "pipeline-block",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "block_id": "B_PIPE_STAGE1",
+    "pipeline_map": {
+      "id": "B_PIPE_STAGE1",
+      "clock_domains": [
+        { "signal_name": "CLK", "domain_id": 0 }
+      ],
+      "registers": [
+        { "reg_id": "R1", "name": "REG_A", "clock_signal": "CLK", "domain_id": 0, "reset_signal": "RST" },
+        { "reg_id": "R2", "name": "REG_B", "clock_signal": "CLK", "domain_id": 0, "reset_signal": "RST" }
+      ],
+      "stages": [
+        {
+          "stage_index": 0,
+          "domain_id": 0,
+          "registers_in": ["R1"],
+          "registers_out": ["R2"],
+          "comb_depth_estimate": 5
+        }
+      ],
+      "reg_paths": [
+        {
+          "src_reg_id": "R1",
+          "dst_reg_id": "R2",
+          "domain_id": 0,
+          "comb_depth_estimate": 5,
+          "stage_span": 0,
+          "crosses_clock_domain": false
+        }
+      ]
+    }
+  }
+}
+```
+
+#### 21.3.10 `pipeline-subsystem`
+Analyze a subsystem composed of multiple circuit blocks to identify clock domains, pipeline stages, and register-to-register paths across the subsystem.
+
+CLI usage:
+```
+proto-vm-cli pipeline-subsystem --workspace <workspace> --session-id <session_id> --subsystem-id <subsystem_id> --block-ids <comma_separated_block_ids> [--branch <branch_name>]
+```
+
+Daemon request:
+```json
+{
+  "id": "req1",
+  "command": "pipeline-subsystem",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "payload": {
+    "branch": "main",
+    "subsystem_id": "ALU_PIPE",
+    "block_ids": ["ALU_STAGE1", "ALU_STAGE2", "ALU_FLAGS"]
+  }
+}
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "command": "pipeline-subsystem",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "subsystem_id": "ALU_PIPE",
+    "block_ids": ["ALU_STAGE1", "ALU_STAGE2", "ALU_FLAGS"],
+    "pipeline_map": {
+      "id": "ALU_PIPE",
+      "clock_domains": [
+        { "signal_name": "CLK", "domain_id": 0 },
+        { "signal_name": "CLK_FAST", "domain_id": 1 }
+      ],
+      "registers": [
+        { "reg_id": "R1", "name": "REG_A", "clock_signal": "CLK", "domain_id": 0, "reset_signal": "RST" },
+        { "reg_id": "R2", "name": "REG_B", "clock_signal": "CLK_FAST", "domain_id": 1, "reset_signal": "RST" }
+      ],
+      "stages": [
+        {
+          "stage_index": 0,
+          "domain_id": 0,
+          "registers_in": ["R1"],
+          "registers_out": ["R2"],
+          "comb_depth_estimate": 7
+        }
+      ],
+      "reg_paths": [
+        {
+          "src_reg_id": "R1",
+          "dst_reg_id": "R2",
+          "domain_id": -1,
+          "comb_depth_estimate": 7,
+          "stage_span": 1,
+          "crosses_clock_domain": true
+        }
+      ]
+    }
+  }
+}
+```
+
+#### 21.3.11 `cdc-block`
+Analyze a circuit block to identify and classify clock-domain crossings (CDC) and report potential hazards.
+
+CLI usage:
+```
+proto-vm-cli cdc-block --workspace <workspace> --session-id <session_id> --block-id <block_id> [--branch <branch_name>]
+```
+
+Daemon request:
+```json
+{
+  "id": "req1",
+  "command": "cdc-block",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "payload": {
+    "branch": "main",
+    "block_id": "B_PIPE_STAGE1"
+  }
+}
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "command": "cdc-block",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "block_id": "B_PIPE_STAGE1",
+    "cdc_report": {
+      "id": "B_PIPE_STAGE1",
+      "clock_domains": [
+        { "signal_name": "CLK_A", "domain_id": 0 },
+        { "signal_name": "CLK_B", "domain_id": 1 }
+      ],
+      "crossings": [
+        {
+          "id": "CDCC_0001",
+          "src": { "reg_id": "R1", "clock_signal": "CLK_A", "domain_id": 0 },
+          "dst": { "reg_id": "R2", "clock_signal": "CLK_B", "domain_id": 1 },
+          "kind": "MultiBitBundle",
+          "is_single_bit": false,
+          "bit_width": 8,
+          "crosses_reset_boundary": false
+        }
+      ],
+      "issues": [
+        {
+          "id": "CDCISS_0001",
+          "severity": "Error",
+          "summary": "Multi-bit CDC bundle from CLK_A to CLK_B.",
+          "detail": "8-bit register crossing clock domains without recognized safe structure. Consider async FIFO or Gray code encoding."
+        }
+      ]
+    }
+  }
+}
+```
+
+#### 21.3.12 `cdc-subsystem`
+Analyze a subsystem composed of multiple circuit blocks to identify and classify clock-domain crossings across the subsystem.
+
+CLI usage:
+```
+proto-vm-cli cdc-subsystem --workspace <workspace> --session-id <session_id> --subsystem-id <subsystem_id> --block-ids <comma_separated_block_ids> [--branch <branch_name>]
+```
+
+Daemon request:
+```json
+{
+  "id": "req1",
+  "command": "cdc-subsystem",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "payload": {
+    "branch": "main",
+    "subsystem_id": "ALU_PIPE",
+    "block_ids": ["ALU_STAGE1", "ALU_STAGE2", "ALU_FLAGS"]
+  }
+}
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "command": "cdc-subsystem",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "subsystem_id": "ALU_PIPE",
+    "block_ids": ["ALU_STAGE1", "ALU_STAGE2", "ALU_FLAGS"],
+    "cdc_report": {
+      "id": "ALU_PIPE",
+      "clock_domains": [
+        { "signal_name": "CLK_A", "domain_id": 0 },
+        { "signal_name": "CLK_B", "domain_id": 1 },
+        { "signal_name": "CLK_FAST", "domain_id": 2 }
+      ],
+      "crossings": [
+        {
+          "id": "CDCC_0001",
+          "src": { "reg_id": "R1", "clock_signal": "CLK_A", "domain_id": 0 },
+          "dst": { "reg_id": "R2", "clock_signal": "CLK_B", "domain_id": 1 },
+          "kind": "SingleBitSyncCandidate",
+          "is_single_bit": true,
+          "bit_width": 1,
+          "crosses_reset_boundary": false
+        }
+      ],
+      "issues": [
+        {
+          "id": "CDCISS_0001",
+          "severity": "Warning",
+          "summary": "Single-bit CDC from CLK_A to CLK_B.",
+          "detail": "Single-bit control signal crossing clock domains. This is typically safe with a 2-flop synchronizer."
+        }
+      ]
+    }
+  }
+}
+```
+
 ### 21.4 Implementation Details
 
-- **BehavioralAnalysis Module**: Core behavioral inference algorithms
-- **CircuitFacade Integration**: Enhanced with `InferBehaviorForBlockInBranch` and `InferBehaviorForNodeInBranch` methods
-- **JsonIO Integration**: Serialization methods for behavioral analysis structures
-- **Integration with BlockAnalysis**: Uses block detection results as input
-- **Integration with FunctionalAnalysis**: Uses cone analysis for node-level inference
+- **CdcModel Module**: Core data structures for CDC analysis (CdcCrossingKind, CdcSeverity, CdcCrossingEndpoint, CdcCrossing, CdcIssue, CdcReport)
+- **CdcAnalysis Module**: Analysis engine that uses PipelineMap and CircuitGraph to identify and classify clock-domain crossings
+- **CircuitFacade Integration**: Enhanced with `BuildCdcReportForBlockInBranch` and `BuildCdcReportForSubsystemInBranch` methods
+- **JsonIO Integration**: Serialization methods for CDC structures (CdcCrossingKindToJson, CdcCrossingEndpointToValueMap, etc.)
+- **Integration with PipelineMap**: Uses clock domain information and register paths to identify crossings
+- **Classification Heuristics**: Automatic classification of crossings into SingleBitSyncCandidate, MultiBitBundle, HandshakeLike, or UnknownPattern
 
 ## 22. Phase 12: Behavior-Preserving Transformations / Refactor Engine
 

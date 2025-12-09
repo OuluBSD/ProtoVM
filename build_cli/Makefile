@@ -4059,6 +4059,60 @@ src/ProtoVMCLI/BranchOperations.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/BranchOperations.cpp.s
 .PHONY : src/ProtoVMCLI/BranchOperations.cpp.s
 
+src/ProtoVMCLI/CdcAnalysis.o: src/ProtoVMCLI/CdcAnalysis.cpp.o
+.PHONY : src/ProtoVMCLI/CdcAnalysis.o
+
+# target to build an object file
+src/ProtoVMCLI/CdcAnalysis.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CdcAnalysis.cpp.o
+.PHONY : src/ProtoVMCLI/CdcAnalysis.cpp.o
+
+src/ProtoVMCLI/CdcAnalysis.i: src/ProtoVMCLI/CdcAnalysis.cpp.i
+.PHONY : src/ProtoVMCLI/CdcAnalysis.i
+
+# target to preprocess a source file
+src/ProtoVMCLI/CdcAnalysis.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CdcAnalysis.cpp.i
+.PHONY : src/ProtoVMCLI/CdcAnalysis.cpp.i
+
+src/ProtoVMCLI/CdcAnalysis.s: src/ProtoVMCLI/CdcAnalysis.cpp.s
+.PHONY : src/ProtoVMCLI/CdcAnalysis.s
+
+# target to generate assembly for a file
+src/ProtoVMCLI/CdcAnalysis.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CdcAnalysis.cpp.s
+.PHONY : src/ProtoVMCLI/CdcAnalysis.cpp.s
+
+src/ProtoVMCLI/CdcModel.o: src/ProtoVMCLI/CdcModel.cpp.o
+.PHONY : src/ProtoVMCLI/CdcModel.o
+
+# target to build an object file
+src/ProtoVMCLI/CdcModel.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CdcModel.cpp.o
+.PHONY : src/ProtoVMCLI/CdcModel.cpp.o
+
+src/ProtoVMCLI/CdcModel.i: src/ProtoVMCLI/CdcModel.cpp.i
+.PHONY : src/ProtoVMCLI/CdcModel.i
+
+# target to preprocess a source file
+src/ProtoVMCLI/CdcModel.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CdcModel.cpp.i
+.PHONY : src/ProtoVMCLI/CdcModel.cpp.i
+
+src/ProtoVMCLI/CdcModel.s: src/ProtoVMCLI/CdcModel.cpp.s
+.PHONY : src/ProtoVMCLI/CdcModel.s
+
+# target to generate assembly for a file
+src/ProtoVMCLI/CdcModel.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CdcModel.cpp.s
+.PHONY : src/ProtoVMCLI/CdcModel.cpp.s
+
 src/ProtoVMCLI/CircuitAnalysis.o: src/ProtoVMCLI/CircuitAnalysis.cpp.o
 .PHONY : src/ProtoVMCLI/CircuitAnalysis.o
 
@@ -4218,6 +4272,33 @@ src/ProtoVMCLI/CliMain.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CliMain.cpp.s
 .PHONY : src/ProtoVMCLI/CliMain.cpp.s
 
+src/ProtoVMCLI/CoDesigner.o: src/ProtoVMCLI/CoDesigner.cpp.o
+.PHONY : src/ProtoVMCLI/CoDesigner.o
+
+# target to build an object file
+src/ProtoVMCLI/CoDesigner.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CoDesigner.cpp.o
+.PHONY : src/ProtoVMCLI/CoDesigner.cpp.o
+
+src/ProtoVMCLI/CoDesigner.i: src/ProtoVMCLI/CoDesigner.cpp.i
+.PHONY : src/ProtoVMCLI/CoDesigner.i
+
+# target to preprocess a source file
+src/ProtoVMCLI/CoDesigner.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CoDesigner.cpp.i
+.PHONY : src/ProtoVMCLI/CoDesigner.cpp.i
+
+src/ProtoVMCLI/CoDesigner.s: src/ProtoVMCLI/CoDesigner.cpp.s
+.PHONY : src/ProtoVMCLI/CoDesigner.s
+
+# target to generate assembly for a file
+src/ProtoVMCLI/CoDesigner.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CoDesigner.cpp.s
+.PHONY : src/ProtoVMCLI/CoDesigner.cpp.s
+
 src/ProtoVMCLI/CommandDispatcher.o: src/ProtoVMCLI/CommandDispatcher.cpp.o
 .PHONY : src/ProtoVMCLI/CommandDispatcher.o
 
@@ -4268,6 +4349,33 @@ src/ProtoVMCLI/DaemonMain.s: src/ProtoVMCLI/DaemonMain.cpp.s
 src/ProtoVMCLI/DaemonMain.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/DaemonMain.cpp.s
 .PHONY : src/ProtoVMCLI/DaemonMain.cpp.s
+
+src/ProtoVMCLI/DiffAnalysis.o: src/ProtoVMCLI/DiffAnalysis.cpp.o
+.PHONY : src/ProtoVMCLI/DiffAnalysis.o
+
+# target to build an object file
+src/ProtoVMCLI/DiffAnalysis.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/DiffAnalysis.cpp.o
+.PHONY : src/ProtoVMCLI/DiffAnalysis.cpp.o
+
+src/ProtoVMCLI/DiffAnalysis.i: src/ProtoVMCLI/DiffAnalysis.cpp.i
+.PHONY : src/ProtoVMCLI/DiffAnalysis.i
+
+# target to preprocess a source file
+src/ProtoVMCLI/DiffAnalysis.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/DiffAnalysis.cpp.i
+.PHONY : src/ProtoVMCLI/DiffAnalysis.cpp.i
+
+src/ProtoVMCLI/DiffAnalysis.s: src/ProtoVMCLI/DiffAnalysis.cpp.s
+.PHONY : src/ProtoVMCLI/DiffAnalysis.s
+
+# target to generate assembly for a file
+src/ProtoVMCLI/DiffAnalysis.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/DiffAnalysis.cpp.s
+.PHONY : src/ProtoVMCLI/DiffAnalysis.cpp.s
 
 src/ProtoVMCLI/EngineFacade.o: src/ProtoVMCLI/EngineFacade.cpp.o
 .PHONY : src/ProtoVMCLI/EngineFacade.o
@@ -4457,6 +4565,114 @@ src/ProtoVMCLI/MachineSnapshot.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/MachineSnapshot.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/MachineSnapshot.cpp.s
 .PHONY : src/ProtoVMCLI/MachineSnapshot.cpp.s
+
+src/ProtoVMCLI/PipelineAnalysis.o: src/ProtoVMCLI/PipelineAnalysis.cpp.o
+.PHONY : src/ProtoVMCLI/PipelineAnalysis.o
+
+# target to build an object file
+src/ProtoVMCLI/PipelineAnalysis.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.o
+.PHONY : src/ProtoVMCLI/PipelineAnalysis.cpp.o
+
+src/ProtoVMCLI/PipelineAnalysis.i: src/ProtoVMCLI/PipelineAnalysis.cpp.i
+.PHONY : src/ProtoVMCLI/PipelineAnalysis.i
+
+# target to preprocess a source file
+src/ProtoVMCLI/PipelineAnalysis.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.i
+.PHONY : src/ProtoVMCLI/PipelineAnalysis.cpp.i
+
+src/ProtoVMCLI/PipelineAnalysis.s: src/ProtoVMCLI/PipelineAnalysis.cpp.s
+.PHONY : src/ProtoVMCLI/PipelineAnalysis.s
+
+# target to generate assembly for a file
+src/ProtoVMCLI/PipelineAnalysis.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.s
+.PHONY : src/ProtoVMCLI/PipelineAnalysis.cpp.s
+
+src/ProtoVMCLI/PipelineModel.o: src/ProtoVMCLI/PipelineModel.cpp.o
+.PHONY : src/ProtoVMCLI/PipelineModel.o
+
+# target to build an object file
+src/ProtoVMCLI/PipelineModel.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/PipelineModel.cpp.o
+.PHONY : src/ProtoVMCLI/PipelineModel.cpp.o
+
+src/ProtoVMCLI/PipelineModel.i: src/ProtoVMCLI/PipelineModel.cpp.i
+.PHONY : src/ProtoVMCLI/PipelineModel.i
+
+# target to preprocess a source file
+src/ProtoVMCLI/PipelineModel.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/PipelineModel.cpp.i
+.PHONY : src/ProtoVMCLI/PipelineModel.cpp.i
+
+src/ProtoVMCLI/PipelineModel.s: src/ProtoVMCLI/PipelineModel.cpp.s
+.PHONY : src/ProtoVMCLI/PipelineModel.s
+
+# target to generate assembly for a file
+src/ProtoVMCLI/PipelineModel.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/PipelineModel.cpp.s
+.PHONY : src/ProtoVMCLI/PipelineModel.cpp.s
+
+src/ProtoVMCLI/ScheduledIr.o: src/ProtoVMCLI/ScheduledIr.cpp.o
+.PHONY : src/ProtoVMCLI/ScheduledIr.o
+
+# target to build an object file
+src/ProtoVMCLI/ScheduledIr.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/ScheduledIr.cpp.o
+.PHONY : src/ProtoVMCLI/ScheduledIr.cpp.o
+
+src/ProtoVMCLI/ScheduledIr.i: src/ProtoVMCLI/ScheduledIr.cpp.i
+.PHONY : src/ProtoVMCLI/ScheduledIr.i
+
+# target to preprocess a source file
+src/ProtoVMCLI/ScheduledIr.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/ScheduledIr.cpp.i
+.PHONY : src/ProtoVMCLI/ScheduledIr.cpp.i
+
+src/ProtoVMCLI/ScheduledIr.s: src/ProtoVMCLI/ScheduledIr.cpp.s
+.PHONY : src/ProtoVMCLI/ScheduledIr.s
+
+# target to generate assembly for a file
+src/ProtoVMCLI/ScheduledIr.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/ScheduledIr.cpp.s
+.PHONY : src/ProtoVMCLI/ScheduledIr.cpp.s
+
+src/ProtoVMCLI/Scheduling.o: src/ProtoVMCLI/Scheduling.cpp.o
+.PHONY : src/ProtoVMCLI/Scheduling.o
+
+# target to build an object file
+src/ProtoVMCLI/Scheduling.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/Scheduling.cpp.o
+.PHONY : src/ProtoVMCLI/Scheduling.cpp.o
+
+src/ProtoVMCLI/Scheduling.i: src/ProtoVMCLI/Scheduling.cpp.i
+.PHONY : src/ProtoVMCLI/Scheduling.i
+
+# target to preprocess a source file
+src/ProtoVMCLI/Scheduling.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/Scheduling.cpp.i
+.PHONY : src/ProtoVMCLI/Scheduling.cpp.i
+
+src/ProtoVMCLI/Scheduling.s: src/ProtoVMCLI/Scheduling.cpp.s
+.PHONY : src/ProtoVMCLI/Scheduling.s
+
+# target to generate assembly for a file
+src/ProtoVMCLI/Scheduling.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/Scheduling.cpp.s
+.PHONY : src/ProtoVMCLI/Scheduling.cpp.s
 
 src/ProtoVMCLI/SessionServer.o: src/ProtoVMCLI/SessionServer.cpp.o
 .PHONY : src/ProtoVMCLI/SessionServer.o
@@ -5244,6 +5460,12 @@ help:
 	@echo "... src/ProtoVMCLI/BranchOperations.o"
 	@echo "... src/ProtoVMCLI/BranchOperations.i"
 	@echo "... src/ProtoVMCLI/BranchOperations.s"
+	@echo "... src/ProtoVMCLI/CdcAnalysis.o"
+	@echo "... src/ProtoVMCLI/CdcAnalysis.i"
+	@echo "... src/ProtoVMCLI/CdcAnalysis.s"
+	@echo "... src/ProtoVMCLI/CdcModel.o"
+	@echo "... src/ProtoVMCLI/CdcModel.i"
+	@echo "... src/ProtoVMCLI/CdcModel.s"
 	@echo "... src/ProtoVMCLI/CircuitAnalysis.o"
 	@echo "... src/ProtoVMCLI/CircuitAnalysis.i"
 	@echo "... src/ProtoVMCLI/CircuitAnalysis.s"
@@ -5262,12 +5484,18 @@ help:
 	@echo "... src/ProtoVMCLI/CliMain.o"
 	@echo "... src/ProtoVMCLI/CliMain.i"
 	@echo "... src/ProtoVMCLI/CliMain.s"
+	@echo "... src/ProtoVMCLI/CoDesigner.o"
+	@echo "... src/ProtoVMCLI/CoDesigner.i"
+	@echo "... src/ProtoVMCLI/CoDesigner.s"
 	@echo "... src/ProtoVMCLI/CommandDispatcher.o"
 	@echo "... src/ProtoVMCLI/CommandDispatcher.i"
 	@echo "... src/ProtoVMCLI/CommandDispatcher.s"
 	@echo "... src/ProtoVMCLI/DaemonMain.o"
 	@echo "... src/ProtoVMCLI/DaemonMain.i"
 	@echo "... src/ProtoVMCLI/DaemonMain.s"
+	@echo "... src/ProtoVMCLI/DiffAnalysis.o"
+	@echo "... src/ProtoVMCLI/DiffAnalysis.i"
+	@echo "... src/ProtoVMCLI/DiffAnalysis.s"
 	@echo "... src/ProtoVMCLI/EngineFacade.o"
 	@echo "... src/ProtoVMCLI/EngineFacade.i"
 	@echo "... src/ProtoVMCLI/EngineFacade.s"
@@ -5289,6 +5517,18 @@ help:
 	@echo "... src/ProtoVMCLI/MachineSnapshot.o"
 	@echo "... src/ProtoVMCLI/MachineSnapshot.i"
 	@echo "... src/ProtoVMCLI/MachineSnapshot.s"
+	@echo "... src/ProtoVMCLI/PipelineAnalysis.o"
+	@echo "... src/ProtoVMCLI/PipelineAnalysis.i"
+	@echo "... src/ProtoVMCLI/PipelineAnalysis.s"
+	@echo "... src/ProtoVMCLI/PipelineModel.o"
+	@echo "... src/ProtoVMCLI/PipelineModel.i"
+	@echo "... src/ProtoVMCLI/PipelineModel.s"
+	@echo "... src/ProtoVMCLI/ScheduledIr.o"
+	@echo "... src/ProtoVMCLI/ScheduledIr.i"
+	@echo "... src/ProtoVMCLI/ScheduledIr.s"
+	@echo "... src/ProtoVMCLI/Scheduling.o"
+	@echo "... src/ProtoVMCLI/Scheduling.i"
+	@echo "... src/ProtoVMCLI/Scheduling.s"
 	@echo "... src/ProtoVMCLI/SessionServer.o"
 	@echo "... src/ProtoVMCLI/SessionServer.i"
 	@echo "... src/ProtoVMCLI/SessionServer.s"

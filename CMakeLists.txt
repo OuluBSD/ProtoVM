@@ -236,6 +236,12 @@ if(BUILD_PROTOVM_CLI)
         src/ProtoVMCLI/HlsIrInference.cpp
         src/ProtoVMCLI/DiffAnalysis.cpp
         src/ProtoVMCLI/CoDesigner.cpp
+        src/ProtoVMCLI/ScheduledIr.cpp
+        src/ProtoVMCLI/Scheduling.cpp
+        src/ProtoVMCLI/CdcModel.cpp
+        src/ProtoVMCLI/CdcAnalysis.cpp
+        src/ProtoVMCLI/PipelineModel.cpp
+        src/ProtoVMCLI/PipelineAnalysis.cpp
     )
 
     add_executable(proto-vm-cli ${CLI_SOURCES})
@@ -265,6 +271,12 @@ if(BUILD_PROTOVM_CLI)
         src/ProtoVMCLI/HlsIrInference.cpp
         src/ProtoVMCLI/DiffAnalysis.cpp
         src/ProtoVMCLI/CoDesigner.cpp
+        src/ProtoVMCLI/ScheduledIr.cpp
+        src/ProtoVMCLI/Scheduling.cpp
+        src/ProtoVMCLI/CdcModel.cpp
+        src/ProtoVMCLI/CdcAnalysis.cpp
+        src/ProtoVMCLI/PipelineModel.cpp
+        src/ProtoVMCLI/PipelineAnalysis.cpp
     )
 
     add_executable(proto-vm-daemon ${DAEMON_SOURCES})

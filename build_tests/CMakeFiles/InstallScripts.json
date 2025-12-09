@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/sblo/Dev/ProtoVM/build_tests/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

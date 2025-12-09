@@ -282,6 +282,118 @@ CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/HlsIrInference.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/HlsIrInference.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/HlsIrInference.cpp -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/HlsIrInference.cpp.s
 
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.o: CMakeFiles/proto-vm-cli.dir/flags.make
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.o: /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/DiffAnalysis.cpp
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.o: CMakeFiles/proto-vm-cli.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.o -MF CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.o.d -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.o -c /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/DiffAnalysis.cpp
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/DiffAnalysis.cpp > CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.i
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/DiffAnalysis.cpp -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.s
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.o: CMakeFiles/proto-vm-cli.dir/flags.make
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.o: /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CoDesigner.cpp
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.o: CMakeFiles/proto-vm-cli.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building CXX object CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.o -MF CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.o.d -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.o -c /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CoDesigner.cpp
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CoDesigner.cpp > CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.i
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CoDesigner.cpp -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.s
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.o: CMakeFiles/proto-vm-cli.dir/flags.make
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.o: /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/ScheduledIr.cpp
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.o: CMakeFiles/proto-vm-cli.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.o -MF CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.o.d -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.o -c /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/ScheduledIr.cpp
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/ScheduledIr.cpp > CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.i
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/ScheduledIr.cpp -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.s
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.o: CMakeFiles/proto-vm-cli.dir/flags.make
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.o: /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/Scheduling.cpp
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.o: CMakeFiles/proto-vm-cli.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.o -MF CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.o.d -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.o -c /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/Scheduling.cpp
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/Scheduling.cpp > CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.i
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/Scheduling.cpp -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.s
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.o: CMakeFiles/proto-vm-cli.dir/flags.make
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.o: /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CdcModel.cpp
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.o: CMakeFiles/proto-vm-cli.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Building CXX object CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.o -MF CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.o.d -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.o -c /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CdcModel.cpp
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CdcModel.cpp > CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.i
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CdcModel.cpp -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.s
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.o: CMakeFiles/proto-vm-cli.dir/flags.make
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.o: /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CdcAnalysis.cpp
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.o: CMakeFiles/proto-vm-cli.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=$(CMAKE_PROGRESS_21) "Building CXX object CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.o -MF CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.o.d -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.o -c /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CdcAnalysis.cpp
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CdcAnalysis.cpp > CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.i
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CdcAnalysis.cpp -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.s
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.o: CMakeFiles/proto-vm-cli.dir/flags.make
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.o: /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/PipelineModel.cpp
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.o: CMakeFiles/proto-vm-cli.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Building CXX object CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.o -MF CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.o.d -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.o -c /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/PipelineModel.cpp
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/PipelineModel.cpp > CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.i
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/PipelineModel.cpp -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.s
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.o: CMakeFiles/proto-vm-cli.dir/flags.make
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.o: /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/PipelineAnalysis.cpp
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.o: CMakeFiles/proto-vm-cli.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=$(CMAKE_PROGRESS_23) "Building CXX object CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.o -MF CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.o.d -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.o -c /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/PipelineAnalysis.cpp
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/PipelineAnalysis.cpp > CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.i
+
+CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/sblo/Dev/ProtoVM/src/ProtoVMCLI/PipelineAnalysis.cpp -o CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.s
+
 # Object files for target proto-vm-cli
 proto__vm__cli_OBJECTS = \
 "CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CliMain.cpp.o" \
@@ -298,7 +410,15 @@ proto__vm__cli_OBJECTS = \
 "CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CircuitGraph.cpp.o" \
 "CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CircuitGraphQueries.cpp.o" \
 "CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/HlsIr.cpp.o" \
-"CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/HlsIrInference.cpp.o"
+"CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/HlsIrInference.cpp.o" \
+"CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.o" \
+"CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.o" \
+"CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.o" \
+"CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.o" \
+"CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.o" \
+"CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.o" \
+"CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.o" \
+"CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.o"
 
 # External object files for target proto-vm-cli
 proto__vm__cli_EXTERNAL_OBJECTS =
@@ -318,11 +438,19 @@ proto-vm-cli: CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CircuitGraph.cpp.o
 proto-vm-cli: CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CircuitGraphQueries.cpp.o
 proto-vm-cli: CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/HlsIr.cpp.o
 proto-vm-cli: CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/HlsIrInference.cpp.o
+proto-vm-cli: CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/DiffAnalysis.cpp.o
+proto-vm-cli: CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CoDesigner.cpp.o
+proto-vm-cli: CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/ScheduledIr.cpp.o
+proto-vm-cli: CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/Scheduling.cpp.o
+proto-vm-cli: CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcModel.cpp.o
+proto-vm-cli: CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/CdcAnalysis.cpp.o
+proto-vm-cli: CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineModel.cpp.o
+proto-vm-cli: CMakeFiles/proto-vm-cli.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.o
 proto-vm-cli: CMakeFiles/proto-vm-cli.dir/build.make
 proto-vm-cli: CMakeFiles/proto-vm-cli.dir/compiler_depend.ts
 proto-vm-cli: libproto_vm_core.a
 proto-vm-cli: CMakeFiles/proto-vm-cli.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Linking CXX executable proto-vm-cli"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=$(CMAKE_PROGRESS_24) "Linking CXX executable proto-vm-cli"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/proto-vm-cli.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

@@ -84,6 +84,10 @@ public:
     Upp::String RunIrBlock(const CommandOptions& opts);
     Upp::String RunIrNodeRegion(const CommandOptions& opts);
 
+    // Scheduled IR commands
+    Upp::String RunScheduleBlock(const CommandOptions& opts);
+    Upp::String RunScheduleNodeRegion(const CommandOptions& opts);
+
     // Refactoring commands
     Upp::String RunRefactorSuggest(const CommandOptions& opts);
     Upp::String RunRefactorSuggestBlock(const CommandOptions& opts);
@@ -97,6 +101,14 @@ public:
     Upp::String RunBehaviorDiffBlock(const CommandOptions& opts);
     Upp::String RunIrDiffBlock(const CommandOptions& opts);
     Upp::String RunIrDiffNodeRegion(const CommandOptions& opts);
+
+    // Pipeline analysis commands
+    Upp::String RunPipelineBlock(const CommandOptions& opts);
+    Upp::String RunPipelineSubsystem(const CommandOptions& opts);
+
+    // CDC analysis commands
+    Upp::String RunCdcBlock(const CommandOptions& opts);
+    Upp::String RunCdcSubsystem(const CommandOptions& opts);
 
     // CoDesigner commands
     Upp::String RunDesignerCreateSession(const CommandOptions& opts);

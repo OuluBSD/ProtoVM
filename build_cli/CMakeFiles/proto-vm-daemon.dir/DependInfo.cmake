@@ -9,13 +9,17 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/BranchOperations.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/BranchOperations.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/BranchOperations.cpp.o.d"
+  "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CdcAnalysis.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CdcAnalysis.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CdcAnalysis.cpp.o.d"
+  "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CdcModel.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CdcModel.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CdcModel.cpp.o.d"
   "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CircuitAnalysis.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CircuitAnalysis.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CircuitAnalysis.cpp.o.d"
   "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CircuitFacade.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CircuitFacade.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CircuitFacade.cpp.o.d"
   "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CircuitGraph.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CircuitGraph.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CircuitGraph.cpp.o.d"
   "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CircuitGraphQueries.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CircuitGraphQueries.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CircuitGraphQueries.cpp.o.d"
   "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CircuitMerge.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CircuitMerge.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CircuitMerge.cpp.o.d"
+  "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CoDesigner.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CoDesigner.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CoDesigner.cpp.o.d"
   "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/CommandDispatcher.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CommandDispatcher.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/CommandDispatcher.cpp.o.d"
   "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/DaemonMain.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/DaemonMain.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/DaemonMain.cpp.o.d"
+  "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/DiffAnalysis.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/DiffAnalysis.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/DiffAnalysis.cpp.o.d"
   "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/EngineFacade.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/EngineFacade.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/EngineFacade.cpp.o.d"
   "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/EventLogger.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/EventLogger.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/EventLogger.cpp.o.d"
   "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/HlsIr.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/HlsIr.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/HlsIr.cpp.o.d"
@@ -23,6 +27,10 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/JsonFilesystemSessionStore.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/JsonFilesystemSessionStore.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/JsonFilesystemSessionStore.cpp.o.d"
   "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/JsonIO.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/JsonIO.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/JsonIO.cpp.o.d"
   "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/MachineSnapshot.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/MachineSnapshot.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/MachineSnapshot.cpp.o.d"
+  "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/PipelineAnalysis.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/PipelineAnalysis.cpp.o.d"
+  "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/PipelineModel.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/PipelineModel.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/PipelineModel.cpp.o.d"
+  "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/ScheduledIr.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/ScheduledIr.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/ScheduledIr.cpp.o.d"
+  "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/Scheduling.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/Scheduling.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/Scheduling.cpp.o.d"
   "/home/sblo/Dev/ProtoVM/src/ProtoVMCLI/SessionServer.cpp" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/SessionServer.cpp.o" "gcc" "CMakeFiles/proto-vm-daemon.dir/src/ProtoVMCLI/SessionServer.cpp.o.d"
   "" "proto-vm-daemon" "gcc" "CMakeFiles/proto-vm-daemon.dir/link.d"
   )

@@ -1775,4 +1775,298 @@ Result<std::vector<TransformationPlan>> CircuitFacade::ProposeIrBasedTransformat
     }
 }
 
+Result<ScheduledModule> CircuitFacade::BuildScheduledIrForBlockInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id,
+    const SchedulingConfig& config
+) {
+    try {
+        // Step 1: Get the IR for the block
+        auto ir_result = BuildIrForBlockInBranch(session, session_dir, branch_name, block_id);
+        if (!ir_result.ok) {
+            return Result<ScheduledModule>::MakeError(
+                ir_result.error_code,
+                ir_result.error_message
+            );
+        }
+
+        IrModule ir = ir_result.data;
+
+        // Step 2: Optionally get timing analysis for more accurate scheduling
+        // For now, we'll pass nullptr since we don't have a method to get timing data for a block
+        TimingAnalysis* timing = nullptr;
+        CircuitGraph* graph = nullptr;
+
+        // Step 3: Build the scheduled IR using the scheduling engine
+        auto schedule_result = SchedulingEngine::BuildSchedule(ir, timing, graph, config);
+        if (!schedule_result.ok) {
+            return Result<ScheduledModule>::MakeError(
+                schedule_result.error_code,
+                schedule_result.error_message
+            );
+        }
+
+        return Result<ScheduledModule>::MakeOk(schedule_result.data);
+    }
+    catch (const std::exception& e) {
+        return Result<ScheduledModule>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in BuildScheduledIrForBlockInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<ScheduledModule> CircuitFacade::BuildScheduledIrForNodeRegionInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& node_id,
+    const std::string& node_kind_hint,
+    int max_depth,
+    const SchedulingConfig& config
+) {
+    try {
+        // Step 1: Get the IR for the node region
+        auto ir_result = BuildIrForNodeRegionInBranch(session, session_dir, branch_name, node_id, node_kind_hint, max_depth);
+        if (!ir_result.ok) {
+            return Result<ScheduledModule>::MakeError(
+                ir_result.error_code,
+                ir_result.error_message
+            );
+        }
+
+        IrModule ir = ir_result.data;
+
+        // Step 2: Optionally get timing analysis for more accurate scheduling
+        // For now, we'll pass nullptr since we don't have a method to get timing data for a node region
+        TimingAnalysis* timing = nullptr;
+        CircuitGraph* graph = nullptr;
+
+        // Step 3: Build the scheduled IR using the scheduling engine
+        auto schedule_result = SchedulingEngine::BuildSchedule(ir, timing, graph, config);
+        if (!schedule_result.ok) {
+            return Result<ScheduledModule>::MakeError(
+                schedule_result.error_code,
+                schedule_result.error_message
+            );
+        }
+
+        return Result<ScheduledModule>::MakeOk(schedule_result.data);
+    }
+    catch (const std::exception& e) {
+        return Result<ScheduledModule>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in BuildScheduledIrForNodeRegionInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<PipelineMap> CircuitFacade::BuildPipelineMapForBlockInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id
+) {
+    try {
+        // Step 1: Get the circuit graph for the specified branch
+        auto graph_result = BuildGraphForBranch(session, session_dir, branch_name);
+        if (!graph_result.ok) {
+            return Result<PipelineMap>::MakeError(
+                graph_result.error_code,
+                graph_result.error_message
+            );
+        }
+
+        const CircuitGraph& graph = graph_result.data;
+
+        // Step 2: Optionally get timing analysis for more accurate pipeline analysis
+        auto timing_graph_result = BuildTimingGraphForBranch(session, session_dir, branch_name);
+        TimingAnalysis timing_analysis;
+        // We'll use the timing analysis if we have one, but it's optional
+
+        // Step 3: Get the scheduled IR for the block if available
+        SchedulingConfig config;  // Use default configuration
+        auto scheduled_ir_result = BuildScheduledIrForBlockInBranch(session, session_dir, branch_name, block_id, config);
+        const ScheduledModule* scheduled_ir = scheduled_ir_result.ok ? &scheduled_ir_result.data : nullptr;
+
+        // Step 4: Build the pipeline map using the pipeline analysis engine
+        auto pipeline_result = PipelineAnalysis::BuildPipelineMapForBlock(graph,
+                                                                         scheduled_ir_result.ok ? &timing_analysis : nullptr,
+                                                                         scheduled_ir,
+                                                                         block_id);
+        if (!pipeline_result.ok) {
+            return Result<PipelineMap>::MakeError(
+                pipeline_result.error_code,
+                pipeline_result.error_message
+            );
+        }
+
+        return Result<PipelineMap>::MakeOk(pipeline_result.data);
+    }
+    catch (const std::exception& e) {
+        return Result<PipelineMap>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in BuildPipelineMapForBlockInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<PipelineMap> CircuitFacade::BuildPipelineMapForSubsystemInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& subsystem_id,
+    const std::vector<std::string>& block_ids
+) {
+    try {
+        // Step 1: Get the circuit graph for the specified branch
+        auto graph_result = BuildGraphForBranch(session, session_dir, branch_name);
+        if (!graph_result.ok) {
+            return Result<PipelineMap>::MakeError(
+                graph_result.error_code,
+                graph_result.error_message
+            );
+        }
+
+        const CircuitGraph& graph = graph_result.data;
+
+        // Step 2: Optionally get timing analysis for more accurate pipeline analysis
+        auto timing_graph_result = BuildTimingGraphForBranch(session, session_dir, branch_name);
+        TimingAnalysis timing_analysis;
+        // We'll use the timing analysis if we have one, but it's optional
+
+        // Step 3: Attempt to get scheduled IR for blocks if available (this is more complex for subsystems)
+        // For now, we'll pass nullptr as scheduled IR for subsystem level
+        const ScheduledModule* scheduled_ir = nullptr;
+
+        // Step 4: Build the pipeline map using the pipeline analysis engine for subsystem
+        auto pipeline_result = PipelineAnalysis::BuildPipelineMapForSubsystem(graph,
+                                                                              scheduled_ir_result.ok ? &timing_analysis : nullptr,
+                                                                              scheduled_ir,
+                                                                              subsystem_id,
+                                                                              block_ids);
+        if (!pipeline_result.ok) {
+            return Result<PipelineMap>::MakeError(
+                pipeline_result.error_code,
+                pipeline_result.error_message
+            );
+        }
+
+        return Result<PipelineMap>::MakeOk(pipeline_result.data);
+    }
+    catch (const std::exception& e) {
+        return Result<PipelineMap>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in BuildPipelineMapForSubsystemInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<CdcReport> CircuitFacade::BuildCdcReportForBlockInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id
+) {
+    try {
+        // Step 1: Get the circuit graph for the specified branch
+        auto graph_result = BuildGraphForBranch(session, session_dir, branch_name);
+        if (!graph_result.ok) {
+            return Result<CdcReport>::MakeError(
+                graph_result.error_code,
+                graph_result.error_message
+            );
+        }
+
+        const CircuitGraph& graph = graph_result.data;
+
+        // Step 2: Get the pipeline map for the specified block
+        auto pipeline_result = BuildPipelineMapForBlockInBranch(session, session_dir, branch_name, block_id);
+        if (!pipeline_result.ok) {
+            return Result<CdcReport>::MakeError(
+                pipeline_result.error_code,
+                pipeline_result.error_message
+            );
+        }
+
+        const PipelineMap& pipeline = pipeline_result.data;
+
+        // Step 3: Optionally get timing analysis for more detailed CDC analysis
+        auto timing_graph_result = BuildTimingGraphForBranch(session, session_dir, branch_name);
+        TimingAnalysis* timing = nullptr;  // We'll pass nullptr for now since the result is complex to handle
+
+        // Step 4: Use the CDC analysis engine to build the report
+        auto cdc_result = CdcAnalysis::BuildCdcReportForBlock(pipeline, graph, timing);
+        if (!cdc_result.ok) {
+            return Result<CdcReport>::MakeError(
+                cdc_result.error_code,
+                cdc_result.error_message
+            );
+        }
+
+        return Result<CdcReport>::MakeOk(cdc_result.data);
+    }
+    catch (const std::exception& e) {
+        return Result<CdcReport>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in BuildCdcReportForBlockInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<CdcReport> CircuitFacade::BuildCdcReportForSubsystemInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& subsystem_id,
+    const std::vector<std::string>& block_ids
+) {
+    try {
+        // Step 1: Get the circuit graph for the specified branch
+        auto graph_result = BuildGraphForBranch(session, session_dir, branch_name);
+        if (!graph_result.ok) {
+            return Result<CdcReport>::MakeError(
+                graph_result.error_code,
+                graph_result.error_message
+            );
+        }
+
+        const CircuitGraph& graph = graph_result.data;
+
+        // Step 2: Get the pipeline map for the specified subsystem
+        auto pipeline_result = BuildPipelineMapForSubsystemInBranch(session, session_dir, branch_name, subsystem_id, block_ids);
+        if (!pipeline_result.ok) {
+            return Result<CdcReport>::MakeError(
+                pipeline_result.error_code,
+                pipeline_result.error_message
+            );
+        }
+
+        const PipelineMap& pipeline = pipeline_result.data;
+
+        // Step 3: Optionally get timing analysis for more detailed CDC analysis
+        auto timing_graph_result = BuildTimingGraphForBranch(session, session_dir, branch_name);
+        TimingAnalysis* timing = nullptr;  // We'll pass nullptr for now
+
+        // Step 4: Use the CDC analysis engine to build the report
+        auto cdc_result = CdcAnalysis::BuildCdcReportForSubsystem(pipeline, graph, timing);
+        if (!cdc_result.ok) {
+            return Result<CdcReport>::MakeError(
+                cdc_result.error_code,
+                cdc_result.error_message
+            );
+        }
+
+        return Result<CdcReport>::MakeOk(cdc_result.data);
+    }
+    catch (const std::exception& e) {
+        return Result<CdcReport>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in BuildCdcReportForSubsystemInBranch: ") + e.what()
+        );
+    }
+}
+
 } // namespace ProtoVMCLI

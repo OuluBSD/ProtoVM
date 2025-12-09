@@ -1,6 +1,9 @@
 #include "JsonIO.h"
 #include "Transformations.h"
 #include "DiffAnalysis.h"
+#include "ScheduledIr.h"
+#include "Scheduling.h"
+#include "CdcModel.h"
 #include <iostream>
 #include <sstream>
 
@@ -1032,6 +1035,279 @@ Upp::ValueArray JsonIO::StringVectorToValueArray(const std::vector<std::string>&
     Upp::ValueArray array;
     for (const auto& str : strings) {
         array.Add(Upp::String(str.c_str()));
+    }
+    return array;
+}
+
+Upp::Value JsonIO::SchedulingStrategyToJson(SchedulingStrategy strategy) {
+    std::string strategy_str = "SingleStage";
+    switch (strategy) {
+        case SchedulingStrategy::SingleStage:
+            strategy_str = "SingleStage";
+            break;
+        case SchedulingStrategy::DepthBalancedStages:
+            strategy_str = "DepthBalancedStages";
+            break;
+        case SchedulingStrategy::FixedStageCount:
+            strategy_str = "FixedStageCount";
+            break;
+    }
+    return Upp::String(strategy_str.c_str());
+}
+
+Upp::ValueMap JsonIO::SchedulingConfigToValueMap(const SchedulingConfig& config) {
+    Upp::ValueMap config_map;
+    config_map.Add("strategy", SchedulingStrategyToJson(config.strategy));
+    config_map.Add("requested_stages", config.requested_stages);
+    return config_map;
+}
+
+Upp::ValueMap JsonIO::ScheduledExprToValueMap(const ScheduledExpr& scheduled_expr) {
+    Upp::ValueMap scheduled_expr_map;
+    scheduled_expr_map.Add("stage", scheduled_expr.stage);
+    scheduled_expr_map.Add("expr", IrExprToValueMap(scheduled_expr.expr));
+    return scheduled_expr_map;
+}
+
+Upp::ValueMap JsonIO::ScheduledRegAssignToValueMap(const ScheduledRegAssign& scheduled_reg_assign) {
+    Upp::ValueMap scheduled_reg_assign_map;
+    scheduled_reg_assign_map.Add("stage", scheduled_reg_assign.stage);
+    scheduled_reg_assign_map.Add("reg_assign", IrRegAssignToValueMap(scheduled_reg_assign.reg_assign));
+    return scheduled_reg_assign_map;
+}
+
+Upp::ValueMap JsonIO::ScheduledModuleToValueMap(const ScheduledModule& scheduled_module) {
+    Upp::ValueMap scheduled_module_map;
+    scheduled_module_map.Add("id", Upp::String(scheduled_module.id.c_str()));
+    scheduled_module_map.Add("num_stages", scheduled_module.num_stages);
+
+    // Add inputs
+    scheduled_module_map.Add("inputs", IrValuesToValueArray(scheduled_module.inputs));
+
+    // Add outputs
+    scheduled_module_map.Add("outputs", IrValuesToValueArray(scheduled_module.outputs));
+
+    // Add scheduled combinational operations
+    scheduled_module_map.Add("comb_ops", ScheduledExprsToValueArray(scheduled_module.comb_ops));
+
+    // Add scheduled register operations
+    scheduled_module_map.Add("reg_ops", ScheduledRegAssignsToValueArray(scheduled_module.reg_ops));
+
+    return scheduled_module_map;
+}
+
+Upp::ValueArray JsonIO::ScheduledExprsToValueArray(const std::vector<ScheduledExpr>& scheduled_exprs) {
+    Upp::ValueArray array;
+    for (const auto& scheduled_expr : scheduled_exprs) {
+        array.Add(ScheduledExprToValueMap(scheduled_expr));
+    }
+    return array;
+}
+
+Upp::ValueArray JsonIO::ScheduledRegAssignsToValueArray(const std::vector<ScheduledRegAssign>& scheduled_reg_assigns) {
+    Upp::ValueArray array;
+    for (const auto& scheduled_reg_assign : scheduled_reg_assigns) {
+        array.Add(ScheduledRegAssignToValueMap(scheduled_reg_assign));
+    }
+    return array;
+}
+
+Upp::ValueMap JsonIO::ClockSignalInfoToValueMap(const ClockSignalInfo& clock_signal) {
+    Upp::ValueMap signal_map;
+    signal_map.Add("signal_name", Upp::String(clock_signal.signal_name.c_str()));
+    signal_map.Add("domain_id", clock_signal.domain_id);
+    return signal_map;
+}
+
+Upp::ValueMap JsonIO::RegisterInfoToValueMap(const RegisterInfo& register_info) {
+    Upp::ValueMap reg_map;
+    reg_map.Add("reg_id", Upp::String(register_info.reg_id.c_str()));
+    reg_map.Add("name", Upp::String(register_info.name.c_str()));
+    reg_map.Add("clock_signal", Upp::String(register_info.clock_signal.c_str()));
+    reg_map.Add("domain_id", register_info.domain_id);
+    reg_map.Add("reset_signal", Upp::String(register_info.reset_signal.c_str()));
+    return reg_map;
+}
+
+Upp::ValueMap JsonIO::PipelineStageInfoToValueMap(const PipelineStageInfo& stage_info) {
+    Upp::ValueMap stage_map;
+    stage_map.Add("stage_index", stage_info.stage_index);
+    stage_map.Add("domain_id", stage_info.domain_id);
+    stage_map.Add("comb_depth_estimate", stage_info.comb_depth_estimate);
+
+    // Add register lists
+    Upp::ValueArray registers_in_array;
+    for (const auto& reg_id : stage_info.registers_in) {
+        registers_in_array.Add(Upp::String(reg_id.c_str()));
+    }
+    stage_map.Add("registers_in", registers_in_array);
+
+    Upp::ValueArray registers_out_array;
+    for (const auto& reg_id : stage_info.registers_out) {
+        registers_out_array.Add(Upp::String(reg_id.c_str()));
+    }
+    stage_map.Add("registers_out", registers_out_array);
+
+    return stage_map;
+}
+
+Upp::ValueMap JsonIO::RegToRegPathInfoToValueMap(const RegToRegPathInfo& path_info) {
+    Upp::ValueMap path_map;
+    path_map.Add("src_reg_id", Upp::String(path_info.src_reg_id.c_str()));
+    path_map.Add("dst_reg_id", Upp::String(path_info.dst_reg_id.c_str()));
+    path_map.Add("domain_id", path_info.domain_id);
+    path_map.Add("comb_depth_estimate", path_info.comb_depth_estimate);
+    path_map.Add("stage_span", path_info.stage_span);
+    path_map.Add("crosses_clock_domain", path_info.crosses_clock_domain);
+    return path_map;
+}
+
+Upp::ValueMap JsonIO::PipelineMapToValueMap(const PipelineMap& pipeline_map) {
+    Upp::ValueMap map;
+    map.Add("id", Upp::String(pipeline_map.id.c_str()));
+
+    // Add clock domains
+    map.Add("clock_domains", ClockSignalInfosToValueArray(pipeline_map.clock_domains));
+
+    // Add registers
+    map.Add("registers", RegisterInfosToValueArray(pipeline_map.registers));
+
+    // Add pipeline stages
+    map.Add("stages", PipelineStageInfosToValueArray(pipeline_map.stages));
+
+    // Add register-to-register paths
+    map.Add("reg_paths", RegToRegPathInfosToValueArray(pipeline_map.reg_paths));
+
+    return map;
+}
+
+Upp::ValueArray JsonIO::ClockSignalInfosToValueArray(const std::vector<ClockSignalInfo>& clock_signals) {
+    Upp::ValueArray array;
+    for (const auto& signal : clock_signals) {
+        array.Add(ClockSignalInfoToValueMap(signal));
+    }
+    return array;
+}
+
+Upp::ValueArray JsonIO::RegisterInfosToValueArray(const std::vector<RegisterInfo>& registers) {
+    Upp::ValueArray array;
+    for (const auto& reg : registers) {
+        array.Add(RegisterInfoToValueMap(reg));
+    }
+    return array;
+}
+
+Upp::ValueArray JsonIO::PipelineStageInfosToValueArray(const std::vector<PipelineStageInfo>& stages) {
+    Upp::ValueArray array;
+    for (const auto& stage : stages) {
+        array.Add(PipelineStageInfoToValueMap(stage));
+    }
+    return array;
+}
+
+Upp::ValueArray JsonIO::RegToRegPathInfosToValueArray(const std::vector<RegToRegPathInfo>& paths) {
+    Upp::ValueArray array;
+    for (const auto& path : paths) {
+        array.Add(RegToRegPathInfoToValueMap(path));
+    }
+    return array;
+}
+
+// CDC model serialization implementations
+
+Upp::Value JsonIO::CdcCrossingKindToJson(CdcCrossingKind kind) {
+    switch (kind) {
+        case CdcCrossingKind::SingleBitSyncCandidate:
+            return Upp::String("SingleBitSyncCandidate");
+        case CdcCrossingKind::MultiBitBundle:
+            return Upp::String("MultiBitBundle");
+        case CdcCrossingKind::HandshakeLike:
+            return Upp::String("HandshakeLike");
+        case CdcCrossingKind::UnknownPattern:
+            return Upp::String("UnknownPattern");
+        default:
+            return Upp::String("Unknown");
+    }
+}
+
+Upp::Value JsonIO::CdcSeverityToJson(CdcSeverity severity) {
+    switch (severity) {
+        case CdcSeverity::Info:
+            return Upp::String("Info");
+        case CdcSeverity::Warning:
+            return Upp::String("Warning");
+        case CdcSeverity::Error:
+            return Upp::String("Error");
+        default:
+            return Upp::String("Unknown");
+    }
+}
+
+Upp::ValueMap JsonIO::CdcCrossingEndpointToValueMap(const CdcCrossingEndpoint& endpoint) {
+    Upp::ValueMap map;
+    map.Add("reg_id", Upp::String(endpoint.reg_id.c_str()));
+    map.Add("clock_signal", Upp::String(endpoint.clock_signal.c_str()));
+    map.Add("domain_id", endpoint.domain_id);
+    return map;
+}
+
+Upp::ValueMap JsonIO::CdcCrossingToValueMap(const CdcCrossing& crossing) {
+    Upp::ValueMap map;
+    map.Add("id", Upp::String(crossing.id.c_str()));
+    map.Add("src", CdcCrossingEndpointToValueMap(crossing.src));
+    map.Add("dst", CdcCrossingEndpointToValueMap(crossing.dst));
+    map.Add("kind", CdcCrossingKindToJson(crossing.kind));
+    map.Add("is_single_bit", crossing.is_single_bit);
+    map.Add("bit_width", crossing.bit_width);
+    map.Add("crosses_reset_boundary", crossing.crosses_reset_boundary);
+    return map;
+}
+
+Upp::ValueMap JsonIO::CdcIssueToValueMap(const CdcIssue& issue) {
+    Upp::ValueMap map;
+    map.Add("id", Upp::String(issue.id.c_str()));
+    map.Add("severity", CdcSeverityToJson(issue.severity));
+    map.Add("summary", Upp::String(issue.summary.c_str()));
+    map.Add("detail", Upp::String(issue.detail.c_str()));
+    map.Add("crossing_id", Upp::String(issue.crossing_id.c_str()));
+    return map;
+}
+
+Upp::ValueMap JsonIO::CdcReportToValueMap(const CdcReport& report) {
+    Upp::ValueMap map;
+    map.Add("id", Upp::String(report.id.c_str()));
+
+    // Convert clock domains
+    Upp::ValueArray clock_domains_array;
+    for (const auto& clock_domain : report.clock_domains) {
+        Upp::ValueMap clock_map;
+        clock_map.Add("signal_name", Upp::String(clock_domain.signal_name.c_str()));
+        clock_map.Add("domain_id", clock_domain.domain_id);
+        clock_domains_array.Add(clock_map);
+    }
+    map.Add("clock_domains", clock_domains_array);
+
+    // Convert crossings
+    map.Add("crossings", CdcCrossingsToValueArray(report.crossings));
+
+    // Convert issues
+    map.Add("issues", CdcIssuesToValueArray(report.issues));
+
+    return map;
+}
+
+Upp::ValueArray JsonIO::CdcCrossingsToValueArray(const Vector<CdcCrossing>& crossings) {
+    Upp::ValueArray array;
+    for (const auto& crossing : crossings) {
+        array.Add(CdcCrossingToValueMap(crossing));
+    }
+    return array;
+}
+
+Upp::ValueArray JsonIO::CdcIssuesToValueArray(const Vector<CdcIssue>& issues) {
+    Upp::ValueArray array;
+    for (const auto& issue : issues) {
+        array.Add(CdcIssueToValueMap(issue));
     }
     return array;
 }

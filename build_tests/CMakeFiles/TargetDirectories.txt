@@ -1,3 +1,6 @@
-/home/sblo/Dev/ProtoVM/build_tests/CMakeFiles/gui_tests.dir
+/home/sblo/Dev/ProtoVM/build_tests/CMakeFiles/proto_vm_core.dir
+/home/sblo/Dev/ProtoVM/build_tests/CMakeFiles/protovm_gui.dir
+/home/sblo/Dev/ProtoVM/build_tests/CMakeFiles/proto-vm-cli.dir
+/home/sblo/Dev/ProtoVM/build_tests/CMakeFiles/proto-vm-daemon.dir
 /home/sblo/Dev/ProtoVM/build_tests/CMakeFiles/edit_cache.dir
 /home/sblo/Dev/ProtoVM/build_tests/CMakeFiles/rebuild_cache.dir

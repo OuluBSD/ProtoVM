@@ -362,6 +362,55 @@ Execute a structured, multi-step design workflow in a single command:
 }
 ```
 
+### 7.2 designer-cdc (Optional)
+
+The Co-Designer API optionally supports CDC analysis that orchestrates the CDC analysis commands for the focused block or subsystem:
+
+**Request**:
+```json
+{
+  "designer_session_id": "cd-1234",
+  "target": "block",          // "block" or "system/subsystem"
+  "subsystem_id": "ALU_PIPE",
+  "block_ids": ["ALU_STAGE1", "ALU_STAGE2"]
+}
+```
+
+**Response**:
+```json
+{
+  "data": {
+    "designer_session": { ... },
+    "cdc_report": {
+      "id": "ALU_PIPE",
+      "clock_domains": [
+        { "signal_name": "CLK_A", "domain_id": 0 },
+        { "signal_name": "CLK_B", "domain_id": 1 }
+      ],
+      "crossings": [
+        {
+          "id": "CDCC_0001",
+          "src": { "reg_id": "R1", "clock_signal": "CLK_A", "domain_id": 0 },
+          "dst": { "reg_id": "R2", "clock_signal": "CLK_B", "domain_id": 1 },
+          "kind": "MultiBitBundle",
+          "is_single_bit": false,
+          "bit_width": 8,
+          "crosses_reset_boundary": false
+        }
+      ],
+      "issues": [
+        {
+          "id": "CDCISS_0001",
+          "severity": "Error",
+          "summary": "Multi-bit CDC bundle from CLK_A to CLK_B.",
+          "detail": "8-bit register crossing clock domains without recognized safe structure. Consider async FIFO or Gray code encoding."
+        }
+      ]
+    }
+  }
+}
+```
+
 ## 8. Security & Authorization
 
 - Co-designer commands follow the same authorization model as other ProtoVM commands

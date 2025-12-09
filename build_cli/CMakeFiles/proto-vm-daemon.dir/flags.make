@@ -6,5 +6,5 @@ CXX_DEFINES =
 
 CXX_INCLUDES = -I/home/sblo/Dev/ProtoVM/src/ProtoVMCLI -I/home/sblo/Dev/ProtoVM/src/ProtoVM
 
-CXX_FLAGS =  -I/usr/lib/wx/include/gtk3-unicode-3.2 -I/usr/include/wx-3.2 -D_FILE_OFFSET_BITS=64 -DWXUSINGDLL -D__WXGTK__ -pthread -std=gnu++17
+CXX_FLAGS =  -I/usr/lib/wx/include/gtk3-unicode-3.2 -I/usr/include/wx-3.2 -D_FILE_OFFSET_BITS=64 -DWXUSINGDLL -D__WXGTK__ -pthread -g -std=gnu++17
 

@@ -94,12 +94,12 @@ clean: CMakeFiles/proto-vm-daemon.dir/clean
 CMakeFiles/proto_vm_core.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto_vm_core.dir/build.make CMakeFiles/proto_vm_core.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto_vm_core.dir/build.make CMakeFiles/proto_vm_core.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94 "Built target proto_vm_core"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94 "Built target proto_vm_core"
 .PHONY : CMakeFiles/proto_vm_core.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/proto_vm_core.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/sblo/Dev/ProtoVM/build_cli/CMakeFiles 79
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/sblo/Dev/ProtoVM/build_cli/CMakeFiles 73
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/proto_vm_core.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/sblo/Dev/ProtoVM/build_cli/CMakeFiles 0
 .PHONY : CMakeFiles/proto_vm_core.dir/rule
@@ -111,7 +111,7 @@ proto_vm_core: CMakeFiles/proto_vm_core.dir/rule
 # codegen rule for target.
 CMakeFiles/proto_vm_core.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto_vm_core.dir/build.make CMakeFiles/proto_vm_core.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94 "Finished codegen for target proto_vm_core"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94 "Finished codegen for target proto_vm_core"
 .PHONY : CMakeFiles/proto_vm_core.dir/codegen
 
 # clean rule for target.
@@ -131,7 +131,7 @@ CMakeFiles/protovm_gui.dir/all: CMakeFiles/proto_vm_core.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/protovm_gui.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/sblo/Dev/ProtoVM/build_cli/CMakeFiles 85
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/sblo/Dev/ProtoVM/build_cli/CMakeFiles 79
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/protovm_gui.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/sblo/Dev/ProtoVM/build_cli/CMakeFiles 0
 .PHONY : CMakeFiles/protovm_gui.dir/rule
@@ -158,12 +158,12 @@ CMakeFiles/protovm_gui.dir/clean:
 CMakeFiles/proto-vm-cli.dir/all: CMakeFiles/proto_vm_core.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=1,2,3,4,5,6,7 "Built target proto-vm-cli"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10 "Built target proto-vm-cli"
 .PHONY : CMakeFiles/proto-vm-cli.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/proto-vm-cli.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/sblo/Dev/ProtoVM/build_cli/CMakeFiles 86
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/sblo/Dev/ProtoVM/build_cli/CMakeFiles 83
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/proto-vm-cli.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/sblo/Dev/ProtoVM/build_cli/CMakeFiles 0
 .PHONY : CMakeFiles/proto-vm-cli.dir/rule
@@ -175,7 +175,7 @@ proto-vm-cli: CMakeFiles/proto-vm-cli.dir/rule
 # codegen rule for target.
 CMakeFiles/proto-vm-cli.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-cli.dir/build.make CMakeFiles/proto-vm-cli.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=1,2,3,4,5,6,7 "Finished codegen for target proto-vm-cli"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10 "Finished codegen for target proto-vm-cli"
 .PHONY : CMakeFiles/proto-vm-cli.dir/codegen
 
 # clean rule for target.
@@ -190,12 +190,12 @@ CMakeFiles/proto-vm-cli.dir/clean:
 CMakeFiles/proto-vm-daemon.dir/all: CMakeFiles/proto_vm_core.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=8,9,10,11,12,13,14,15 "Built target proto-vm-daemon"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=11,12,13,14,15,16,17,18,19,20,21 "Built target proto-vm-daemon"
 .PHONY : CMakeFiles/proto-vm-daemon.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/proto-vm-daemon.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/sblo/Dev/ProtoVM/build_cli/CMakeFiles 87
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/sblo/Dev/ProtoVM/build_cli/CMakeFiles 84
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/proto-vm-daemon.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/sblo/Dev/ProtoVM/build_cli/CMakeFiles 0
 .PHONY : CMakeFiles/proto-vm-daemon.dir/rule
@@ -207,7 +207,7 @@ proto-vm-daemon: CMakeFiles/proto-vm-daemon.dir/rule
 # codegen rule for target.
 CMakeFiles/proto-vm-daemon.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/proto-vm-daemon.dir/build.make CMakeFiles/proto-vm-daemon.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=8,9,10,11,12,13,14,15 "Finished codegen for target proto-vm-daemon"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/sblo/Dev/ProtoVM/build_cli/CMakeFiles --progress-num=11,12,13,14,15,16,17,18,19,20,21 "Finished codegen for target proto-vm-daemon"
 .PHONY : CMakeFiles/proto-vm-daemon.dir/codegen
 
 # clean rule for target.

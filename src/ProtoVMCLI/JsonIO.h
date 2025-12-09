@@ -215,9 +215,60 @@ public:
 
     static Upp::ValueMap IrOptChangeSummaryToValueMap(const IrOptChangeSummary& summary);
 
+    // Scheduling serialization methods
+    static Upp::Value SchedulingStrategyToJson(SchedulingStrategy strategy);
+
+    static Upp::ValueMap SchedulingConfigToValueMap(const SchedulingConfig& config);
+
+    static Upp::ValueMap ScheduledExprToValueMap(const ScheduledExpr& scheduled_expr);
+
+    static Upp::ValueMap ScheduledRegAssignToValueMap(const ScheduledRegAssign& scheduled_reg_assign);
+
+    static Upp::ValueMap ScheduledModuleToValueMap(const ScheduledModule& scheduled_module);
+
+    static Upp::ValueArray ScheduledExprsToValueArray(const std::vector<ScheduledExpr>& scheduled_exprs);
+
+    static Upp::ValueArray ScheduledRegAssignsToValueArray(const std::vector<ScheduledRegAssign>& scheduled_reg_assigns);
+
+    // Pipeline model serialization methods
+    static Upp::ValueMap ClockSignalInfoToValueMap(const ClockSignalInfo& clock_signal);
+
+    static Upp::ValueMap RegisterInfoToValueMap(const RegisterInfo& register_info);
+
+    static Upp::ValueMap PipelineStageInfoToValueMap(const PipelineStageInfo& stage_info);
+
+    static Upp::ValueMap RegToRegPathInfoToValueMap(const RegToRegPathInfo& path_info);
+
+    static Upp::ValueMap PipelineMapToValueMap(const PipelineMap& pipeline_map);
+
+    static Upp::ValueArray ClockSignalInfosToValueArray(const std::vector<ClockSignalInfo>& clock_signals);
+
+    static Upp::ValueArray RegisterInfosToValueArray(const std::vector<RegisterInfo>& registers);
+
+    static Upp::ValueArray PipelineStageInfosToValueArray(const std::vector<PipelineStageInfo>& stages);
+
+    static Upp::ValueArray RegToRegPathInfosToValueArray(const std::vector<RegToRegPathInfo>& paths);
+
     static Upp::ValueArray IrOptChangeSummariesToValueArray(const std::vector<IrOptChangeSummary>& summaries);
 
     static Upp::ValueMap IrOptimizationResultToValueMap(const IrOptimizationResult& result);
+
+    // CDC model serialization methods
+    static Upp::Value CdcCrossingKindToJson(CdcCrossingKind kind);
+
+    static Upp::Value CdcSeverityToJson(CdcSeverity severity);
+
+    static Upp::ValueMap CdcCrossingEndpointToValueMap(const CdcCrossingEndpoint& endpoint);
+
+    static Upp::ValueMap CdcCrossingToValueMap(const CdcCrossing& crossing);
+
+    static Upp::ValueMap CdcIssueToValueMap(const CdcIssue& issue);
+
+    static Upp::ValueMap CdcReportToValueMap(const CdcReport& report);
+
+    static Upp::ValueArray CdcCrossingsToValueArray(const Vector<CdcCrossing>& crossings);
+
+    static Upp::ValueArray CdcIssuesToValueArray(const Vector<CdcIssue>& issues);
 
     // CoDesigner serialization methods
     static Upp::ValueMap CoDesignerSessionStateToValueMap(const CoDesignerSessionState& session);

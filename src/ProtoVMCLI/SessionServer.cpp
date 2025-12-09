@@ -1113,6 +1113,157 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
 
             return Result<void>::MakeOk();
         }
+        else if (req.command == "schedule-block") {
+            // Create a CommandOptions object from the DaemonRequest
+            CommandOptions opts;
+            opts.workspace = req.workspace;
+            opts.session_id = req.session_id;
+            opts.user_id = req.user_id;
+
+            // Extract branch from payload if provided
+            if (req.payload.Get("branch", Upp::Value()).IsString()) {
+                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract block_id from payload
+            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
+                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract scheduling parameters from payload
+            opts.payload = req.payload; // Pass all payload options to the handler
+
+            // Use the CommandDispatcher to handle the schedule-block command
+            CommandDispatcher dispatcher(std::make_unique<JsonFilesystemSessionStore>(req.workspace));
+            Upp::String response = dispatcher.RunScheduleBlock(opts);
+
+            // Parse the response and convert to DaemonResponse
+            Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
+            out_resp.id = req.id;
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.command = req.command;
+            out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
+            out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
+            out_resp.data = parsed_response.Get("data", Upp::ValueMap());
+
+            return Result<void>::MakeOk();
+        }
+        else if (req.command == "schedule-node-region") {
+            // Create a CommandOptions object from the DaemonRequest
+            CommandOptions opts;
+            opts.workspace = req.workspace;
+            opts.session_id = req.session_id;
+            opts.user_id = req.user_id;
+
+            // Extract branch from payload if provided
+            if (req.payload.Get("branch", Upp::Value()).IsString()) {
+                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract node parameters from payload
+            if (req.payload.Get("node_id", Upp::Value()).IsString()) {
+                opts.node_id = req.payload.Get("node_id", Upp::Value()).ToString().ToStd();
+            }
+            if (req.payload.Get("node_kind", Upp::Value()).IsString()) {
+                opts.node_kind = req.payload.Get("node_kind", Upp::Value()).ToString().ToStd();
+            }
+            if (req.payload.Get("max_depth", Upp::Value()).IsInt()) {
+                opts.max_depth = req.payload.Get("max_depth", Upp::Value(4)).ToInt();
+            }
+
+            // Extract scheduling parameters from payload
+            opts.payload = req.payload; // Pass all payload options to the handler
+
+            // Use the CommandDispatcher to handle the schedule-node-region command
+            CommandDispatcher dispatcher(std::make_unique<JsonFilesystemSessionStore>(req.workspace));
+            Upp::String response = dispatcher.RunScheduleNodeRegion(opts);
+
+            // Parse the response and convert to DaemonResponse
+            Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
+            out_resp.id = req.id;
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.command = req.command;
+            out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
+            out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
+            out_resp.data = parsed_response.Get("data", Upp::ValueMap());
+
+            return Result<void>::MakeOk();
+        }
+        else if (req.command == "pipeline-block") {
+            // Create a CommandOptions object from the DaemonRequest
+            CommandOptions opts;
+            opts.workspace = req.workspace;
+            opts.session_id = req.session_id;
+            opts.user_id = req.user_id;
+
+            // Extract branch from payload if provided
+            if (req.payload.Get("branch", Upp::Value()).IsString()) {
+                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract block_id from payload
+            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
+                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            }
+
+            // Use the CommandDispatcher to handle the pipeline-block command
+            CommandDispatcher dispatcher(std::make_unique<JsonFilesystemSessionStore>(req.workspace));
+            Upp::String response = dispatcher.RunPipelineBlock(opts);
+
+            // Parse the response and convert to DaemonResponse
+            Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
+            out_resp.id = req.id;
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.command = req.command;
+            out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
+            out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
+            out_resp.data = parsed_response.Get("data", Upp::ValueMap());
+
+            return Result<void>::MakeOk();
+        }
+        else if (req.command == "pipeline-subsystem") {
+            // Create a CommandOptions object from the DaemonRequest
+            CommandOptions opts;
+            opts.workspace = req.workspace;
+            opts.session_id = req.session_id;
+            opts.user_id = req.user_id;
+
+            // Extract branch from payload if provided
+            if (req.payload.Get("branch", Upp::Value()).IsString()) {
+                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract subsystem_id from payload
+            if (req.payload.Get("subsystem_id", Upp::Value()).IsString()) {
+                opts.subsystem_id = req.payload.Get("subsystem_id", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract block_ids from payload
+            if (req.payload.Get("block_ids", Upp::Value()).IsArray()) {
+                Upp::ValueArray block_ids_array = req.payload.Get("block_ids").ToValueArray();
+                std::string block_ids_str;
+                for (int i = 0; i < block_ids_array.GetCount(); ++i) {
+                    if (i > 0) block_ids_str += ",";
+                    block_ids_str += block_ids_array[i].ToString().ToStd();
+                }
+                opts.block_ids = block_ids_str;
+            }
+
+            // Use the CommandDispatcher to handle the pipeline-subsystem command
+            CommandDispatcher dispatcher(std::make_unique<JsonFilesystemSessionStore>(req.workspace));
+            Upp::String response = dispatcher.RunPipelineSubsystem(opts);
+
+            // Parse the response and convert to DaemonResponse
+            Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
+            out_resp.id = req.id;
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.command = req.command;
+            out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
+            out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
+            out_resp.data = parsed_response.Get("data", Upp::ValueMap());
+
+            return Result<void>::MakeOk();
+        }
         else if (req.command == "behavior-diff-block") {
             // Create a CommandOptions object from the DaemonRequest
             CommandOptions opts;

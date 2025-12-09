@@ -17,6 +17,18 @@ set(CLI_SOURCES
     src/ProtoVMCLI/MachineSnapshot.cpp
     src/ProtoVMCLI/HlsIr.cpp
     src/ProtoVMCLI/HlsIrInference.cpp
+    src/ProtoVMCLI/CdcModel.cpp
+    src/ProtoVMCLI/CdcAnalysis.cpp
+    src/ProtoVMCLI/PipelineModel.cpp
+    src/ProtoVMCLI/PipelineAnalysis.cpp
+    src/ProtoVMCLI/CircuitGraph.cpp
+    src/ProtoVMCLI/CircuitGraphQueries.cpp
+    src/ProtoVMCLI/TimingAnalysis.cpp
+    src/ProtoVMCLI/FunctionalAnalysis.cpp
+    src/ProtoVMCLI/BlockAnalysis.cpp
+    src/ProtoVMCLI/BehavioralAnalysis.cpp
+    src/ProtoVMCLI/ScheduledIr.cpp
+    src/ProtoVMCLI/Scheduling.cpp
 )
 
 add_executable(proto-vm-cli ${CLI_SOURCES})

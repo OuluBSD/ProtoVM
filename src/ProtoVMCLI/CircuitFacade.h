@@ -12,6 +12,7 @@
 #include "PipelineAnalysis.h"    // For pipeline analysis engine
 #include "CdcModel.h"            // For CDC analysis
 #include "CdcAnalysis.h"         // For CDC analysis engine
+#include "RetimingTransform.h"   // For retiming transformation
 #include <string>
 #include <vector>
 #include <optional>
@@ -309,6 +310,23 @@ public:
         const std::string& branch_name,
         const std::string& subsystem_id,
         const Vector<String>& block_ids
+    );
+
+    // Retiming application methods
+    Result<RetimingApplicationResult> ApplyRetimingPlanForBlockInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const RetimingPlan& plan,
+        const RetimingApplicationOptions& options
+    );
+
+    Result<RetimingApplicationResult> ApplyRetimingPlanForSubsystemInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const RetimingPlan& plan,
+        const RetimingApplicationOptions& options
     );
 
 private:

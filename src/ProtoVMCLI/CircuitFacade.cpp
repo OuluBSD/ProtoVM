@@ -2206,4 +2206,48 @@ Result<Vector<RetimingPlan>> CircuitFacade::PerformRetimingAnalysis(
     }
 }
 
+Result<RetimingApplicationResult> CircuitFacade::ApplyRetimingPlanForBlockInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const RetimingPlan& plan,
+    const RetimingApplicationOptions& options
+) {
+    try {
+        // Use RetimingTransform to apply the plan
+        SessionStore session_store;
+        auto result = RetimingTransform::ApplyRetimingPlanInBranch(
+            plan, options, session_store, session, String(session_dir.c_str()), String(branch_name.c_str()));
+        return result;
+    }
+    catch (const std::exception& e) {
+        return Result<RetimingApplicationResult>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in ApplyRetimingPlanForBlockInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<RetimingApplicationResult> CircuitFacade::ApplyRetimingPlanForSubsystemInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const RetimingPlan& plan,
+    const RetimingApplicationOptions& options
+) {
+    try {
+        // Use RetimingTransform to apply the plan
+        SessionStore session_store;
+        auto result = RetimingTransform::ApplyRetimingPlanInBranch(
+            plan, options, session_store, session, String(session_dir.c_str()), String(branch_name.c_str()));
+        return result;
+    }
+    catch (const std::exception& e) {
+        return Result<RetimingApplicationResult>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in ApplyRetimingPlanForSubsystemInBranch: ") + e.what()
+        );
+    }
+}
+
 } // namespace ProtoVMCLI

@@ -1397,4 +1397,31 @@ Upp::ValueArray JsonIO::RetimingPlansToValueArray(const Vector<RetimingPlan>& pl
     return array;
 }
 
+Upp::ValueMap JsonIO::RetimingApplicationResultToValueMap(const RetimingApplicationResult& result) {
+    Upp::ValueMap map;
+    map.Add("plan_id", Upp::String(result.plan_id));
+    map.Add("target_id", Upp::String(result.target_id));
+
+    // Add applied move IDs
+    Upp::ValueArray applied_moves_array;
+    for (const auto& id : result.applied_move_ids) {
+        applied_moves_array.Add(Upp::String(id));
+    }
+    map.Add("applied_move_ids", applied_moves_array);
+
+    // Add skipped move IDs
+    Upp::ValueArray skipped_moves_array;
+    for (const auto& id : result.skipped_move_ids) {
+        skipped_moves_array.Add(Upp::String(id));
+    }
+    map.Add("skipped_move_ids", skipped_moves_array);
+
+    map.Add("new_circuit_revision", result.new_circuit_revision);
+    map.Add("estimated_max_depth_before", result.estimated_max_depth_before);
+    map.Add("estimated_max_depth_after", result.estimated_max_depth_after);
+    map.Add("all_moves_safe", result.all_moves_safe);
+
+    return map;
+}
+
 } // namespace ProtoVMCLI

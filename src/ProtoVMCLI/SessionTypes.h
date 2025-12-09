@@ -143,6 +143,11 @@ struct CommandOptions {
     int deps_max_depth = 128;                      // Max depth for dependency analysis
     std::string user_id = "anonymous";  // Default user ID
 
+    // Retiming application parameters
+    std::optional<bool> apply_only_safe;    // Apply only safe moves (default true)
+    std::optional<bool> allow_suspicious;   // Allow suspicious moves (default false)
+    std::optional<int> max_moves;           // Max number of moves to apply (default -1, no limit)
+
     // Add more options as needed
 };
 

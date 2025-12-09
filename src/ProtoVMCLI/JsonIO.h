@@ -279,6 +279,8 @@ public:
 
     static Upp::ValueMap RetimingPlanToValueMap(const RetimingPlan& plan);
 
+    static Upp::ValueMap RetimingApplicationResultToValueMap(const RetimingApplicationResult& result);
+
     static Upp::ValueArray RetimingMovesToValueArray(const Vector<RetimingMove>& moves);
 
     static Upp::ValueArray RetimingPlansToValueArray(const Vector<RetimingPlan>& plans);

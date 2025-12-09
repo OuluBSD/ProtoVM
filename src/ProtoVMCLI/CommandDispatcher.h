@@ -114,6 +114,10 @@ public:
     Upp::String RunRetimeBlock(const CommandOptions& opts);
     Upp::String RunRetimeSubsystem(const CommandOptions& opts);
 
+    // Retiming application commands
+    Upp::String RunRetimeBlockApply(const CommandOptions& opts);
+    Upp::String RunRetimeSubsystemApply(const CommandOptions& opts);
+
     // CoDesigner commands
     Upp::String RunDesignerCreateSession(const CommandOptions& opts);
     Upp::String RunDesignerSetFocus(const CommandOptions& opts);
@@ -126,6 +130,7 @@ public:
     Upp::String RunDesignerCodegen(const CommandOptions& opts);
     Upp::String RunDesignerRunPlaybook(const CommandOptions& opts);
     Upp::String RunDesignerRetime(const CommandOptions& opts);
+    Upp::String RunDesignerRetimeApply(const CommandOptions& opts);
 
 private:
     std::unique_ptr<ISessionStore> session_store_;

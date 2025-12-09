@@ -189,4 +189,147 @@ Result<DesignerRetimeResponse> CoDesignerManager::RetimeDesign(const DesignerRet
     return Result<DesignerRetimeResponse>::MakeOk(response);
 }
 
+Result<DesignerRetimeApplyResponse> CoDesignerManager::ApplyRetimeDesign(const DesignerRetimeApplyRequest& request) {
+    // Get the designer session first
+    auto session_result = GetSession(request.designer_session_id);
+    if (!session_result.ok()) {
+        return Result<DesignerRetimeApplyResponse>::MakeError(
+            session_result.error_code(),
+            session_result.error_message()
+        );
+    }
+
+    CoDesignerSessionState session = session_result.data();
+
+    // Load the ProtoVM session metadata using the circuit facade
+    auto load_session_result = circuit_facade_->session_store_->LoadSession(session.proto_session_id);
+    if (!load_session_result.ok()) {
+        return Result<DesignerRetimeApplyResponse>::MakeError(
+            load_session_result.error_code(),
+            load_session_result.error_message()
+        );
+    }
+
+    SessionMetadata metadata = load_session_result.data();
+    std::string session_dir = metadata.workspace_path + "/sessions/" + std::to_string(session.proto_session_id);
+
+    DesignerRetimeApplyResponse response;
+    response.designer_session = session;
+
+    // Create application options from the request
+    RetimingApplicationOptions app_options;
+    app_options.apply_only_safe_moves = request.apply_only_safe;
+    app_options.allow_suspicious_moves = request.allow_suspicious;
+    app_options.max_moves = request.max_moves;
+
+    // Get the retiming plans and find the specific one to apply
+    if (request.target == "block") {
+        // Get all retiming plans for the block to find the specific plan
+        auto plans_result = circuit_facade_->AnalyzeRetimingForBlockInBranch(
+            metadata, session_dir, session.branch, session.current_block_id);
+
+        if (!plans_result.ok()) {
+            return Result<DesignerRetimeApplyResponse>::MakeError(
+                plans_result.error_code(),
+                plans_result.error_message()
+            );
+        }
+
+        // Find the specific plan by ID
+        RetimingPlan* target_plan = nullptr;
+        for (auto& plan : plans_result.data()) {
+            if (plan.id == request.plan_id) {
+                target_plan = &plan;
+                break;
+            }
+        }
+
+        if (!target_plan) {
+            return Result<DesignerRetimeApplyResponse>::MakeError(
+                ErrorCode::InvalidArgument,
+                "Retiming plan not found: " + request.plan_id
+            );
+        }
+
+        // Apply the retiming plan
+        auto application_result = circuit_facade_->ApplyRetimingPlanForBlockInBranch(
+            metadata, session_dir, session.branch, *target_plan, app_options);
+
+        if (!application_result.ok()) {
+            return Result<DesignerRetimeApplyResponse>::MakeError(
+                application_result.error_code(),
+                application_result.error_message()
+            );
+        }
+
+        response.application_result = application_result.data();
+
+    } else if (request.target == "subsystem") {
+        // Get all retiming plans for the subsystem to find the specific plan
+        // For this, we'll need the block IDs that were used originally
+        // For simplicity, let's assume we use the current block from the session state
+        // Or we might need to pass them in the request too
+        Vector<String> block_ids;
+        if (!session.current_block_id.empty()) {
+            block_ids.Add(Upp::String(session.current_block_id.c_str()));
+        }
+
+        auto plans_result = circuit_facade_->AnalyzeRetimingForSubsystemInBranch(
+            metadata, session_dir, session.branch, session.current_block_id, block_ids);
+
+        if (!plans_result.ok()) {
+            return Result<DesignerRetimeApplyResponse>::MakeError(
+                plans_result.error_code(),
+                plans_result.error_message()
+            );
+        }
+
+        // Find the specific plan by ID
+        RetimingPlan* target_plan = nullptr;
+        for (auto& plan : plans_result.data()) {
+            if (plan.id == request.plan_id) {
+                target_plan = &plan;
+                break;
+            }
+        }
+
+        if (!target_plan) {
+            return Result<DesignerRetimeApplyResponse>::MakeError(
+                ErrorCode::InvalidArgument,
+                "Retiming plan not found: " + request.plan_id
+            );
+        }
+
+        // Apply the retiming plan
+        auto application_result = circuit_facade_->ApplyRetimingPlanForSubsystemInBranch(
+            metadata, session_dir, session.branch, *target_plan, app_options);
+
+        if (!application_result.ok()) {
+            return Result<DesignerRetimeApplyResponse>::MakeError(
+                application_result.error_code(),
+                application_result.error_message()
+            );
+        }
+
+        response.application_result = application_result.data();
+
+    } else {
+        return Result<DesignerRetimeApplyResponse>::MakeError(
+            ErrorCode::InvalidArgument,
+            "target must be either 'block' or 'subsystem'"
+        );
+    }
+
+    // Update the session state as necessary
+    auto update_result = UpdateSession(response.designer_session);
+    if (!update_result.ok()) {
+        return Result<DesignerRetimeApplyResponse>::MakeError(
+            update_result.error_code(),
+            update_result.error_message()
+        );
+    }
+
+    return Result<DesignerRetimeApplyResponse>::MakeOk(response);
+}
+
 } // namespace ProtoVMCLI

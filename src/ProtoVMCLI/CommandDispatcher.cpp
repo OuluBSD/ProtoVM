@@ -5444,6 +5444,211 @@ Upp::String CommandDispatcher::RunRetimeSubsystem(const CommandOptions& opts) {
     }
 }
 
+Upp::String CommandDispatcher::RunRetimeBlockApply(const CommandOptions& opts) {
+    if (opts.workspace.empty()) {
+        return JsonIO::ErrorResponse("retime-block-apply", "Workspace path is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.session_id.has_value()) {
+        return JsonIO::ErrorResponse("retime-block-apply", "Session ID is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.plan_id.has_value()) {
+        return JsonIO::ErrorResponse("retime-block-apply", "Plan ID is required", "INVALID_ARGUMENT");
+    }
+
+    try {
+        // Create CircuitFacade to access retiming application functionality
+        CircuitFacade facade;
+
+        // Load session metadata
+        auto load_result = session_store_->LoadSession(opts.session_id.value());
+        if (!load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("retime-block-apply", load_result.error_message, error_code_str);
+        }
+
+        SessionMetadata metadata = load_result.data;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(opts.session_id.value());
+
+        // Determine which branch to use
+        std::string branch_name = opts.branch.value_or(metadata.current_branch);
+
+        // Get the retiming plan to apply
+        auto plans_result = facade.AnalyzeRetimingForBlockInBranch(
+            metadata, session_dir, branch_name, opts.block_id.value());
+
+        if (!plans_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(plans_result.error_code);
+            return JsonIO::ErrorResponse("retime-block-apply", plans_result.error_message, error_code_str);
+        }
+
+        // Find the specific plan by ID
+        RetimingPlan* target_plan = nullptr;
+        for (auto& plan : plans_result.data) {
+            if (plan.id == opts.plan_id.value()) {
+                target_plan = &plan;
+                break;
+            }
+        }
+
+        if (!target_plan) {
+            return JsonIO::ErrorResponse("retime-block-apply",
+                                       "Retiming plan not found: " + opts.plan_id.value(),
+                                       "RETIME_PLAN_NOT_FOUND");
+        }
+
+        // Create application options from command options
+        RetimingApplicationOptions app_options;
+        app_options.apply_only_safe_moves = opts.apply_only_safe.value_or(true);
+        app_options.allow_suspicious_moves = opts.allow_suspicious.value_or(false);
+        app_options.max_moves = opts.max_moves.value_or(-1);
+
+        // Apply the retiming plan
+        auto application_result = facade.ApplyRetimingPlanForBlockInBranch(
+            metadata, session_dir, branch_name, *target_plan, app_options);
+
+        if (!application_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(application_result.error_code);
+            return JsonIO::ErrorResponse("retime-block-apply", application_result.error_message, error_code_str);
+        }
+
+        // Convert the application result to JSON
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", opts.session_id.value());
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(opts.block_id.value().c_str()));
+        response_data.Add("apply_only_safe", app_options.apply_only_safe_moves);
+        response_data.Add("allow_suspicious", app_options.allow_suspicious_moves);
+        response_data.Add("max_moves", app_options.max_moves);
+
+        // Add application result data
+        auto app_result_data = JsonIO::RetimingApplicationResultToValueMap(application_result.data);
+        response_data.Add("application_result", app_result_data);
+
+        return JsonIO::SuccessResponse("retime-block-apply", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("retime-block-apply",
+                                   "Failed to apply retiming for block: " + std::string(e.what()),
+                                   "RETIME_BLOCK_APPLY_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunRetimeSubsystemApply(const CommandOptions& opts) {
+    if (opts.workspace.empty()) {
+        return JsonIO::ErrorResponse("retime-subsystem-apply", "Workspace path is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.session_id.has_value()) {
+        return JsonIO::ErrorResponse("retime-subsystem-apply", "Session ID is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.plan_id.has_value()) {
+        return JsonIO::ErrorResponse("retime-subsystem-apply", "Plan ID is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.subsystem_id.has_value()) {
+        return JsonIO::ErrorResponse("retime-subsystem-apply", "Subsystem ID is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.block_ids.has_value()) {
+        return JsonIO::ErrorResponse("retime-subsystem-apply", "Block IDs list is required", "INVALID_ARGUMENT");
+    }
+
+    try {
+        // Create CircuitFacade to access retiming application functionality
+        CircuitFacade facade;
+
+        // Load session metadata
+        auto load_result = session_store_->LoadSession(opts.session_id.value());
+        if (!load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("retime-subsystem-apply", load_result.error_message, error_code_str);
+        }
+
+        SessionMetadata metadata = load_result.data;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(opts.session_id.value());
+
+        // Determine which branch to use
+        std::string branch_name = opts.branch.value_or(metadata.current_branch);
+
+        // Convert block IDs string to vector
+        Vector<String> block_ids;
+        std::string block_ids_str = opts.block_ids.value();
+        if (!block_ids_str.empty()) {
+            // Simple parsing of comma-separated values
+            size_t start = 0;
+            size_t end = block_ids_str.find(',');
+            while (end != std::string::npos) {
+                block_ids.Add(Upp::String(block_ids_str.substr(start, end - start).c_str()));
+                start = end + 1;
+                end = block_ids_str.find(',', start);
+            }
+            block_ids.Add(Upp::String(block_ids_str.substr(start).c_str()));
+        }
+
+        // Get the retiming plan to apply
+        auto plans_result = facade.AnalyzeRetimingForSubsystemInBranch(
+            metadata, session_dir, branch_name, opts.subsystem_id.value(), block_ids);
+
+        if (!plans_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(plans_result.error_code);
+            return JsonIO::ErrorResponse("retime-subsystem-apply", plans_result.error_message, error_code_str);
+        }
+
+        // Find the specific plan by ID
+        RetimingPlan* target_plan = nullptr;
+        for (auto& plan : plans_result.data) {
+            if (plan.id == opts.plan_id.value()) {
+                target_plan = &plan;
+                break;
+            }
+        }
+
+        if (!target_plan) {
+            return JsonIO::ErrorResponse("retime-subsystem-apply",
+                                       "Retiming plan not found: " + opts.plan_id.value(),
+                                       "RETIME_PLAN_NOT_FOUND");
+        }
+
+        // Create application options from command options
+        RetimingApplicationOptions app_options;
+        app_options.apply_only_safe_moves = opts.apply_only_safe.value_or(true);
+        app_options.allow_suspicious_moves = opts.allow_suspicious.value_or(false);
+        app_options.max_moves = opts.max_moves.value_or(-1);
+
+        // Apply the retiming plan
+        auto application_result = facade.ApplyRetimingPlanForSubsystemInBranch(
+            metadata, session_dir, branch_name, *target_plan, app_options);
+
+        if (!application_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(application_result.error_code);
+            return JsonIO::ErrorResponse("retime-subsystem-apply", application_result.error_message, error_code_str);
+        }
+
+        // Convert the application result to JSON
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", opts.session_id.value());
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("subsystem_id", Upp::String(opts.subsystem_id.value().c_str()));
+        response_data.Add("block_ids", JsonIO::VectorToStringValueArray(
+            std::vector<std::string>(block_ids.Begin(), block_ids.End())));
+        response_data.Add("apply_only_safe", app_options.apply_only_safe_moves);
+        response_data.Add("allow_suspicious", app_options.allow_suspicious_moves);
+        response_data.Add("max_moves", app_options.max_moves);
+
+        // Add application result data
+        auto app_result_data = JsonIO::RetimingApplicationResultToValueMap(application_result.data);
+        response_data.Add("application_result", app_result_data);
+
+        return JsonIO::SuccessResponse("retime-subsystem-apply", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("retime-subsystem-apply",
+                                   "Failed to apply retiming for subsystem: " + std::string(e.what()),
+                                   "RETIME_SUBSYSTEM_APPLY_ERROR");
+    }
+}
+
 Upp::String CommandDispatcher::RunDesignerRetime(const CommandOptions& opts) {
     try {
         // Extract payload values
@@ -5525,6 +5730,68 @@ Upp::String CommandDispatcher::RunDesignerRetime(const CommandOptions& opts) {
     } catch (const std::exception& e) {
         return JsonIO::ErrorResponse("designer-retime",
                                    "Failed to run designer retime: " + std::string(e.what()),
+                                   "INTERNAL_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunDesignerRetimeApply(const CommandOptions& opts) {
+    try {
+        // Extract payload values
+        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        if (designer_session_id.empty()) {
+            return JsonIO::ErrorResponse("designer-retime-apply", "designer_session_id is required", "INVALID_PARAMETER");
+        }
+
+        std::string target = opts.payload.Get("target", Upp::String("block")).ToStd();
+        if (target != "block" && target != "subsystem") {
+            return JsonIO::ErrorResponse("designer-retime-apply", "target must be either 'block' or 'subsystem'", "INVALID_PARAMETER");
+        }
+
+        std::string plan_id = opts.payload.Get("plan_id", Upp::String("")).ToStd();
+        if (plan_id.empty()) {
+            return JsonIO::ErrorResponse("designer-retime-apply", "plan_id is required", "INVALID_PARAMETER");
+        }
+
+        // Create CircuitFacade to access retiming application functionality
+        auto circuit_facade = std::make_shared<CircuitFacade>(session_store_);
+        CoDesignerManager designer_manager(circuit_facade);
+
+        // Build the DesignerRetimeApplyRequest
+        DesignerRetimeApplyRequest request;
+        request.designer_session_id = designer_session_id;
+        request.target = target;
+        request.plan_id = plan_id;
+        request.apply_only_safe = opts.payload.Get("apply_only_safe", true).operator bool();
+        request.allow_suspicious = opts.payload.Get("allow_suspicious", false).operator bool();
+        request.max_moves = opts.payload.Get("max_moves", -1).operator int();
+
+        // Call the CoDesigner manager
+        auto application_result = designer_manager.ApplyRetimeDesign(request);
+        if (!application_result.ok()) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(application_result.error_code());
+            return JsonIO::ErrorResponse("designer-retime-apply", application_result.error_message(), error_code_str);
+        }
+
+        // Build response data
+        Upp::ValueMap response_data;
+        Upp::ValueMap session_map;
+        session_map.Add("designer_session_id", Upp::String(application_result.data().designer_session.designer_session_id.c_str()));
+        session_map.Add("proto_session_id", application_result.data().designer_session.proto_session_id);
+        session_map.Add("branch", Upp::String(application_result.data().designer_session.branch.c_str()));
+        session_map.Add("current_block_id", Upp::String(application_result.data().designer_session.current_block_id.c_str()));
+        session_map.Add("current_node_id", Upp::String(application_result.data().designer_session.current_node_id.c_str()));
+        session_map.Add("current_node_kind", Upp::String(application_result.data().designer_session.current_node_kind.c_str()));
+        session_map.Add("use_optimized_ir", application_result.data().designer_session.use_optimized_ir);
+        response_data.Add("designer_session", session_map);
+
+        // Add application result data
+        Upp::ValueMap app_result_data = JsonIO::RetimingApplicationResultToValueMap(application_result.data().application_result);
+        response_data.Add("application_result", app_result_data);
+
+        return JsonIO::SuccessResponse("designer-retime-apply", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("designer-retime-apply",
+                                   "Failed to run designer retime apply: " + std::string(e.what()),
                                    "INTERNAL_ERROR");
     }
 }

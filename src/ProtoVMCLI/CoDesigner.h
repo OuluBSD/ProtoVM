@@ -174,6 +174,27 @@ struct DesignerRetimeRequest {
 struct DesignerRetimeResponse {
     CoDesignerSessionState designer_session;
     std::vector<RetimingPlan> retiming_plans;
+
+    // Constructor
+    DesignerRetimeResponse() = default;
+};
+
+// Designer retiming application request/response structures
+struct DesignerRetimeApplyRequest {
+    std::string designer_session_id;
+    std::string target;  // "block" or "subsystem"
+    std::string plan_id;  // ID of the plan to apply
+    bool apply_only_safe = true;  // Apply only safe moves (default true)
+    bool allow_suspicious = false;  // Allow suspicious moves (default false)
+    int max_moves = -1;  // Max number of moves to apply (-1 for no limit)
+};
+
+struct DesignerRetimeApplyResponse {
+    CoDesignerSessionState designer_session;
+    RetimingApplicationResult application_result;
+
+    // Constructor
+    DesignerRetimeApplyResponse() = default;
 };
 
 class CoDesignerManager {
@@ -186,6 +207,7 @@ public:
     Result<void> UpdateSession(const CoDesignerSessionState& updated);
     Result<void> DestroySession(const std::string& designer_session_id);
     Result<DesignerRetimeResponse> RetimeDesign(const DesignerRetimeRequest& request);
+    Result<DesignerRetimeApplyResponse> ApplyRetimeDesign(const DesignerRetimeApplyRequest& request);
 
 private:
     // Helper method to generate unique designer session IDs

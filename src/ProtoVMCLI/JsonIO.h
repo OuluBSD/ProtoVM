@@ -270,6 +270,19 @@ public:
 
     static Upp::ValueArray CdcIssuesToValueArray(const Vector<CdcIssue>& issues);
 
+    // Retiming model serialization methods
+    static Upp::Value RetimingMoveDirectionToJson(RetimingMoveDirection direction);
+
+    static Upp::Value RetimingMoveSafetyToJson(RetimingMoveSafety safety);
+
+    static Upp::ValueMap RetimingMoveToValueMap(const RetimingMove& move);
+
+    static Upp::ValueMap RetimingPlanToValueMap(const RetimingPlan& plan);
+
+    static Upp::ValueArray RetimingMovesToValueArray(const Vector<RetimingMove>& moves);
+
+    static Upp::ValueArray RetimingPlansToValueArray(const Vector<RetimingPlan>& plans);
+
     // CoDesigner serialization methods
     static Upp::ValueMap CoDesignerSessionStateToValueMap(const CoDesignerSessionState& session);
 

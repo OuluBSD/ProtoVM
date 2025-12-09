@@ -14,6 +14,7 @@
 #include "Transformations.h"
 #include "DiffAnalysis.h"
 #include "IrOptimization.h"
+#include "RetimingModel.h"
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
@@ -5245,6 +5246,286 @@ Upp::String CommandDispatcher::RunCdcSubsystem(const CommandOptions& opts) {
         return JsonIO::ErrorResponse("cdc-subsystem",
                                    "Failed to build CDC report for subsystem: " + std::string(e.what()),
                                    "CDC_SUBSYSTEM_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunRetimeBlock(const CommandOptions& opts) {
+    if (opts.workspace.empty()) {
+        return JsonIO::ErrorResponse("retime-block", "Workspace path is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.session_id.has_value()) {
+        return JsonIO::ErrorResponse("retime-block", "Session ID is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.block_id.has_value()) {
+        return JsonIO::ErrorResponse("retime-block", "Block ID is required", "INVALID_ARGUMENT");
+    }
+
+    try {
+        // Create CircuitFacade to access retiming analysis functionality
+        CircuitFacade facade;
+
+        // Load session metadata
+        auto load_result = session_store_->LoadSession(opts.session_id.value());
+        if (!load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("retime-block", load_result.error_message, error_code_str);
+        }
+
+        SessionMetadata metadata = load_result.data;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(opts.session_id.value());
+
+        // Determine which branch to use
+        std::string branch_name = opts.branch.value_or(metadata.current_branch);
+
+        // Get minimum depth threshold for path consideration (optional parameter)
+        int min_depth = 5; // default threshold
+        if (opts.min_depth.has_value()) {
+            min_depth = opts.min_depth.value();
+        }
+
+        // Get maximum number of plans to return (optional parameter)
+        int max_plans = 10; // default maximum
+        if (opts.max_plans.has_value()) {
+            max_plans = opts.max_plans.value();
+        }
+
+        // Analyze retiming for the specified block
+        auto retiming_result = facade.AnalyzeRetimingForBlockInBranch(
+            metadata, session_dir, branch_name, opts.block_id.value());
+
+        if (!retiming_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(retiming_result.error_code);
+            return JsonIO::ErrorResponse("retime-block", retiming_result.error_message, error_code_str);
+        }
+
+        // Filter results based on min_depth if specified
+        Vector<RetimingPlan> filtered_plans;
+        for (const auto& plan : retiming_result.data) {
+            if (plan.estimated_max_depth_before >= min_depth) {
+                filtered_plans.Add(plan);
+            }
+        }
+
+        // Limit number of plans if specified
+        if (max_plans > 0 && filtered_plans.GetCount() > max_plans) {
+            filtered_plans.SetCount(max_plans);
+        }
+
+        // Convert the retiming plans to JSON
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", opts.session_id.value());
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(opts.block_id.value().c_str()));
+        response_data.Add("min_depth", min_depth);
+        response_data.Add("max_plans", max_plans);
+
+        // Use JsonIO to serialize the retiming plans (after implementing JsonIO serialization)
+        Upp::ValueArray plans_array;
+        for (const auto& plan : filtered_plans) {
+            plans_array.Add(JsonIO::RetimingPlanToValueMap(plan));
+        }
+        response_data.Add("retiming_plans", plans_array);
+
+        return JsonIO::SuccessResponse("retime-block", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("retime-block",
+                                   "Failed to analyze retiming for block: " + std::string(e.what()),
+                                   "RETIME_BLOCK_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunRetimeSubsystem(const CommandOptions& opts) {
+    if (opts.workspace.empty()) {
+        return JsonIO::ErrorResponse("retime-subsystem", "Workspace path is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.session_id.has_value()) {
+        return JsonIO::ErrorResponse("retime-subsystem", "Session ID is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.subsystem_id.has_value()) {
+        return JsonIO::ErrorResponse("retime-subsystem", "Subsystem ID is required", "INVALID_ARGUMENT");
+    }
+
+    if (!opts.block_ids.has_value()) {
+        return JsonIO::ErrorResponse("retime-subsystem", "Block IDs list is required", "INVALID_ARGUMENT");
+    }
+
+    try {
+        // Create CircuitFacade to access retiming analysis functionality
+        CircuitFacade facade;
+
+        // Load session metadata
+        auto load_result = session_store_->LoadSession(opts.session_id.value());
+        if (!load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("retime-subsystem", load_result.error_message, error_code_str);
+        }
+
+        SessionMetadata metadata = load_result.data;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(opts.session_id.value());
+
+        // Determine which branch to use
+        std::string branch_name = opts.branch.value_or(metadata.current_branch);
+
+        // Convert block IDs string to vector
+        Vector<String> block_ids;
+        std::string block_ids_str = opts.block_ids.value();
+        if (!block_ids_str.empty()) {
+            // Simple parsing of comma-separated values
+            size_t start = 0;
+            size_t end = block_ids_str.find(',');
+            while (end != std::string::npos) {
+                block_ids.Add(Upp::String(block_ids_str.substr(start, end - start).c_str()));
+                start = end + 1;
+                end = block_ids_str.find(',', start);
+            }
+            block_ids.Add(Upp::String(block_ids_str.substr(start).c_str()));
+        }
+
+        // Get minimum depth threshold for path consideration (optional parameter)
+        int min_depth = 5; // default threshold
+        if (opts.min_depth.has_value()) {
+            min_depth = opts.min_depth.value();
+        }
+
+        // Get maximum number of plans to return (optional parameter)
+        int max_plans = 10; // default maximum
+        if (opts.max_plans.has_value()) {
+            max_plans = opts.max_plans.value();
+        }
+
+        // Analyze retiming for the specified subsystem
+        auto retiming_result = facade.AnalyzeRetimingForSubsystemInBranch(
+            metadata, session_dir, branch_name, opts.subsystem_id.value(), block_ids);
+
+        if (!retiming_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(retiming_result.error_code);
+            return JsonIO::ErrorResponse("retime-subsystem", retiming_result.error_message, error_code_str);
+        }
+
+        // Filter results based on min_depth if specified
+        Vector<RetimingPlan> filtered_plans;
+        for (const auto& plan : retiming_result.data) {
+            if (plan.estimated_max_depth_before >= min_depth) {
+                filtered_plans.Add(plan);
+            }
+        }
+
+        // Limit number of plans if specified
+        if (max_plans > 0 && filtered_plans.GetCount() > max_plans) {
+            filtered_plans.SetCount(max_plans);
+        }
+
+        // Convert the retiming plans to JSON
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", opts.session_id.value());
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("subsystem_id", Upp::String(opts.subsystem_id.value().c_str()));
+        response_data.Add("block_ids", JsonIO::VectorToStringValueArray(
+            std::vector<std::string>(block_ids.Begin(), block_ids.End())));
+        response_data.Add("min_depth", min_depth);
+        response_data.Add("max_plans", max_plans);
+
+        // Use JsonIO to serialize the retiming plans (after implementing JsonIO serialization)
+        Upp::ValueArray plans_array;
+        for (const auto& plan : filtered_plans) {
+            plans_array.Add(JsonIO::RetimingPlanToValueMap(plan));
+        }
+        response_data.Add("retiming_plans", plans_array);
+
+        return JsonIO::SuccessResponse("retime-subsystem", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("retime-subsystem",
+                                   "Failed to analyze retiming for subsystem: " + std::string(e.what()),
+                                   "RETIME_SUBSYSTEM_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunDesignerRetime(const CommandOptions& opts) {
+    try {
+        // Extract payload values
+        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        if (designer_session_id.empty()) {
+            return JsonIO::ErrorResponse("designer-retime", "designer_session_id is required", "INVALID_PARAMETER");
+        }
+
+        std::string target = opts.payload.Get("target", Upp::String("block")).ToStd();
+        if (target != "block" && target != "subsystem") {
+            return JsonIO::ErrorResponse("designer-retime", "target must be either 'block' or 'subsystem'", "INVALID_PARAMETER");
+        }
+
+        // Create CoDesignerManager instance
+        auto circuit_facade = std::make_shared<CircuitFacade>(session_store_);
+        CoDesignerManager designer_manager(circuit_facade);
+
+        // Build the DesignerRetimeRequest
+        DesignerRetimeRequest request;
+        request.designer_session_id = designer_session_id;
+        request.target = target;
+
+        if (target == "block") {
+            request.block_id = opts.payload.Get("block_id", Upp::String("")).ToStd();
+            if (request.block_id.empty()) {
+                return JsonIO::ErrorResponse("designer-retime", "block_id is required when target is 'block'", "INVALID_PARAMETER");
+            }
+        } else if (target == "subsystem") {
+            request.subsystem_id = opts.payload.Get("subsystem_id", Upp::String("")).ToStd();
+            if (request.subsystem_id.empty()) {
+                return JsonIO::ErrorResponse("designer-retime", "subsystem_id is required when target is 'subsystem'", "INVALID_PARAMETER");
+            }
+
+            // Get block_ids array from payload
+            Upp::Value block_ids_value = opts.payload.Get("block_ids", Upp::ValueArray());
+            if (block_ids_value.IsArray()) {
+                Upp::ValueArray block_ids_array = block_ids_value;
+                for (int i = 0; i < block_ids_array.GetCount(); ++i) {
+                    if (block_ids_array[i].IsString()) {
+                        request.block_ids.push_back(block_ids_array[i].ToString().ToStd());
+                    }
+                }
+            } else {
+                return JsonIO::ErrorResponse("designer-retime", "block_ids must be an array of strings when target is 'subsystem'", "INVALID_PARAMETER");
+            }
+        }
+
+        // Get optional parameters
+        request.min_depth = opts.payload.Get("min_depth", 5).operator int();
+        request.max_plans = opts.payload.Get("max_plans", 10).operator int();
+
+        // Call the CoDesigner manager
+        auto retiming_result = designer_manager.RetimeDesign(request);
+        if (!retiming_result.ok()) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(retiming_result.error_code());
+            return JsonIO::ErrorResponse("designer-retime", retiming_result.error_message(), error_code_str);
+        }
+
+        // Build response data
+        Upp::ValueMap response_data;
+        Upp::ValueMap session_map;
+        session_map.Add("designer_session_id", Upp::String(retiming_result.data().designer_session.designer_session_id.c_str()));
+        session_map.Add("proto_session_id", retiming_result.data().designer_session.proto_session_id);
+        session_map.Add("branch", Upp::String(retiming_result.data().designer_session.branch.c_str()));
+        session_map.Add("current_block_id", Upp::String(retiming_result.data().designer_session.current_block_id.c_str()));
+        session_map.Add("current_node_id", Upp::String(retiming_result.data().designer_session.current_node_id.c_str()));
+        session_map.Add("current_node_kind", Upp::String(retiming_result.data().designer_session.current_node_kind.c_str()));
+        session_map.Add("use_optimized_ir", retiming_result.data().designer_session.use_optimized_ir);
+        response_data.Add("designer_session", session_map);
+
+        // Convert retiming plans to JSON
+        Upp::ValueArray plans_array;
+        for (const auto& plan : retiming_result.data().retiming_plans) {
+            plans_array.Add(JsonIO::RetimingPlanToValueMap(plan));
+        }
+        response_data.Add("retiming_plans", plans_array);
+
+        return JsonIO::SuccessResponse("designer-retime", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("designer-retime",
+                                   "Failed to run designer retime: " + std::string(e.what()),
+                                   "INTERNAL_ERROR");
     }
 }
 

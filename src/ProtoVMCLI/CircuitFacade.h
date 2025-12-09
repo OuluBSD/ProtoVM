@@ -295,6 +295,22 @@ public:
         const std::vector<std::string>& block_ids
     );
 
+    // Retiming analysis methods
+    Result<Vector<RetimingPlan>> AnalyzeRetimingForBlockInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id
+    );
+
+    Result<Vector<RetimingPlan>> AnalyzeRetimingForSubsystemInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& subsystem_id,
+        const Vector<String>& block_ids
+    );
+
 private:
     // Internal helper to load circuit from initial file
     Result<bool> LoadInitialCircuit(const std::string& circuit_file_path, CircuitData& out_circuit);
@@ -316,6 +332,16 @@ private:
 
     // Internal helper to save circuit snapshot
     Result<bool> SaveCircuitSnapshot(const CircuitData& circuit, const std::string& session_dir, int64_t revision);
+
+    // Internal helper for retiming analysis
+    Result<Vector<RetimingPlan>> PerformRetimingAnalysis(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& target_id,
+        const Vector<String>& block_ids,
+        bool is_subsystem
+    );
 
 private:
     std::shared_ptr<ISessionStore> session_store_;

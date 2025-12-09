@@ -13,6 +13,8 @@
 #include "HlsIr.h"              // For HLS IR structures
 #include "HlsIrInference.h"     // For HLS IR inference engine
 #include "DiffAnalysis.h"       // For diff analysis
+#include "RetimingModel.h"      // For retiming model
+#include "RetimingAnalysis.h"   // For retiming analysis
 #include <fstream>
 #include <sstream>
 #include <filesystem>
@@ -2065,6 +2067,141 @@ Result<CdcReport> CircuitFacade::BuildCdcReportForSubsystemInBranch(
         return Result<CdcReport>::MakeError(
             ErrorCode::InternalError,
             std::string("Exception in BuildCdcReportForSubsystemInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<Vector<RetimingPlan>> CircuitFacade::AnalyzeRetimingForBlockInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id
+) {
+    try {
+        Vector<String> block_ids;
+        block_ids.Add(String(block_id.c_str()));
+        return PerformRetimingAnalysis(session, session_dir, branch_name, block_id, block_ids, false);
+    }
+    catch (const std::exception& e) {
+        return Result<Vector<RetimingPlan>>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in AnalyzeRetimingForBlockInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<Vector<RetimingPlan>> CircuitFacade::AnalyzeRetimingForSubsystemInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& subsystem_id,
+    const Vector<String>& block_ids
+) {
+    try {
+        return PerformRetimingAnalysis(session, session_dir, branch_name, subsystem_id, block_ids, true);
+    }
+    catch (const std::exception& e) {
+        return Result<Vector<RetimingPlan>>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in AnalyzeRetimingForSubsystemInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<Vector<RetimingPlan>> CircuitFacade::PerformRetimingAnalysis(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& target_id,
+    const Vector<String>& block_ids,
+    bool is_subsystem
+) {
+    try {
+        // Step 1: Get the circuit graph for the specified branch
+        auto graph_result = BuildGraphForBranch(session, session_dir, branch_name);
+        if (!graph_result.ok) {
+            return Result<Vector<RetimingPlan>>::MakeError(
+                graph_result.error_code,
+                graph_result.error_message
+            );
+        }
+
+        const CircuitGraph& graph = graph_result.data;
+
+        // Step 2: Get the pipeline map for the specified block or subsystem
+        PipelineMap pipeline;
+        if (is_subsystem) {
+            auto pipeline_result = BuildPipelineMapForSubsystemInBranch(
+                session, session_dir, branch_name, target_id,
+                std::vector<std::string>(block_ids.Begin(), block_ids.End()));
+            if (!pipeline_result.ok) {
+                return Result<Vector<RetimingPlan>>::MakeError(
+                    pipeline_result.error_code,
+                    pipeline_result.error_message
+                );
+            }
+            pipeline = pipeline_result.data;
+        } else {
+            auto pipeline_result = BuildPipelineMapForBlockInBranch(
+                session, session_dir, branch_name, target_id);
+            if (!pipeline_result.ok) {
+                return Result<Vector<RetimingPlan>>::MakeError(
+                    pipeline_result.error_code,
+                    pipeline_result.error_message
+                );
+            }
+            pipeline = pipeline_result.data;
+        }
+
+        // Step 3: Get the CDC report for the specified block or subsystem
+        CdcReport cdc_report;
+        if (is_subsystem) {
+            auto cdc_result = BuildCdcReportForSubsystemInBranch(
+                session, session_dir, branch_name, target_id,
+                std::vector<std::string>(block_ids.Begin(), block_ids.End()));
+            if (!cdc_result.ok) {
+                return Result<Vector<RetimingPlan>>::MakeError(
+                    cdc_result.error_code,
+                    cdc_result.error_message
+                );
+            }
+            cdc_report = cdc_result.data;
+        } else {
+            auto cdc_result = BuildCdcReportForBlockInBranch(
+                session, session_dir, branch_name, target_id);
+            if (!cdc_result.ok) {
+                return Result<Vector<RetimingPlan>>::MakeError(
+                    cdc_result.error_code,
+                    cdc_result.error_message
+                );
+            }
+            cdc_report = cdc_result.data;
+        }
+
+        // Step 4: Optionally get timing analysis for more detailed retiming analysis
+        auto timing_graph_result = BuildTimingGraphForBranch(session, session_dir, branch_name);
+        TimingAnalysis* timing = nullptr;  // We'll pass nullptr for now
+
+        // Step 5: Optionally get scheduled IR for more detailed analysis
+        ScheduledModule* scheduled_ir = nullptr;  // We'll pass nullptr for now
+        // In a real implementation, we might want to build scheduled IR for the target
+
+        // Step 6: Use the retiming analysis engine to build the plans
+        auto retiming_result = RetimingAnalysis::AnalyzeRetimingForBlock(
+            pipeline, cdc_report, timing, scheduled_ir);
+        if (!retiming_result.ok) {
+            return Result<Vector<RetimingPlan>>::MakeError(
+                retiming_result.error_code,
+                retiming_result.error_message
+            );
+        }
+
+        return Result<Vector<RetimingPlan>>::MakeOk(retiming_result.data);
+    }
+    catch (const std::exception& e) {
+        return Result<Vector<RetimingPlan>>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in PerformRetimingAnalysis: ") + e.what()
         );
     }
 }

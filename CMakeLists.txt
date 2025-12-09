@@ -242,6 +242,8 @@ if(BUILD_PROTOVM_CLI)
         src/ProtoVMCLI/CdcAnalysis.cpp
         src/ProtoVMCLI/PipelineModel.cpp
         src/ProtoVMCLI/PipelineAnalysis.cpp
+        src/ProtoVMCLI/RetimingModel.cpp
+        src/ProtoVMCLI/RetimingAnalysis.cpp
     )
 
     add_executable(proto-vm-cli ${CLI_SOURCES})
@@ -277,6 +279,8 @@ if(BUILD_PROTOVM_CLI)
         src/ProtoVMCLI/CdcAnalysis.cpp
         src/ProtoVMCLI/PipelineModel.cpp
         src/ProtoVMCLI/PipelineAnalysis.cpp
+        src/ProtoVMCLI/RetimingModel.cpp
+        src/ProtoVMCLI/RetimingAnalysis.cpp
     )
 
     add_executable(proto-vm-daemon ${DAEMON_SOURCES})

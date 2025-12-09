@@ -9,6 +9,7 @@
 #include "DiffAnalysis.h"  // For diff operations
 #include "Codegen.h"  // For code generation
 #include "BehavioralAnalysis.h"  // For behavioral analysis
+#include "RetimingModel.h"  // For retiming analysis
 #include <string>
 #include <memory>
 #include <unordered_map>
@@ -159,6 +160,22 @@ struct DesignerCodegenResponse {
     } codegen;
 };
 
+// Designer retiming request structures
+struct DesignerRetimeRequest {
+    std::string designer_session_id;
+    std::string target;  // "block" or "subsystem"
+    std::string block_id;  // for block target
+    std::string subsystem_id;  // for subsystem target
+    std::vector<std::string> block_ids;  // for subsystem target
+    int min_depth;  // minimum depth threshold for paths to consider
+    int max_plans;  // maximum number of plans to return
+};
+
+struct DesignerRetimeResponse {
+    CoDesignerSessionState designer_session;
+    std::vector<RetimingPlan> retiming_plans;
+};
+
 class CoDesignerManager {
 public:
     explicit CoDesignerManager(std::shared_ptr<CircuitFacade> circuit_facade)
@@ -168,6 +185,7 @@ public:
     Result<CoDesignerSessionState> GetSession(const std::string& designer_session_id);
     Result<void> UpdateSession(const CoDesignerSessionState& updated);
     Result<void> DestroySession(const std::string& designer_session_id);
+    Result<DesignerRetimeResponse> RetimeDesign(const DesignerRetimeRequest& request);
 
 private:
     // Helper method to generate unique designer session IDs

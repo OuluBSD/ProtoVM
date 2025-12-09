@@ -2439,14 +2439,151 @@ Response:
 }
 ```
 
+#### 21.3.13 `retime-block`
+Analyze a circuit block for safe intra-clock-domain retiming opportunities and return suggested register movement plans.
+
+CLI usage:
+```
+proto-vm-cli retime-block --workspace <workspace> --session-id <session_id> --block-id <block_id> [--branch <branch_name>] [--min-depth <N>] [--max-plans <M>]
+```
+
+Daemon request:
+```json
+{
+  "id": "req1",
+  "command": "retime-block",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "payload": {
+    "branch": "main",
+    "block_id": "B_PIPE_STAGE1",
+    "min_depth": 5,
+    "max_plans": 10
+  }
+}
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "command": "retime-block",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "block_id": "B_PIPE_STAGE1",
+    "min_depth": 5,
+    "max_plans": 10,
+    "retiming_plans": [
+      {
+        "id": "RTP_B_PIPE_1",
+        "target_id": "B_PIPE_STAGE1",
+        "description": "Balance long path between REG_A and REG_B",
+        "moves": [
+          {
+            "move_id": "RTM_0001",
+            "src_reg_id": "REG_A",
+            "dst_reg_id": "REG_B",
+            "direction": "Forward",
+            "domain_id": 0,
+            "src_stage_index": 0,
+            "dst_stage_index": 1,
+            "before_comb_depth": 10,
+            "after_comb_depth_est": 5,
+            "safety": "SafeIntraDomain",
+            "safety_reason": "Intra-domain, no CDC crossings, internal path",
+            "affected_ops": ["ADD_1", "MUX_2"]
+          }
+        ],
+        "estimated_max_depth_before": 10,
+        "estimated_max_depth_after": 6,
+        "respects_cdc_fences": true
+      }
+    ]
+  }
+}
+```
+
+#### 21.3.14 `retime-subsystem`
+Analyze a multi-block subsystem for safe intra-clock-domain retiming opportunities and return suggested register movement plans.
+
+CLI usage:
+```
+proto-vm-cli retime-subsystem --workspace <workspace> --session-id <session_id> --subsystem-id <subsystem_id> --block-ids <comma_separated_block_ids> [--branch <branch_name>] [--min-depth <N>] [--max-plans <M>]
+```
+
+Daemon request:
+```json
+{
+  "id": "req1",
+  "command": "retime-subsystem",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "payload": {
+    "branch": "main",
+    "subsystem_id": "ALU_PIPE",
+    "block_ids": ["ALU_STAGE1", "ALU_STAGE2", "ALU_FLAGS"],
+    "min_depth": 6,
+    "max_plans": 20
+  }
+}
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "command": "retime-subsystem",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "subsystem_id": "ALU_PIPE",
+    "block_ids": ["ALU_STAGE1", "ALU_STAGE2", "ALU_FLAGS"],
+    "min_depth": 6,
+    "max_plans": 20,
+    "retiming_plans": [
+      {
+        "id": "RTP_ALU_1",
+        "target_id": "ALU_PIPE",
+        "description": "Reduce critical path in ALU pipeline",
+        "moves": [
+          {
+            "move_id": "RTM_FWD_1",
+            "src_reg_id": "REG_IN",
+            "dst_reg_id": "REG_OUT",
+            "direction": "Forward",
+            "domain_id": 0,
+            "src_stage_index": 0,
+            "dst_stage_index": 2,
+            "before_comb_depth": 15,
+            "after_comb_depth_est": 7,
+            "safety": "SafeIntraDomain",
+            "safety_reason": "Intra-domain, no CDC crossings, internal path",
+            "affected_ops": ["ADD_OP", "SHIFT_OP"]
+          }
+        ],
+        "estimated_max_depth_before": 15,
+        "estimated_max_depth_after": 8,
+        "respects_cdc_fences": true
+      }
+    ]
+  }
+}
+```
+
 ### 21.4 Implementation Details
 
-- **CdcModel Module**: Core data structures for CDC analysis (CdcCrossingKind, CdcSeverity, CdcCrossingEndpoint, CdcCrossing, CdcIssue, CdcReport)
-- **CdcAnalysis Module**: Analysis engine that uses PipelineMap and CircuitGraph to identify and classify clock-domain crossings
-- **CircuitFacade Integration**: Enhanced with `BuildCdcReportForBlockInBranch` and `BuildCdcReportForSubsystemInBranch` methods
-- **JsonIO Integration**: Serialization methods for CDC structures (CdcCrossingKindToJson, CdcCrossingEndpointToValueMap, etc.)
-- **Integration with PipelineMap**: Uses clock domain information and register paths to identify crossings
-- **Classification Heuristics**: Automatic classification of crossings into SingleBitSyncCandidate, MultiBitBundle, HandshakeLike, or UnknownPattern
+- **RetimingModel Module**: Core data structures for retiming analysis (RetimingMoveDirection, RetimingMoveSafety, RetimingMove, RetimingPlan)
+- **RetimingAnalysis Module**: Analysis engine that identifies register movement opportunities within single clock domains
+- **CircuitFacade Integration**: Enhanced with `AnalyzeRetimingForBlockInBranch` and `AnalyzeRetimingForSubsystemInBranch` methods
+- **JsonIO Integration**: Serialization methods for retiming structures (RetimingMoveDirectionToJson, RetimingMoveToValueMap, etc.)
+- **Integration with PipelineMap**: Uses clock domain information and register paths to identify safe retiming opportunities
+- **CDC Safety**: Respects CDC boundaries from `CdcReport` as hard fences preventing unsafe register movements
+- **Planning Only**: This phase generates retiming *plans* but does not apply them; transformations happen in a later phase
 
 ## 22. Phase 12: Behavior-Preserving Transformations / Refactor Engine
 

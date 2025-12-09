@@ -29,6 +29,8 @@ set(CLI_SOURCES
     src/ProtoVMCLI/BehavioralAnalysis.cpp
     src/ProtoVMCLI/ScheduledIr.cpp
     src/ProtoVMCLI/Scheduling.cpp
+    src/ProtoVMCLI/RetimingModel.cpp
+    src/ProtoVMCLI/RetimingAnalysis.cpp
 )
 
 add_executable(proto-vm-cli ${CLI_SOURCES})

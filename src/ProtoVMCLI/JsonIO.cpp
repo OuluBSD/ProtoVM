@@ -4,6 +4,7 @@
 #include "ScheduledIr.h"
 #include "Scheduling.h"
 #include "CdcModel.h"
+#include "RetimingModel.h"
 #include <iostream>
 #include <sstream>
 
@@ -1308,6 +1309,90 @@ Upp::ValueArray JsonIO::CdcIssuesToValueArray(const Vector<CdcIssue>& issues) {
     Upp::ValueArray array;
     for (const auto& issue : issues) {
         array.Add(CdcIssueToValueMap(issue));
+    }
+    return array;
+}
+
+Upp::Value JsonIO::RetimingMoveDirectionToJson(RetimingMoveDirection direction) {
+    switch (direction) {
+        case RetimingMoveDirection::Forward:
+            return Upp::String("Forward");
+        case RetimingMoveDirection::Backward:
+            return Upp::String("Backward");
+        default:
+            return Upp::String("Unknown");
+    }
+}
+
+Upp::Value JsonIO::RetimingMoveSafetyToJson(RetimingMoveSafety safety) {
+    switch (safety) {
+        case RetimingMoveSafety::SafeIntraDomain:
+            return Upp::String("SafeIntraDomain");
+        case RetimingMoveSafety::Suspicious:
+            return Upp::String("Suspicious");
+        case RetimingMoveSafety::Forbidden:
+            return Upp::String("Forbidden");
+        default:
+            return Upp::String("Unknown");
+    }
+}
+
+Upp::ValueMap JsonIO::RetimingMoveToValueMap(const RetimingMove& move) {
+    Upp::ValueMap map;
+    map.Add("move_id", Upp::String(move.move_id.c_str()));
+    map.Add("src_reg_id", Upp::String(move.src_reg_id.c_str()));
+    map.Add("dst_reg_id", Upp::String(move.dst_reg_id.c_str()));
+    map.Add("direction", RetimingMoveDirectionToJson(move.direction));
+    map.Add("domain_id", move.domain_id);
+    map.Add("src_stage_index", move.src_stage_index);
+    map.Add("dst_stage_index", move.dst_stage_index);
+    map.Add("before_comb_depth", move.before_comb_depth);
+    map.Add("after_comb_depth_est", move.after_comb_depth_est);
+    map.Add("safety", RetimingMoveSafetyToJson(move.safety));
+    map.Add("safety_reason", Upp::String(move.safety_reason.c_str()));
+
+    // Convert affected ops vector to array
+    Upp::ValueArray affected_ops_array;
+    for (const auto& op : move.affected_ops) {
+        affected_ops_array.Add(Upp::String(op.c_str()));
+    }
+    map.Add("affected_ops", affected_ops_array);
+
+    return map;
+}
+
+Upp::ValueMap JsonIO::RetimingPlanToValueMap(const RetimingPlan& plan) {
+    Upp::ValueMap map;
+    map.Add("id", Upp::String(plan.id.c_str()));
+    map.Add("target_id", Upp::String(plan.target_id.c_str()));
+    map.Add("description", Upp::String(plan.description.c_str()));
+
+    // Convert moves vector to array
+    Upp::ValueArray moves_array;
+    for (const auto& move : plan.moves) {
+        moves_array.Add(RetimingMoveToValueMap(move));
+    }
+    map.Add("moves", moves_array);
+
+    map.Add("estimated_max_depth_before", plan.estimated_max_depth_before);
+    map.Add("estimated_max_depth_after", plan.estimated_max_depth_after);
+    map.Add("respects_cdc_fences", plan.respects_cdc_fences);
+
+    return map;
+}
+
+Upp::ValueArray JsonIO::RetimingMovesToValueArray(const Vector<RetimingMove>& moves) {
+    Upp::ValueArray array;
+    for (const auto& move : moves) {
+        array.Add(RetimingMoveToValueMap(move));
+    }
+    return array;
+}
+
+Upp::ValueArray JsonIO::RetimingPlansToValueArray(const Vector<RetimingPlan>& plans) {
+    Upp::ValueArray array;
+    for (const auto& plan : plans) {
+        array.Add(RetimingPlanToValueMap(plan));
     }
     return array;
 }

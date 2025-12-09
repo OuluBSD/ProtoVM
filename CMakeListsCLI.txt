@@ -10,6 +10,13 @@ set(CLI_SOURCES
     src/ProtoVMCLI/CommandDispatcher.cpp
     src/ProtoVMCLI/JsonIO.cpp
     src/ProtoVMCLI/JsonFilesystemSessionStore.cpp
+    src/ProtoVMCLI/EventLogger.cpp
+    src/ProtoVMCLI/CircuitFacade.cpp
+    src/ProtoVMCLI/CircuitMerge.cpp
+    src/ProtoVMCLI/EngineFacade.cpp
+    src/ProtoVMCLI/MachineSnapshot.cpp
+    src/ProtoVMCLI/HlsIr.cpp
+    src/ProtoVMCLI/HlsIrInference.cpp
 )
 
 add_executable(proto-vm-cli ${CLI_SOURCES})

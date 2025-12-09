@@ -79,6 +79,7 @@ public:
             metadata.state = SessionState::CREATED;
             metadata.created_at = GetCurrentTimestamp();
             metadata.last_used_at = metadata.created_at;  // Initially same as created_at
+            // Initialize with default branch (already done in constructor)
 
             // Save session metadata with proper schema
             fs::path metadata_path = session_dir / "session.json";
@@ -91,6 +92,27 @@ public:
             json_content += "  \"created_at\": \"" + Upp::String(metadata.created_at.c_str()) + "\",\n";
             json_content += "  \"last_used_at\": \"" + Upp::String(metadata.last_used_at.c_str()) + "\",\n";
             json_content += "  \"total_ticks\": " + Upp::AsString(metadata.total_ticks) + ",\n";
+            json_content += "  \"circuit_revision\": " + Upp::AsString(metadata.circuit_revision) + ",\n";
+            json_content += "  \"sim_revision\": " + Upp::AsString(metadata.sim_revision) + ",\n";
+            json_content += "  \"current_branch\": \"" + Upp::String(metadata.current_branch.c_str()) + "\",\n";
+
+            // Add branches array
+            json_content += "  \"branches\": [\n";
+            for (size_t i = 0; i < metadata.branches.size(); ++i) {
+                const auto& branch = metadata.branches[i];
+                json_content += "    {\n";
+                json_content += "      \"name\": \"" + Upp::String(branch.name.c_str()) + "\",\n";
+                json_content += "      \"head_revision\": " + Upp::AsString(branch.head_revision) + ",\n";
+                json_content += "      \"sim_revision\": " + Upp::AsString(branch.sim_revision) + ",\n";
+                json_content += "      \"base_revision\": " + Upp::AsString(branch.base_revision) + ",\n";
+                json_content += "      \"is_default\": " + (branch.is_default ? Upp::String("true") : Upp::String("false")) + "\n";
+                json_content += "    }";
+                if (i < metadata.branches.size() - 1) {
+                    json_content += ",";
+                }
+                json_content += "\n";
+            }
+            json_content += "  ],\n";
             json_content += "  \"engine_version\": \"unknown\"\n";  // Placeholder
             json_content += "}";
 
@@ -235,6 +257,40 @@ public:
                 }
             }
 
+            // Extract circuit_revision
+            pos = content_copy.find("\"circuit_revision\": ");
+            if (pos != std::string::npos) {
+                pos += 20; // Length of "\"circuit_revision\": "
+                size_t comma_pos = content_copy.find(",", pos);
+                size_t brace_pos = content_copy.find("}", pos);
+                end_pos = (comma_pos < brace_pos) ? comma_pos : brace_pos;
+                if (end_pos != std::string::npos) {
+                    std::string rev_str = content_copy.substr(pos, end_pos - pos);
+                    try {
+                        metadata.circuit_revision = std::stoi(rev_str);
+                    } catch (...) {
+                        metadata.circuit_revision = 0; // default
+                    }
+                }
+            }
+
+            // Extract sim_revision
+            pos = content_copy.find("\"sim_revision\": ");
+            if (pos != std::string::npos) {
+                pos += 16; // Length of "\"sim_revision\": "
+                size_t comma_pos = content_copy.find(",", pos);
+                size_t brace_pos = content_copy.find("}", pos);
+                end_pos = (comma_pos < brace_pos) ? comma_pos : brace_pos;
+                if (end_pos != std::string::npos) {
+                    std::string rev_str = content_copy.substr(pos, end_pos - pos);
+                    try {
+                        metadata.sim_revision = std::stoi(rev_str);
+                    } catch (...) {
+                        metadata.sim_revision = 0; // default
+                    }
+                }
+            }
+
             // Extract workspace
             pos = content_copy.find("\"workspace\": \"");
             if (pos != std::string::npos) {
@@ -243,6 +299,132 @@ public:
                 if (end_pos != std::string::npos) {
                     metadata.workspace = content_copy.substr(pos, end_pos - pos);
                 }
+            }
+
+            // Extract current_branch - this might not exist in older sessions
+            pos = content_copy.find("\"current_branch\": \"");
+            if (pos != std::string::npos) {
+                pos += 19; // Length of "\"current_branch\": \""
+                size_t end_pos = content_copy.find("\"", pos);
+                if (end_pos != std::string::npos) {
+                    metadata.current_branch = content_copy.substr(pos, end_pos - pos);
+                }
+            } else {
+                // For backward compatibility, keep the default "main" branch
+                metadata.current_branch = "main";
+            }
+
+            // Extract branches - this might not exist in older sessions
+            pos = content_copy.find("\"branches\": [");
+            if (pos != std::string::npos) {
+                // Parse the branches array
+                metadata.branches.clear(); // Clear the default branch we created
+
+                std::string branches_content = content_copy.substr(pos + 12); // Skip "\"branches\": ["
+                size_t array_end = branches_content.find("]");
+
+                if (array_end != std::string::npos) {
+                    std::string array_content = branches_content.substr(0, array_end);
+
+                    // Simple parsing of branch objects (this is a simplified parser)
+                    size_t start = 0;
+                    while (true) {
+                        size_t obj_start = array_content.find("{", start);
+                        if (obj_start == std::string::npos) break;
+
+                        size_t obj_end = array_content.find("}", obj_start);
+                        if (obj_end == std::string::npos) break;
+
+                        std::string branch_obj = array_content.substr(obj_start, obj_end - obj_start + 1);
+
+                        // Extract branch properties
+                        BranchMetadata branch;
+
+                        // Extract name
+                        size_t name_pos = branch_obj.find("\"name\": \"");
+                        if (name_pos != std::string::npos) {
+                            name_pos += 9; // Length of "\"name\": \""
+                            size_t end_pos = branch_obj.find("\"", name_pos);
+                            if (end_pos != std::string::npos) {
+                                branch.name = branch_obj.substr(name_pos, end_pos - name_pos);
+                            }
+                        }
+
+                        // Extract head_revision
+                        size_t head_pos = branch_obj.find("\"head_revision\": ");
+                        if (head_pos != std::string::npos) {
+                            head_pos += 16; // Length of "\"head_revision\": "
+                            size_t comma_pos = branch_obj.find(",", head_pos);
+                            size_t brace_pos = branch_obj.find("}", head_pos);
+                            size_t end_pos = (comma_pos < brace_pos) ? comma_pos : brace_pos;
+                            if (end_pos != std::string::npos) {
+                                std::string rev_str = branch_obj.substr(head_pos, end_pos - head_pos);
+                                try {
+                                    branch.head_revision = std::stoll(rev_str);
+                                } catch (...) {
+                                    branch.head_revision = 0;
+                                }
+                            }
+                        }
+
+                        // Extract sim_revision
+                        size_t sim_pos = branch_obj.find("\"sim_revision\": ");
+                        if (sim_pos != std::string::npos) {
+                            sim_pos += 16; // Length of "\"sim_revision\": "
+                            size_t comma_pos = branch_obj.find(",", sim_pos);
+                            size_t brace_pos = branch_obj.find("}", sim_pos);
+                            size_t end_pos = (comma_pos < brace_pos) ? comma_pos : brace_pos;
+                            if (end_pos != std::string::npos) {
+                                std::string rev_str = branch_obj.substr(sim_pos, end_pos - sim_pos);
+                                try {
+                                    branch.sim_revision = std::stoll(rev_str);
+                                } catch (...) {
+                                    branch.sim_revision = 0;
+                                }
+                            }
+                        }
+
+                        // Extract base_revision
+                        size_t base_pos = branch_obj.find("\"base_revision\": ");
+                        if (base_pos != std::string::npos) {
+                            base_pos += 17; // Length of "\"base_revision\": "
+                            size_t comma_pos = branch_obj.find(",", base_pos);
+                            size_t brace_pos = branch_obj.find("}", base_pos);
+                            size_t end_pos = (comma_pos < brace_pos) ? comma_pos : brace_pos;
+                            if (end_pos != std::string::npos) {
+                                std::string rev_str = branch_obj.substr(base_pos, end_pos - base_pos);
+                                try {
+                                    branch.base_revision = std::stoll(rev_str);
+                                } catch (...) {
+                                    branch.base_revision = 0;
+                                }
+                            }
+                        }
+
+                        // Extract is_default
+                        size_t default_pos = branch_obj.find("\"is_default\": ");
+                        if (default_pos != std::string::npos) {
+                            default_pos += 14; // Length of "\"is_default\": "
+                            size_t end_pos = branch_obj.find(",", default_pos);
+                            if (end_pos == std::string::npos) {
+                                end_pos = branch_obj.find("}", default_pos);
+                            }
+                            if (end_pos != std::string::npos) {
+                                std::string default_str = branch_obj.substr(default_pos, end_pos - default_pos);
+                                branch.is_default = (default_str == "true");
+                            }
+                        }
+
+                        metadata.branches.push_back(branch);
+                        start = obj_end + 1;
+                    }
+                }
+            } else {
+                // For backward compatibility, migrate the old format
+                // Create a branch from the existing revision information
+                BranchMetadata main_branch("main", metadata.circuit_revision, metadata.sim_revision, 0, true);
+                metadata.branches.clear();
+                metadata.branches.push_back(main_branch);
             }
 
             return Result<SessionMetadata>::MakeOk(metadata);
@@ -274,6 +456,27 @@ public:
             json_content += "  \"created_at\": \"" + Upp::String(metadata.created_at.c_str()) + "\",\n";
             json_content += "  \"last_used_at\": \"" + Upp::String(last_used_at.c_str()) + "\",\n";
             json_content += "  \"total_ticks\": " + Upp::AsString(metadata.total_ticks) + ",\n";
+            json_content += "  \"circuit_revision\": " + Upp::AsString(metadata.circuit_revision) + ",\n";
+            json_content += "  \"sim_revision\": " + Upp::AsString(metadata.sim_revision) + ",\n";
+            json_content += "  \"current_branch\": \"" + Upp::String(metadata.current_branch.c_str()) + "\",\n";
+
+            // Add branches array
+            json_content += "  \"branches\": [\n";
+            for (size_t i = 0; i < metadata.branches.size(); ++i) {
+                const auto& branch = metadata.branches[i];
+                json_content += "    {\n";
+                json_content += "      \"name\": \"" + Upp::String(branch.name.c_str()) + "\",\n";
+                json_content += "      \"head_revision\": " + Upp::AsString(branch.head_revision) + ",\n";
+                json_content += "      \"sim_revision\": " + Upp::AsString(branch.sim_revision) + ",\n";
+                json_content += "      \"base_revision\": " + Upp::AsString(branch.base_revision) + ",\n";
+                json_content += "      \"is_default\": " + (branch.is_default ? Upp::String("true") : Upp::String("false")) + "\n";
+                json_content += "    }";
+                if (i < metadata.branches.size() - 1) {
+                    json_content += ",";
+                }
+                json_content += "\n";
+            }
+            json_content += "  ],\n";
             json_content += "  \"engine_version\": \"unknown\"\n";  // Placeholder
             json_content += "}";
 

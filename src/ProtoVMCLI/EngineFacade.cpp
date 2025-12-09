@@ -252,7 +252,44 @@ Result<EngineSnapshotInfo> EngineFacade::LoadFromLatestSnapshot(
     std::unique_ptr<Machine>& out_machine
 ) {
     try {
-        // Get the path to the latest snapshot file
+        // Check if the circuit has been modified since the last simulation snapshot
+        if (session.circuit_revision != session.sim_revision) {
+            // The circuit has changed since the last simulation snapshot, so we need
+            // to rebuild the machine from the current circuit state
+            std::string circuit_file = session.circuit_file;
+
+            // Create a new machine from the original circuit file
+            auto machine_result = CreateMachineFromCircuit(circuit_file);
+            if (!machine_result.ok) {
+                return Result<EngineSnapshotInfo>::MakeError(
+                    machine_result.error_code,
+                    "Failed to create machine from circuit after circuit change: " + machine_result.error_message
+                );
+            }
+
+            out_machine = std::move(machine_result.data);
+
+            // Create a new snapshot at tick 0 based on the current circuit
+            std::string snapshot_path = CreateNewSnapshotPath(session_dir, 0);
+
+            auto save_result = SaveSnapshot(*out_machine, snapshot_path);
+            if (!save_result.ok) {
+                return Result<EngineSnapshotInfo>::MakeError(
+                    save_result.error_code,
+                    save_result.error_message
+                );
+            }
+
+            // Return that the machine was rebuilt and the new snapshot
+            EngineSnapshotInfo info;
+            info.total_ticks = 0;
+            info.snapshot_file = snapshot_path;
+            info.timestamp = GetCurrentTimestamp();
+
+            return Result<EngineSnapshotInfo>::MakeOk(info);
+        }
+
+        // Circuit hasn't changed, proceed with loading the latest simulation snapshot
         std::string latest_snapshot = GetLatestSnapshotFileInternal(session_dir);
         if (latest_snapshot.empty()) {
             return Result<EngineSnapshotInfo>::MakeError(
@@ -260,7 +297,7 @@ Result<EngineSnapshotInfo> EngineFacade::LoadFromLatestSnapshot(
                 "No snapshots found in session directory: " + session_dir
             );
         }
-        
+
         // Load the machine from the snapshot
         auto load_result = LoadFromSnapshot(latest_snapshot);
         if (!load_result.ok) {
@@ -269,15 +306,15 @@ Result<EngineSnapshotInfo> EngineFacade::LoadFromLatestSnapshot(
                 load_result.error_message
             );
         }
-        
+
         out_machine = std::move(load_result.data);
-        
+
         // Create the EngineSnapshotInfo result
         EngineSnapshotInfo info;
         info.total_ticks = out_machine->current_tick;
         info.snapshot_file = latest_snapshot;
         info.timestamp = GetCurrentTimestamp();
-        
+
         return Result<EngineSnapshotInfo>::MakeOk(info);
     } catch (const std::exception& e) {
         return Result<EngineSnapshotInfo>::MakeError(
@@ -304,24 +341,24 @@ Result<EngineSnapshotInfo> EngineFacade::RunTicksAndSnapshot(
                 );
             }
         }
-        
+
         // Create a new snapshot after running the ticks
         std::string snapshot_path = CreateNewSnapshotPath(session_dir, machine->current_tick);
         auto save_result = SaveSnapshot(*machine, snapshot_path);
-        
+
         if (!save_result.ok) {
             return Result<EngineSnapshotInfo>::MakeError(
                 save_result.error_code,
                 save_result.error_message
             );
         }
-        
+
         // Create the EngineSnapshotInfo result
         EngineSnapshotInfo info;
         info.total_ticks = machine->current_tick;
         info.snapshot_file = snapshot_path;
         info.timestamp = GetCurrentTimestamp();
-        
+
         return Result<EngineSnapshotInfo>::MakeOk(info);
     } catch (const std::exception& e) {
         return Result<EngineSnapshotInfo>::MakeError(

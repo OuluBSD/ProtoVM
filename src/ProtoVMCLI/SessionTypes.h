@@ -2,6 +2,7 @@
 #define _ProtoVM_SessionTypes_h_
 
 #include "ProtoVM.h"  // Include U++ types
+#include "BranchTypes.h"  // Include branch types
 #include <string>
 #include <vector>
 #include <chrono>
@@ -24,7 +25,10 @@ enum class ErrorCode {
     StorageIoError,
     StorageSchemaMismatch,
     CommandParseError,
-    InternalError
+    InternalError,
+    Conflict,
+    InvalidEditOperation,
+    CircuitStateCorrupt
     // add more if needed
 };
 
@@ -66,10 +70,16 @@ struct SessionMetadata {
     std::string circuit_file;
     SessionState state = SessionState::CREATED;
     int total_ticks = 0;
+    int circuit_revision = 0;  // Revision of the circuit (editing operations) - DEPRECATED: use branches info now
+    int sim_revision = 0;      // Revision on which the latest simulation snapshot is based - DEPRECATED: use branches info now
     std::string workspace;
     std::chrono::system_clock::time_point created_time;
     std::chrono::system_clock::time_point last_used_time;
-    
+
+    // Branch information
+    std::string current_branch = "main";  // Current active branch
+    std::vector<BranchMetadata> branches;  // List of all branches
+
     SessionMetadata() {
         auto now = std::chrono::system_clock::now();
         created_time = now;
@@ -81,6 +91,10 @@ struct SessionMetadata {
         std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", &tm);
         created_at = buffer;
         last_used_at = buffer;
+
+        // Initialize with a default main branch
+        BranchMetadata main_branch("main", 0, 0, 0, true);
+        branches.push_back(main_branch);
     }
 };
 
@@ -111,6 +125,22 @@ struct CommandOptions {
     std::optional<std::string> circuit_file;
     std::optional<std::string> netlist_file;
     std::optional<bool> soft_delete;
+    std::optional<std::string> branch;  // Branch name for branch-aware operations
+    std::optional<std::string> branch_from;  // Source branch for operations like merge or create
+    std::optional<std::string> branch_to;    // Target branch for operations like merge
+    std::optional<std::string> branch_name;  // Name of branch to create or switch to
+    // Graph query parameters
+    std::optional<std::string> graph_source_kind;  // Component, Pin, Net for graph queries
+    std::optional<std::string> graph_source_id;    // ID for source node in graph queries
+    std::optional<std::string> graph_target_kind;  // Component, Pin, Net for graph queries
+    std::optional<std::string> graph_target_id;    // ID for target node in graph queries
+    std::optional<std::string> graph_node_kind;    // Node kind for single-node queries
+    std::optional<std::string> graph_node_id;      // Node ID for single-node queries
+    std::optional<int> graph_max_depth;            // Max depth for graph queries
+    // Dependency analysis parameters
+    std::string deps_node_id;                      // Node ID for dependency analysis
+    std::string deps_node_kind;                    // Node kind (Pin, Component, Net) for dependency analysis
+    int deps_max_depth = 128;                      // Max depth for dependency analysis
     std::string user_id = "anonymous";  // Default user ID
 
     // Add more options as needed

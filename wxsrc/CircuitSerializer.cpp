@@ -16,22 +16,21 @@ bool CircuitSerializer::SaveCircuit(const CircuitData& circuitData, const wxStri
 
     // Write components
     file << "# Components (" << circuitData.components.size() << ")\n";
-    for (size_t i = 0; i < circuitData.components.size(); ++i)
+    for (const auto& comp : circuitData.components)
     {
-        const auto& comp = circuitData.components[i];
-        file << "component " << i << " " << comp.type << " " << comp.name 
+        file << "component " << comp.id.id << " " << comp.type << " " << comp.name
              << " " << comp.x << " " << comp.y << "\n";
-        
+
         // Write input pins for this component
         for (const auto& input : comp.inputs)
         {
-            file << "  input " << input.name << " " << input.x << " " << input.y << "\n";
+            file << "  input " << input.id.id << " " << input.name << " " << input.x << " " << input.y << "\n";
         }
-        
+
         // Write output pins for this component
         for (const auto& output : comp.outputs)
         {
-            file << "  output " << output.name << " " << output.x << " " << output.y << "\n";
+            file << "  output " << output.id.id << " " << output.name << " " << output.x << " " << output.y << "\n";
         }
     }
     file << "\n";
@@ -40,8 +39,8 @@ bool CircuitSerializer::SaveCircuit(const CircuitData& circuitData, const wxStri
     file << "# Wires (" << circuitData.wires.size() << ")\n";
     for (const auto& wire : circuitData.wires)
     {
-        file << "wire " << wire.start_component_id << " " << wire.start_pin_name
-             << " " << wire.end_component_id << " " << wire.end_pin_name << "\n";
+        file << "wire " << wire.id.id << " " << wire.start_component_id.id << " " << wire.start_pin_name
+             << " " << wire.end_component_id.id << " " << wire.end_pin_name << "\n";
     }
 
     file.close();
@@ -85,6 +84,7 @@ bool CircuitSerializer::LoadCircuit(const wxString& filepath, CircuitData& circu
             if (tokens.GetCount() >= 6)
             {
                 ComponentData comp;
+                comp.id = CircuitEntityId(tokens[1].ToStdString());
                 comp.type = tokens[2].ToStdString();
                 comp.name = tokens[3].ToStdString();
                 comp.x = wxAtoi(tokens[4]);
@@ -103,9 +103,10 @@ bool CircuitSerializer::LoadCircuit(const wxString& filepath, CircuitData& circu
                         {
                             PinData pin;
                             std::string pinType = pinTokens[1].ToStdString();
-                            pin.name = pinTokens[2].ToStdString();
-                            pin.x = wxAtoi(pinTokens[3]);
-                            pin.y = wxAtoi(pinTokens[4]);
+                            pin.id = CircuitEntityId(pinTokens[2].ToStdString());
+                            pin.name = pinTokens[3].ToStdString();
+                            pin.x = wxAtoi(pinTokens[4]);
+                            pin.y = wxAtoi(pinTokens[5]);
                             pin.is_input = (pinType == "input");
                             
                             if (pin.is_input)
@@ -142,10 +143,11 @@ bool CircuitSerializer::LoadCircuit(const wxString& filepath, CircuitData& circu
                 if (tokens.GetCount() >= 5)
                 {
                     WireData wire;
-                    wire.start_component_id = wxAtoi(tokens[1]);
-                    wire.start_pin_name = tokens[2].ToStdString();
-                    wire.end_component_id = wxAtoi(tokens[3]);
-                    wire.end_pin_name = tokens[4].ToStdString();
+                    wire.id = CircuitEntityId(tokens[1].ToStdString());
+                    wire.start_component_id = CircuitEntityId(tokens[2].ToStdString());
+                    wire.start_pin_name = tokens[3].ToStdString();
+                    wire.end_component_id = CircuitEntityId(tokens[4].ToStdString());
+                    wire.end_pin_name = tokens[5].ToStdString();
                     
                     circuitData.wires.push_back(wire);
                 }

@@ -59,6 +59,54 @@ int main(int argc, char** argv) {
     if (args.Find("user-id") >= 0) {
         opts.user_id = args.Get("user-id", Upp::String("anonymous")).ToStd();
     }
+    if (args.Find("branch") >= 0) {
+        opts.branch = args.Get("branch", Upp::String("")).ToStd();
+    }
+    if (args.Find("from-branch") >= 0) {
+        opts.branch_from = args.Get("from-branch", Upp::String("")).ToStd();
+    }
+    if (args.Find("to-branch") >= 0) {
+        opts.branch_to = args.Get("to-branch", Upp::String("")).ToStd();
+    }
+    if (args.Find("branch-name") >= 0) {
+        opts.branch_name = args.Get("branch-name", Upp::String("")).ToStd();
+    }
+    // Graph query parameters
+    if (args.Find("graph-source-kind") >= 0) {
+        opts.graph_source_kind = args.Get("graph-source-kind", Upp::String("")).ToStd();
+    }
+    if (args.Find("graph-source-id") >= 0) {
+        opts.graph_source_id = args.Get("graph-source-id", Upp::String("")).ToStd();
+    }
+    if (args.Find("graph-target-kind") >= 0) {
+        opts.graph_target_kind = args.Get("graph-target-kind", Upp::String("")).ToStd();
+    }
+    if (args.Find("graph-target-id") >= 0) {
+        opts.graph_target_id = args.Get("graph-target-id", Upp::String("")).ToStd();
+    }
+    if (args.Find("graph-node-kind") >= 0) {
+        opts.graph_node_kind = args.Get("graph-node-kind", Upp::String("")).ToStd();
+    }
+    if (args.Find("graph-node-id") >= 0) {
+        opts.graph_node_id = args.Get("graph-node-id", Upp::String("")).ToStd();
+    }
+    if (args.Find("graph-max-depth") >= 0) {
+        try {
+            opts.graph_max_depth = args.Get("graph-max-depth", 128);
+        } catch (...) {
+            opts.graph_max_depth = 128;
+        }
+    }
+    // Refactoring parameters
+    if (args.Find("block-id") >= 0) {
+        opts.block_id = args.Get("block-id", Upp::String("")).ToStd();
+    }
+    if (args.Find("max-plans") >= 0) {
+        opts.max_plans = args.Get("max-plans", Upp::String("")).ToStd();
+    }
+    if (args.Find("plan-id") >= 0) {
+        opts.plan_id = args.Get("plan-id", Upp::String("")).ToStd();
+    }
 
     // Create session store
     auto session_store = ProtoVMCLI::CreateFilesystemSessionStore(opts.workspace);
@@ -95,6 +143,84 @@ int main(int argc, char** argv) {
     }
     else if (command == "destroy-session") {
         result = dispatcher.RunDestroySession(opts);
+    }
+    else if (command == "edit-add-component") {
+        result = dispatcher.RunEditAddComponent(opts);
+    }
+    else if (command == "edit-remove-component") {
+        result = dispatcher.RunEditRemoveComponent(opts);
+    }
+    else if (command == "edit-move-component") {
+        result = dispatcher.RunEditMoveComponent(opts);
+    }
+    else if (command == "edit-set-component-property") {
+        result = dispatcher.RunEditSetComponentProperty(opts);
+    }
+    else if (command == "edit-connect") {
+        result = dispatcher.RunEditConnect(opts);
+    }
+    else if (command == "edit-disconnect") {
+        result = dispatcher.RunEditDisconnect(opts);
+    }
+    else if (command == "edit-get-circuit") {
+        result = dispatcher.RunEditGetCircuit(opts);
+    }
+    else if (command == "lint-circuit") {
+        result = dispatcher.RunLintCircuit(opts);
+    }
+    else if (command == "analyze-circuit") {
+        result = dispatcher.RunAnalyzeCircuit(opts);
+    }
+    else if (command == "circuit-diff") {
+        result = dispatcher.RunCircuitDiff(opts);
+    }
+    else if (command == "circuit-patch") {
+        result = dispatcher.RunCircuitPatch(opts);
+    }
+    else if (command == "circuit-replay") {
+        result = dispatcher.RunCircuitReplay(opts);
+    }
+    else if (command == "circuit-history") {
+        result = dispatcher.RunCircuitHistory(opts);
+    }
+    else if (command == "branch-list") {
+        result = dispatcher.RunBranchList(opts);
+    }
+    else if (command == "branch-create") {
+        result = dispatcher.RunBranchCreate(opts);
+    }
+    else if (command == "branch-switch") {
+        result = dispatcher.RunBranchSwitch(opts);
+    }
+    else if (command == "branch-delete") {
+        result = dispatcher.RunBranchDelete(opts);
+    }
+    else if (command == "branch-merge") {
+        result = dispatcher.RunBranchMerge(opts);
+    }
+    else if (command == "graph-export") {
+        result = dispatcher.RunGraphExport(opts);
+    }
+    else if (command == "graph-paths") {
+        result = dispatcher.RunGraphPaths(opts);
+    }
+    else if (command == "graph-fanin") {
+        result = dispatcher.RunGraphFanIn(opts);
+    }
+    else if (command == "graph-fanout") {
+        result = dispatcher.RunGraphFanOut(opts);
+    }
+    else if (command == "graph-stats") {
+        result = dispatcher.RunGraphStats(opts);
+    }
+    else if (command == "refactor-suggest") {
+        result = dispatcher.RunRefactorSuggest(opts);
+    }
+    else if (command == "refactor-suggest-block") {
+        result = dispatcher.RunRefactorSuggestBlock(opts);
+    }
+    else if (command == "refactor-apply") {
+        result = dispatcher.RunRefactorApply(opts);
     }
     else if (command == "debug") {
         // Extract subcommand for debug

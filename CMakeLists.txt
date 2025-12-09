@@ -226,6 +226,16 @@ if(BUILD_PROTOVM_CLI)
         src/ProtoVMCLI/EngineFacade.cpp
         src/ProtoVMCLI/MachineSnapshot.cpp
         src/ProtoVMCLI/EventLogger.cpp
+        src/ProtoVMCLI/CircuitFacade.cpp
+        src/ProtoVMCLI/CircuitAnalysis.cpp
+        src/ProtoVMCLI/CircuitMerge.cpp
+        src/ProtoVMCLI/BranchOperations.cpp
+        src/ProtoVMCLI/CircuitGraph.cpp
+        src/ProtoVMCLI/CircuitGraphQueries.cpp
+        src/ProtoVMCLI/HlsIr.cpp
+        src/ProtoVMCLI/HlsIrInference.cpp
+        src/ProtoVMCLI/DiffAnalysis.cpp
+        src/ProtoVMCLI/CoDesigner.cpp
     )
 
     add_executable(proto-vm-cli ${CLI_SOURCES})
@@ -234,4 +244,33 @@ if(BUILD_PROTOVM_CLI)
         src/ProtoVM
     )
     target_link_libraries(proto-vm-cli proto_vm_core)
+
+    # Daemon executable
+    set(DAEMON_SOURCES
+        src/ProtoVMCLI/DaemonMain.cpp
+        src/ProtoVMCLI/SessionServer.cpp
+        src/ProtoVMCLI/CommandDispatcher.cpp
+        src/ProtoVMCLI/JsonIO.cpp
+        src/ProtoVMCLI/JsonFilesystemSessionStore.cpp
+        src/ProtoVMCLI/EngineFacade.cpp
+        src/ProtoVMCLI/MachineSnapshot.cpp
+        src/ProtoVMCLI/EventLogger.cpp
+        src/ProtoVMCLI/CircuitFacade.cpp
+        src/ProtoVMCLI/CircuitAnalysis.cpp
+        src/ProtoVMCLI/CircuitMerge.cpp
+        src/ProtoVMCLI/BranchOperations.cpp
+        src/ProtoVMCLI/CircuitGraph.cpp
+        src/ProtoVMCLI/CircuitGraphQueries.cpp
+        src/ProtoVMCLI/HlsIr.cpp
+        src/ProtoVMCLI/HlsIrInference.cpp
+        src/ProtoVMCLI/DiffAnalysis.cpp
+        src/ProtoVMCLI/CoDesigner.cpp
+    )
+
+    add_executable(proto-vm-daemon ${DAEMON_SOURCES})
+    target_include_directories(proto-vm-daemon PRIVATE
+        src/ProtoVMCLI
+        src/ProtoVM
+    )
+    target_link_libraries(proto-vm-daemon proto_vm_core)
 endif()

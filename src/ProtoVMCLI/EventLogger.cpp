@@ -47,11 +47,12 @@ std::string EventLogger::FormatEventAsJson(const EventLogEntry& entry) {
     json += "\"timestamp\":\"" + entry.timestamp + "\",";
     json += "\"user_id\":\"" + entry.user_id + "\",";
     json += "\"session_id\":" + std::to_string(entry.session_id) + ",";
+    json += "\"branch\":\"" + entry.branch + "\",";
     json += "\"command\":\"" + entry.command + "\",";
     json += "\"params\":" + entry.params + ",";
     json += "\"result\":" + entry.result;
     json += "}";
-    
+
     return json;
 }
 

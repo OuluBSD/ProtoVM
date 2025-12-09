@@ -14,7 +14,8 @@ struct EventLogEntry {
     std::string command;
     std::string params;  // JSON string
     std::string result;  // JSON string
-    
+    std::string branch;  // Branch name for this event
+
     EventLogEntry() : session_id(0) {}
 };
 

@@ -31,6 +31,13 @@ set(CLI_SOURCES
     src/ProtoVMCLI/Scheduling.cpp
     src/ProtoVMCLI/RetimingModel.cpp
     src/ProtoVMCLI/RetimingAnalysis.cpp
+    src/ProtoVMCLI/RetimingOpt.cpp
+    src/ProtoVMCLI/AnalogModel.cpp
+    src/ProtoVMCLI/AnalogBlockExtractor.cpp
+    src/ProtoVMCLI/AnalogSolver.cpp
+    src/ProtoVMCLI/DspGraph.cpp
+    src/ProtoVMCLI/DspRuntime.cpp
+    src/ProtoVMCLI/AudioDsl.cpp
 )
 
 add_executable(proto-vm-cli ${CLI_SOURCES})

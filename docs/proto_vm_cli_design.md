@@ -2558,19 +2558,183 @@ Response:
             "direction": "Forward",
             "domain_id": 0,
             "src_stage_index": 0,
-            "dst_stage_index": 2,
-            "before_comb_depth": 15,
+            "dst_stage_index": 1,
+            "before_comb_depth": 12,
             "after_comb_depth_est": 7,
             "safety": "SafeIntraDomain",
-            "safety_reason": "Intra-domain, no CDC crossings, internal path",
-            "affected_ops": ["ADD_OP", "SHIFT_OP"]
+            "safety_reason": "Intra-domain, no CDC crossings",
+            "affected_ops": ["ADD_1", "CMP_2"]
           }
         ],
-        "estimated_max_depth_before": 15,
-        "estimated_max_depth_after": 8,
+        "estimated_max_depth_before": 12,
+        "estimated_max_depth_after": 7,
         "respects_cdc_fences": true
       }
     ]
+  }
+}
+```
+
+#### 21.3.15 `retime-opt-block`
+Evaluate and optionally apply retiming plans for a circuit block based on optimization objectives.
+
+CLI usage:
+```
+proto-vm-cli retime-opt-block --workspace <workspace> --session-id <session_id> --block-id <block_id> --objective <MinimizeMaxDepth|MinimizeDepthWithBudget|BalanceStages> [--branch <branch_name>] [--target-max-depth <N>] [--max-moves <M>] [--max-extra-registers <K>] [--apply] [--apply-only-safe] [--allow-suspicious]
+```
+
+Daemon request:
+```json
+{
+  "id": "req1",
+  "command": "retime-opt-block",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "payload": {
+    "branch": "main",
+    "block_id": "B_PIPE_STAGE1",
+    "objective": "MinimizeMaxDepth",
+    "target_max_depth": 6,
+    "max_moves": 10,
+    "max_extra_registers": 5,
+    "apply": true,
+    "apply_only_safe": true,
+    "allow_suspicious": false
+  }
+}
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "command": "retime-opt-block",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "block_id": "B_PIPE_STAGE1",
+    "optimization_result": {
+      "target_id": "B_PIPE_STAGE1",
+      "objective": {
+        "kind": "MinimizeMaxDepth",
+        "max_extra_registers": 5,
+        "max_moves": 10,
+        "target_max_depth": 6
+      },
+      "plan_scores": [
+        {
+          "plan_id": "RTP_B_PIPE_1",
+          "estimated_max_depth_before": 10,
+          "estimated_max_depth_after": 6,
+          "applied_move_count": 3,
+          "safe_move_count": 3,
+          "suspicious_move_count": 0,
+          "forbidden_move_count": 0,
+          "estimated_register_count_before": 20,
+          "estimated_register_count_after": 22,
+          "respects_cdc_fences": true,
+          "meets_objective": true,
+          "cost": 6.0
+        }
+      ],
+      "best_plan_id": "RTP_B_PIPE_1",
+      "applied": true,
+      "application_result": {
+        "plan_id": "RTP_B_PIPE_1",
+        "target_id": "B_PIPE_STAGE1",
+        "applied_move_ids": ["RTM_0001", "RTM_0002", "RTM_0003"],
+        "skipped_move_ids": [],
+        "new_circuit_revision": 15,
+        "estimated_max_depth_before": 10,
+        "estimated_max_depth_after": 6,
+        "all_moves_safe": true
+      }
+    }
+  }
+}
+```
+
+#### 21.3.16 `retime-opt-subsystem`
+Evaluate and optionally apply retiming plans for a multi-block subsystem based on optimization objectives.
+
+CLI usage:
+```
+proto-vm-cli retime-opt-subsystem --workspace <workspace> --session-id <session_id> --subsystem-id <subsystem_id> --block-ids <comma_separated_block_ids> --objective <MinimizeMaxDepth|MinimizeDepthWithBudget|BalanceStages> [--branch <branch_name>] [--target-max-depth <N>] [--max-moves <M>] [--max-extra-registers <K>] [--apply] [--apply-only-safe] [--allow-suspicious]
+```
+
+Daemon request:
+```json
+{
+  "id": "req1",
+  "command": "retime-opt-subsystem",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "payload": {
+    "branch": "main",
+    "subsystem_id": "ALU_PIPE",
+    "block_ids": ["ALU_STAGE1", "ALU_STAGE2", "ALU_FLAGS"],
+    "objective": "MinimizeDepthWithBudget",
+    "target_max_depth": 7,
+    "max_moves": 15,
+    "max_extra_registers": 10,
+    "apply": true,
+    "apply_only_safe": true,
+    "allow_suspicious": false
+  }
+}
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "command": "retime-opt-subsystem",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "subsystem_id": "ALU_PIPE",
+    "block_ids": ["ALU_STAGE1", "ALU_STAGE2", "ALU_FLAGS"],
+    "optimization_result": {
+      "target_id": "ALU_PIPE",
+      "objective": {
+        "kind": "MinimizeDepthWithBudget",
+        "max_extra_registers": 10,
+        "max_moves": 15,
+        "target_max_depth": 7
+      },
+      "plan_scores": [
+        {
+          "plan_id": "RTP_ALU_1",
+          "estimated_max_depth_before": 12,
+          "estimated_max_depth_after": 7,
+          "applied_move_count": 5,
+          "safe_move_count": 5,
+          "suspicious_move_count": 0,
+          "forbidden_move_count": 0,
+          "estimated_register_count_before": 30,
+          "estimated_register_count_after": 33,
+          "respects_cdc_fences": true,
+          "meets_objective": true,
+          "cost": 8.5
+        }
+      ],
+      "best_plan_id": "RTP_ALU_1",
+      "applied": true,
+      "application_result": {
+        "plan_id": "RTP_ALU_1",
+        "target_id": "ALU_PIPE",
+        "applied_move_ids": ["RTM_0001", "RTM_0002", "RTM_0003", "RTM_0004", "RTM_0005"],
+        "skipped_move_ids": [],
+        "new_circuit_revision": 18,
+        "estimated_max_depth_before": 12,
+        "estimated_max_depth_after": 7,
+        "all_moves_safe": true
+      }
+    }
   }
 }
 ```
@@ -2585,13 +2749,209 @@ Response:
 - **CDC Safety**: Respects CDC boundaries from `CdcReport` as hard fences preventing unsafe register movements
 - **Planning Only**: This phase generates retiming *plans* but does not apply them; transformations happen in a later phase
 
-## 22. Phase 12: Behavior-Preserving Transformations / Refactor Engine
+## 22. Phase 23: Global Pipelining Engine - Cross-Block Pipeline Analysis & Optimization
 
 ### 22.1 Overview
 
+The Global Pipelining Engine provides cross-block pipeline analysis and optimization capabilities. It builds global pipeline models spanning multiple blocks within a subsystem, analyzes end-to-end paths and depths, and proposes coordinated retiming strategies to optimize system-level objectives.
+
+### 22.2 CLI Commands
+
+#### 22.2.1 `global-pipeline-subsystem`
+Analyze global pipeline structure of a subsystem.
+
+CLI usage:
+```
+proto-vm-cli global-pipeline-subsystem --workspace <workspace> --session-id <session_id> --subsystem-id <subsystem_id> --block-ids <comma_separated_block_ids> [--branch <branch_name>]
+```
+
+Daemon request:
+```json
+{
+  "id": "req1",
+  "command": "global-pipeline-subsystem",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "payload": {
+    "branch": "main",
+    "subsystem_id": "ALU_PIPE",
+    "block_ids": "ALU_STAGE1,ALU_STAGE2,ALU_FLAGS"
+  }
+}
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "command": "global-pipeline-subsystem",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "subsystem_id": "ALU_PIPE",
+    "block_ids": ["ALU_STAGE1", "ALU_STAGE2", "ALU_FLAGS"],
+    "global_pipeline": {
+      "subsystem_id": "ALU_PIPE",
+      "block_ids": ["ALU_STAGE1", "ALU_STAGE2", "ALU_FLAGS"],
+      "clock_domains": [
+        {
+          "signal_name": "CLK",
+          "domain_id": 0
+        }
+      ],
+      "stages": [
+        {
+          "stage_index": 0,
+          "domain_id": 0,
+          "reg_ids": ["REG_A", "REG_B"],
+          "block_ids": ["ALU_STAGE1"],
+          "max_comb_depth_estimate": 15,
+          "avg_comb_depth_estimate": 12
+        }
+      ],
+      "paths": [
+        {
+          "path_id": "PATH_001",
+          "reg_ids": ["REG_A", "REG_B"],
+          "block_ids": ["ALU_STAGE1", "ALU_STAGE2"],
+          "domain_id": 0,
+          "total_stages": 2,
+          "total_comb_depth_estimate": 25,
+          "segment_depths": [10, 15]
+        }
+      ],
+      "max_total_depth": 25,
+      "max_stages": 3
+    }
+  }
+}
+```
+
+#### 22.2.2 `global-pipeline-opt-subsystem`
+Propose global pipelining optimization plans for a subsystem.
+
+CLI usage:
+```
+proto-vm-cli global-pipeline-opt-subsystem --workspace <workspace> --session-id <session_id> --subsystem-id <subsystem_id> --block-ids <comma_separated_block_ids> --strategy <BalanceStages|ReduceCriticalPath> [--branch <branch_name>] [--target-stage-count <N>] [--target-max-depth <M>] [--max-extra-registers <K>] [--max-total-moves <L>]
+```
+
+Daemon request:
+```json
+{
+  "id": "req1",
+  "command": "global-pipeline-opt-subsystem",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "payload": {
+    "branch": "main",
+    "subsystem_id": "ALU_PIPE",
+    "block_ids": "ALU_STAGE1,ALU_STAGE2,ALU_FLAGS",
+    "strategy": "BalanceStages",
+    "target_max_depth": "15",
+    "max_extra_registers": "10",
+    "max_total_moves": "20"
+  }
+}
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "command": "global-pipeline-opt-subsystem",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "subsystem_id": "ALU_PIPE",
+    "block_ids": ["ALU_STAGE1", "ALU_STAGE2", "ALU_FLAGS"],
+    "global_plans": [
+      {
+        "id": "GPP_ALU_PIPE_BALANCE_1",
+        "subsystem_id": "ALU_PIPE",
+        "block_ids": ["ALU_STAGE1", "ALU_STAGE2", "ALU_FLAGS"],
+        "objective": {
+          "kind": "BalanceStages",
+          "target_stage_count": -1,
+          "target_max_depth": 15,
+          "max_extra_registers": 10,
+          "max_total_moves": 20
+        },
+        "steps": [
+          {
+            "block_id": "ALU_STAGE1",
+            "retiming_plan_id": "RTP_STAGE1_1"
+          },
+          {
+            "block_id": "ALU_STAGE2",
+            "retiming_plan_id": "RTP_STAGE2_1"
+          }
+        ],
+        "estimated_global_depth_before": 25,
+        "estimated_global_depth_after": 18,
+        "respects_cdc_fences": true
+      }
+    ]
+  }
+}
+```
+
+#### 22.2.3 `global-pipeline-apply`
+Apply a chosen global pipelining plan.
+
+CLI usage:
+```
+proto-vm-cli global-pipeline-apply --workspace <workspace> --session-id <session_id> --plan-id <plan_id> [--branch <branch_name>] [--apply-only-safe] [--allow-suspicious] [--max-moves <N>]
+```
+
+Daemon request:
+```json
+{
+  "id": "req1",
+  "command": "global-pipeline-apply",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "payload": {
+    "branch": "main",
+    "plan_id": "GPP_ALU_PIPE_BALANCE_1",
+    "apply_only_safe": "true",
+    "allow_suspicious": "false",
+    "max_moves": "20"
+  }
+}
+```
+
+Response:
+```json
+{
+  "ok": true,
+  "command": "global-pipeline-apply",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "applied_plan": {
+      "id": "GPP_ALU_PIPE_BALANCE_1",
+      "subsystem_id": "ALU_PIPE",
+      "estimated_global_depth_before": 25,
+      "estimated_global_depth_after": 18,
+      "respects_cdc_fences": true
+    }
+  }
+}
+```
+
+## 23. Phase 12: Behavior-Preserving Transformations / Refactor Engine
+
+### 23.1 Overview
+
 The refactoring engine provides behavior-preserving structural transformations for circuits using semantic analysis. It identifies local optimization opportunities and applies them while ensuring high-level circuit behavior is preserved.
 
-### 22.2 Transformation Model
+### 23.2 Transformation Model
 
 The system defines a structured transformation model:
 - `TransformationKind`: Types of transformations (SimplifyDoubleInversion, SimplifyRedundantGate, ReplaceWithKnownBlock, etc.)
@@ -3430,6 +3790,552 @@ Execute a structured, multi-step design workflow in a single command:
       "behavior_diff": { ... },
       "ir_diff": { ... },
       "codegen": { ... CodegenModule ... }
+    }
+  }
+}
+```
+## 25. Phase 23: Structural Synthesis & Refactor Layer Commands
+
+### 25.1 Overview
+
+The structural synthesis layer adds commands for analyzing and refactoring circuit structure while preserving behavior. These commands enable structural cleanup and canonicalization of logic patterns.
+
+### 25.2 Structural Analysis Commands
+
+#### 25.2.1 `struct-analyze-block`
+
+Analyzes a block for structural refactor opportunities.
+
+**CLI Usage:**
+```
+proto-vm-cli struct-analyze-block --workspace <path> --session-id <id> --block-id <block_id> --branch <name>
+```
+
+**Daemon Usage:**
+```json
+{
+  "id": "req-1",
+  "command": "struct-analyze-block",
+  "workspace": "/path/to/ws",
+  "session_id": 1,
+  "user_id": "user",
+  "payload": {
+    "branch": "main",
+    "block_id": "ALU_CORE"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "command": "struct-analyze-block",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "block_id": "ALU_CORE",
+    "structural_refactor_plan": {
+      "id": "SRP_ALU_CORE_1",
+      "target_block_id": "ALU_CORE",
+      "patterns": [ ... ],
+      "moves": [ ... ],
+      "gate_count_before": 1200,
+      "gate_count_after_estimate": 980,
+      "depth_before": 15,
+      "depth_after_estimate": 12,
+      "respects_cdc_fences": true
+    }
+  }
+}
+```
+
+#### 25.2.2 `struct-apply-block`
+
+Applies a structural refactor plan to a block.
+
+**CLI Usage:**
+```
+proto-vm-cli struct-apply-block --workspace <path> --session-id <id> --plan-id <plan_id> --block-id <block_id> --branch <name> --safe-only <true|false>
+```
+
+**Daemon Usage:**
+```json
+{
+  "id": "req-2",
+  "command": "struct-apply-block",
+  "workspace": "/path/to/ws",
+  "session_id": 1,
+  "user_id": "user",
+  "payload": {
+    "branch": "main",
+    "plan_id": "SRP_ALU_CORE_1",
+    "block_id": "ALU_CORE",
+    "safe_only": true
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "command": "struct-apply-block",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "block_id": "ALU_CORE",
+    "application_result": {
+      "plan_id": "SRP_ALU_CORE_1",
+      "target_id": "ALU_CORE",
+      "applied_move_ids": ["SRM_0001", "SRM_0002"],
+      "skipped_move_ids": [],
+      "new_circuit_revision": 51,
+      "estimated_max_depth_before": 15,
+      "estimated_max_depth_after": 12,
+      "all_moves_safe": true
+    }
+  }
+}
+```
+
+
+#### 25.3 Code Generation Commands
+
+The code generation commands convert circuit blocks to executable C/C++ code based on their behavioral analysis and high-level synthesis IR.
+
+#### 25.3.1 `codegen-block-ir`
+
+Inspect the CodegenIR representation for a circuit block.
+
+**CLI Usage:**
+```
+proto-vm-cli codegen-block-ir --workspace <path> --session-id <id> --block-id <block_id> --branch <name>
+```
+
+**Daemon Usage:**
+```json
+{
+  "id": "req-2",
+  "command": "codegen-block-ir",
+  "workspace": "/path/to/ws",
+  "session_id": 1,
+  "user_id": "user",
+  "payload": {
+    "branch": "main",
+    "block_id": "ALU_CORE"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "command": "codegen-block-ir",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "block_id": "ALU_CORE",
+    "codegen_module": {
+      "id": "ALU_CORE",
+      "block_id": "ALU_CORE",
+      "inputs": [
+        {
+          "name": "A",
+          "c_type": "int32_t",
+          "bit_width": 32,
+          "storage": "Input",
+          "is_array": false,
+          "array_length": -1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "SUM",
+          "c_type": "int32_t",
+          "bit_width": 32,
+          "storage": "Output",
+          "is_array": false,
+          "array_length": -1
+        }
+      ],
+      "locals": [],
+      "state": [],
+      "comb_assigns": [],
+      "state_updates": [],
+      "is_oscillator_like": false,
+      "behavior_summary": "Adder block that performs A + B"
+    }
+  }
+}
+```
+
+#### 25.3.2 `codegen-block-c`
+
+Generate C/C++ code for a circuit block.
+
+**CLI Usage:**
+```
+proto-vm-cli codegen-block-c --workspace <path> --session-id <id> --block-id <block_id> --branch <name> --lang <C|Cpp> --state-struct-name <name> --function-name <name> --emit-state-struct <true|false>
+```
+
+**Daemon Usage:**
+```json
+{
+  "id": "req-3",
+  "command": "codegen-block-c",
+  "workspace": "/path/to/ws",
+  "session_id": 1,
+  "user_id": "user",
+  "payload": {
+    "branch": "main",
+    "block_id": "ALU_CORE",
+    "lang": "C",
+    "state_struct_name": "BlockState",
+    "function_name": "BlockStep",
+    "emit_state_struct": true
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "command": "codegen-block-c",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "block_id": "ALU_CORE",
+    "language": "C",
+    "code": "/* Generated C code */"
+  }
+}
+```
+
+#### 25.3.3 `codegen-block-osc-demo`
+
+Generate oscillator demo code for oscillator-like blocks.
+
+**CLI Usage:**
+```
+proto-vm-cli codegen-block-osc-demo --workspace <path> --session-id <id> --block-id <block_id> --branch <name> --lang <C|Cpp> --state-struct-name <name> --step-function-name <name> --render-function-name <name>
+```
+
+**Daemon Usage:**
+```json
+{
+  "id": "req-4",
+  "command": "codegen-block-osc-demo",
+  "workspace": "/path/to/ws",
+  "session_id": 1,
+  "user_id": "user",
+  "payload": {
+    "branch": "main",
+    "block_id": "OSC1",
+    "lang": "C",
+    "state_struct_name": "OscState",
+    "step_function_name": "OscStep",
+    "render_function_name": "OscRender"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "command": "codegen-block-osc-demo",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "block_id": "OSC1",
+    "language": "C",
+    "code": "/* Generated oscillator demo code */"
+  }
+}
+```
+
+
+#### 25.3.4 `dsp-graph-inspect`
+
+Inspect the DSP graph representation for an oscillator-like block.
+
+**CLI Usage:**
+```
+proto-vm-cli dsp-graph-inspect --workspace <path> --session-id <id> --block-id <block_id> --branch <name> --freq-hz <double> --pan-lfo-hz <double> --sample-rate <double> --duration-sec <double>
+```
+
+**Daemon Usage:**
+```json
+{
+  "id": "req-5",
+  "command": "dsp-graph-inspect",
+  "workspace": "/path/to/ws",
+  "session_id": 1,
+  "user_id": "user",
+  "payload": {
+    "branch": "main",
+    "block_id": "OSC1",
+    "freq_hz": 440.0,
+    "pan_lfo_hz": 0.25,
+    "sample_rate": 48000.0,
+    "duration_sec": 3.0
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "command": "dsp-graph-inspect",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "block_id": "OSC1",
+    "dsp_graph": {
+      "graph_id": "DSP_OSC1",
+      "sample_rate_hz": 48000.0,
+      "block_size": 256,
+      "total_samples": 144000,
+      "nodes": [
+        {
+          "id": "osc",
+          "kind": "oscillator",
+          "input_ports": [],
+          "output_ports": ["out"],
+          "params": {
+            "frequency_hz": 440.0
+          }
+        },
+        {
+          "id": "pan_lfo",
+          "kind": "pan_lfo",
+          "input_ports": [],
+          "output_ports": ["pan"],
+          "params": {
+            "rate_hz": 0.25
+          }
+        },
+        {
+          "id": "panner",
+          "kind": "stereo_panner",
+          "input_ports": ["in", "pan"],
+          "output_ports": ["outL", "outR"],
+          "params": {}
+        },
+        {
+          "id": "output",
+          "kind": "output_sink",
+          "input_ports": ["inL", "inR"],
+          "output_ports": [],
+          "params": {
+            "total_samples": 144000.0
+          }
+        }
+      ],
+      "connections": [
+        {
+          "from": {"node_id": "osc", "port_name": "out"},
+          "to": {"node_id": "panner", "port_name": "in"}
+        },
+        {
+          "from": {"node_id": "pan_lfo", "port_name": "pan"},
+          "to": {"node_id": "panner", "port_name": "pan"}
+        },
+        {
+          "from": {"node_id": "panner", "port_name": "outL"},
+          "to": {"node_id": "output", "port_name": "inL"}
+        },
+        {
+          "from": {"node_id": "panner", "port_name": "outR"},
+          "to": {"node_id": "output", "port_name": "inR"}
+        }
+      ],
+      "osc_node_id": "osc",
+      "pan_lfo_node_id": "pan_lfo",
+      "panner_node_id": "panner",
+      "output_node_id": "output"
+    }
+  }
+}
+```
+
+#### 25.3.5 `dsp-render-osc`
+
+Render stereo audio for an oscillator-like block with panning.
+
+**CLI Usage:**
+```
+proto-vm-cli dsp-render-osc --workspace <path> --session-id <id> --block-id <block_id> --branch <name> --freq-hz <double> --pan-lfo-hz <double> --sample-rate <double> --duration-sec <double>
+```
+
+**Daemon Usage:**
+```json
+{
+  "id": "req-6",
+  "command": "dsp-render-osc",
+  "workspace": "/path/to/ws",
+  "session_id": 1,
+  "user_id": "user",
+  "payload": {
+    "branch": "main",
+    "block_id": "OSC1",
+    "freq_hz": 440.0,
+    "pan_lfo_hz": 0.25,
+    "sample_rate": 48000.0,
+    "duration_sec": 3.0
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "command": "dsp-render-osc",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "block_id": "OSC1",
+    "sample_rate_hz": 48000.0,
+    "duration_sec": 3.0,
+    "total_samples": 144000,
+    "left": [0.0, 0.01, 0.02, ...],
+    "right": [0.0, 0.01, 0.02, ...],
+    "render_stats": {
+      "left_rms": 0.707,
+      "right_rms": 0.707,
+      "left_min": -0.999,
+      "left_max": 0.999,
+      "right_min": -0.999,
+      "right_max": 0.999
+    }
+  }
+}
+```
+
+#### 25.3.6 `analog-model-inspect`
+
+Inspect the analog model extracted from an analog circuit block.
+
+**CLI Usage:**
+```
+proto-vm-cli analog-model-inspect --workspace <path> --session-id <id> --block-id <block_id> --branch <name>
+```
+
+**Daemon Usage:**
+```json
+{
+  "id": "req-7",
+  "command": "analog-model-inspect",
+  "workspace": "/path/to/ws",
+  "session_id": 1,
+  "user_id": "user",
+  "payload": {
+    "branch": "main",
+    "block_id": "ANALOG_OSC1"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "command": "analog-model-inspect",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "block_id": "ANALOG_OSC1",
+    "analog_model": {
+      "id": "ANALOG_OSC1",
+      "block_id": "ANALOG_OSC1",
+      "kind": "RcOscillator",
+      "state": [
+        { "name": "v_out", "kind": "Voltage", "value": 0.0 }
+      ],
+      "params": [
+        { "name": "R", "value": 10000.0 },
+        { "name": "C", "value": 1e-7 }
+      ],
+      "output_state_name": "v_out",
+      "estimated_freq_hz": 159.15
+    }
+  }
+}
+```
+
+#### 25.3.7 `analog-render-osc`
+
+Render analog oscillator output to stereo audio with panning.
+
+**CLI Usage:**
+```
+proto-vm-cli analog-render-osc --workspace <path> --session-id <id> --block-id <block_id> --branch <name> --sample-rate <double> --duration-sec <double> --pan-lfo-hz <double>
+```
+
+**Daemon Usage:**
+```json
+{
+  "id": "req-8",
+  "command": "analog-render-osc",
+  "workspace": "/path/to/ws",
+  "session_id": 1,
+  "user_id": "user",
+  "payload": {
+    "branch": "main",
+    "block_id": "ANALOG_OSC1",
+    "sample_rate": 48000.0,
+    "duration_sec": 3.0,
+    "pan_lfo_hz": 0.25
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "command": "analog-render-osc",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "block_id": "ANALOG_OSC1",
+    "sample_rate_hz": 48000.0,
+    "duration_sec": 3.0,
+    "estimated_freq_hz": 159.15,
+    "pan_lfo_hz": 0.25,
+    "total_samples": 144000,
+    "left_preview": [0.0, 0.01, 0.02, ...],
+    "right_preview": [0.0, 0.01, 0.02, ...],
+    "render_stats": {
+      "left_rms": 0.707,
+      "right_rms": 0.707,
+      "left_min": -0.999,
+      "left_max": 0.999,
+      "right_min": -0.999,
+      "right_max": 0.999
     }
   }
 }

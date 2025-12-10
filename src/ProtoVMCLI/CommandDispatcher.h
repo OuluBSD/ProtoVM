@@ -118,6 +118,26 @@ public:
     Upp::String RunRetimeBlockApply(const CommandOptions& opts);
     Upp::String RunRetimeSubsystemApply(const CommandOptions& opts);
 
+    // Retiming optimization commands
+    Upp::String RunRetimeOptBlock(const CommandOptions& opts);
+    Upp::String RunRetimeOptSubsystem(const CommandOptions& opts);
+
+    // Global pipeline analysis commands
+    Upp::String RunGlobalPipelineSubsystem(const CommandOptions& opts);
+    Upp::String RunGlobalPipelineOptSubsystem(const CommandOptions& opts);
+    Upp::String RunGlobalPipelineApply(const CommandOptions& opts);
+
+    // Structural synthesis commands
+    Upp::String RunStructAnalyzeBlock(const CommandOptions& opts);
+    Upp::String RunStructApplyBlock(const CommandOptions& opts);
+
+    // Codegen commands
+    Upp::String RunCodegenBlockIr(const CommandOptions& opts);
+    Upp::String RunCodegenBlockC(const CommandOptions& opts);
+    Upp::String RunCodegenBlockOscDemo(const CommandOptions& opts);
+    Upp::String RunCodegenBlockCppClass(const CommandOptions& opts);
+    Upp::String RunCodegenBlockAudioDemo(const CommandOptions& opts);
+
     // CoDesigner commands
     Upp::String RunDesignerCreateSession(const CommandOptions& opts);
     Upp::String RunDesignerSetFocus(const CommandOptions& opts);
@@ -131,6 +151,19 @@ public:
     Upp::String RunDesignerRunPlaybook(const CommandOptions& opts);
     Upp::String RunDesignerRetime(const CommandOptions& opts);
     Upp::String RunDesignerRetimeApply(const CommandOptions& opts);
+    Upp::String RunDesignerRetimeOpt(const CommandOptions& opts);
+
+    // Designer codegen for C++ class and audio demo
+    Upp::String RunDesignerCodegenBlockCppClass(const CommandOptions& opts);
+    Upp::String RunDesignerCodegenBlockAudioDemo(const CommandOptions& opts);
+
+    // DSP graph commands
+    Upp::String RunDspGraphInspect(const CommandOptions& opts);
+    Upp::String RunDspRenderOsc(const CommandOptions& opts);
+
+    // Analog model commands
+    Upp::String RunAnalogModelInspect(const CommandOptions& opts);
+    Upp::String RunAnalogRenderOsc(const CommandOptions& opts);
 
 private:
     std::unique_ptr<ISessionStore> session_store_;

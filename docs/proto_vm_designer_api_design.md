@@ -1,73 +1,46 @@
-# ProtoVM Co-Designer API Design Document
+# ProtoVM CoDesigner API Design Document
 
 ## 1. Purpose & Scope
 
-The ProtoVM Co-Designer API introduces an AI-friendly design session layer that orchestrates existing ProtoVM capabilities for interactive circuit design, analysis, and optimization. This API provides a structured, session-oriented protocol for AI clients to perform tasks like:
+The CoDesigner API is a high-level API designed for AI-powered design assistants. It provides semantic operations and analyses to support design exploration, optimization, and transformation workflows.
 
-- Circuit analysis and behavioral inference
-- High-level optimization and refactoring
-- Transformation plan generation and application
-- Diff analysis between circuit versions
-- Code generation for human-readable representations
+## 2. API Model
 
-## 2. Co-Designer Session Model
+The CoDesigner API is a stateful session-based API where clients:
+- Create a high-level designer session linked to a ProtoVM session
+- Set focus to specific blocks, components, or subcircuits for analysis
+- Request semantic operations and analyses
+- Receive structured responses with design insights
 
-### 2.1 High-Level Concept
+## 3. Session Management
 
-A CoDesignerSession wraps an existing ProtoVM session and branch, maintaining focus on a specific block or node region. The session provides:
+### 3.1 `designer-create-session`
 
-- **Focus state**: Current block, node, or circuit region of interest
-- **Analysis preferences**: IR optimization settings, etc.
-- **State management**: Track AI client position in design workflow
+Create a new CoDesigner session linked to a ProtoVM session.
 
-### 2.2 CoDesignerSession State Structure
-
-```cpp
-struct CoDesignerSessionState {
-    String designer_session_id;  // unique ID for this co-designer session
-    int    proto_session_id;     // underlying ProtoVM session
-    String branch;               // branch name
-    String current_block_id;     // optional: active block focus
-    String current_node_id;      // optional: active node region focus
-    String current_node_kind;    // "Pin" / "Component" / "Net" / empty
-    bool   use_optimized_ir;     // default false
-};
-```
-
-**Lifetime**: CoDesigner sessions exist only in daemon memory during the daemon lifetime and are not persisted to disk.
-
-## 3. Co-Designer Commands
-
-All commands follow the standard ProtoVM CLI envelope:
-
+**Request Parameters**:
 ```json
 {
-  "ok": true,
-  "command": "designer-command-name",
-  "error_code": null,
-  "error": null,
-  "data": { /* command-specific data */ }
-}
-```
-
-### 3.1 designer-create-session
-
-**Purpose**: Create a new CoDesignerSession bound to an existing ProtoVM session/branch.
-
-**Request**:
-```json
-{
-  "proto_session_id": 1,
-  "branch": "main"
+  "command": "designer-create-session",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "branch": "main"
+  }
 }
 ```
 
 **Response**:
 ```json
 {
+  "ok": true,
+  "command": "designer-create-session",
+  "error_code": null,
+  "error": null,
   "data": {
     "designer_session": {
-      "designer_session_id": "cd-1234",
+      "designer_session_id": "cds-1234",
       "proto_session_id": 1,
       "branch": "main",
       "current_block_id": "",
@@ -79,340 +52,567 @@ All commands follow the standard ProtoVM CLI envelope:
 }
 ```
 
-### 3.2 designer-set-focus
+### 3.2 `designer-set-focus`
 
-**Purpose**: Set the current focus for the CoDesignerSession.
+Set the focus to a specific block or node for analysis.
 
-**Request**:
+**Request Parameters**:
 ```json
 {
-  "designer_session_id": "cd-1234",
-  "block_id": "B3",
-  "node_id": "C10:OUT",
-  "node_kind": "Pin",
-  "use_optimized_ir": true
-}
-```
-
-**Response**: Updated `CoDesignerSessionState`.
-
-### 3.3 designer-get-context
-
-**Purpose**: Retrieve current context (for AI to orient itself).
-
-**Response**:
-```json
-{
-  "data": {
-    "designer_session": { ... },
-    "block_behavior": { ... },  // if current_block_id is set
-    "node_behavior": { ... }    // if current_node_id is set
+  "command": "designer-set-focus",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "block_id": "BLOCK1",
+    "node_id": "NODE1",
+    "node_kind": "Component",
+    "use_optimized_ir": false
   }
 }
 ```
 
-### 3.4 designer-analyze
-
-**Purpose**: Provide a bundle of analysis results in a single call, based on current focus.
-
-**Request**:
+**Response**:
 ```json
 {
-  "designer_session_id": "cd-1234",
-  "include_behavior": true,
-  "include_ir": true,
-  "include_graph_stats": false,
-  "include_timing": false
+  "ok": true,
+  "command": "designer-set-focus",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "designer_session": {
+      "designer_session_id": "cds-1234",
+      "proto_session_id": 1,
+      "branch": "main",
+      "current_block_id": "BLOCK1",
+      "current_node_id": "NODE1",
+      "current_node_kind": "Component",
+      "use_optimized_ir": false
+    }
+  }
+}
+```
+
+## 4. Analysis Commands
+
+### 4.1 `designer-get-context`
+
+Get detailed information about the currently focused design elements.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-get-context",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234"
+  }
 }
 ```
 
 **Response**:
 ```json
 {
+  "ok": true,
+  "command": "designer-get-context",
+  "error_code": null,
+  "error": null,
   "data": {
     "designer_session": { ... },
-    "block": {
-      "block_id": "B3",
-      "behavior": { ... BehaviorDescriptor ... },
-      "ir": { ... IrModule ... }
+    "block_behavior": { ... },
+    "node_behavior": { ... }
+  }
+}
+```
+
+### 4.2 `designer-analyze`
+
+Perform comprehensive analysis of the focused design element.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-analyze",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "include_behavior": true,
+    "include_ir": true,
+    "include_graph_stats": true,
+    "include_timing": false
+  }
+}
+```
+
+### 4.3 `designer-optimize`
+
+Apply IR-level optimizations to the focused design element.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-optimize",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "target": "block",
+    "passes": ["simplify-double-inversion", "simplify-redundant-gate"]
+  }
+}
+```
+
+## 5. Transformation Commands
+
+### 5.1 `designer-propose-refactors`
+
+Suggest refactorings for the focused design element.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-propose-refactors",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "target": "block",
+    "passes": ["simplify-double-inversion", "simplify-redundant-gate"]
+  }
+}
+```
+
+### 5.2 `designer-apply-refactors`
+
+Apply a set of refactorings to the focused design element.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-apply-refactors",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "plans": [...],
+    "user_id": "assistant-123",
+    "allow_unverified": false
+  }
+}
+```
+
+## 6. Change Detection and Diff
+
+### 6.1 `designer-diff`
+
+Compare two branches or revisions of the focused design element.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-diff",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "compare_branch": "feature-branch",
+    "include_behavior_diff": true,
+    "include_ir_diff": true
+  }
+}
+```
+
+## 7. Code Generation Commands
+
+### 7.1 `designer-codegen`
+
+Generate code for the focused design element.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-codegen",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "target": "block",
+    "flavor": "PseudoVerilog",
+    "use_optimized_ir": true
+  }
+}
+```
+
+### 7.2 `designer-codegen-block-c`
+
+Generate C/C++ code for the focused block.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-codegen-block-c",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "block_id": "BLOCK1",
+    "lang": "cpp",
+    "emit_state_struct": true,
+    "state_struct_name": "BlockState",
+    "function_name": "Step"
+  }
+}
+```
+
+### 7.3 `designer-codegen-block-audio-demo`
+
+Generate an audio demo for an oscillator-like block.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-codegen-block-audio-demo",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "block_id": "OSC1",
+    "lang": "cpp",
+    "state_struct_name": "OscillatorState",
+    "step_function_name": "OscillatorStep",
+    "render_function_name": "OscillatorRender"
+  }
+}
+```
+
+## 8. Retiming Commands
+
+### 8.1 `designer-retiming`
+
+Analyze retiming possibilities for the focused design element.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-retiming",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "target": "block",
+    "block_id": "BLOCK1",
+    "min_depth": 2,
+    "max_plans": 5
+  }
+}
+```
+
+### 8.2 `designer-retiming-apply`
+
+Apply a retiming plan to the focused design element.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-retiming-apply",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "target": "block",
+    "plan_id": "plan-123",
+    "apply_only_safe": true
+  }
+}
+```
+
+### 8.3 `designer-retiming-opt`
+
+Optimize retiming for the focused design element.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-retiming-opt",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "target": "block",
+    "block_id": "BLOCK1",
+    "objective": {
+      "kind": "CriticalPathReduction",
+      "target_reduction": 0.1
     },
-    "node": {
-      "node_id": "C10:OUT",
-      "behavior": { ... },
-      "ir": { ... }
-    }
+    "apply": false
   }
 }
 ```
 
-### 3.5 designer-optimize
+## 9. Global Pipelining Commands
 
-**Purpose**: Run IR optimizations for the focused block or node-region and show results.
+### 9.1 `designer-global-pipeline`
 
-**Request**:
+Analyze global pipelining for a subsystem.
+
+**Request Parameters**:
 ```json
 {
-  "designer_session_id": "cd-1234",
-  "target": "block",          // "block" or "node"
-  "passes": ["SimplifyAlgebraic", "FoldConstants"]
+  "command": "designer-global-pipeline",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "target": "subsystem",
+    "subsystem_id": "SUB1",
+    "block_ids": ["BLOCK1", "BLOCK2", "BLOCK3"],
+    "analyze_only": true
+  }
+}
+```
+
+### 9.2 `designer-global-pipeline-opt`
+
+Optimize global pipelining for a subsystem.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-global-pipeline-opt",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "target": "subsystem",
+    "subsystem_id": "SUB1",
+    "block_ids": ["BLOCK1", "BLOCK2", "BLOCK3"],
+    "objective": {
+      "kind": "ThroughputMaximization",
+      "target_ii": 1
+    },
+    "apply": false
+  }
+}
+```
+
+### 9.3 `designer-global-pipeline-apply`
+
+Apply a global pipelining plan to a subsystem.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-global-pipeline-apply",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "plan_id": "gpp-123",
+    "apply_only_safe": true
+  }
+}
+```
+
+## 10. Structural Synthesis Commands
+
+### 10.1 `designer-struct-analyze`
+
+Analyze structural patterns in the focused design element.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-struct-analyze",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "target": "block",
+    "block_id": "BLOCK1"
+  }
+}
+```
+
+### 10.2 `designer-struct-apply`
+
+Apply structural changes to the focused design element.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-struct-apply",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "plan_id": "struct-plan-123",
+    "apply_only_safe": true
+  }
+}
+```
+
+## 11. DSP Graph Commands
+
+### 11.1 `designer-dsp-graph-inspect`
+
+Inspect the DSP graph for an oscillator-like block.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-dsp-graph-inspect",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "target": "block",
+    "block_id": "OSC1",
+    "freq_hz": 440.0,
+    "pan_lfo_hz": 0.25,
+    "sample_rate": 48000.0,
+    "duration_sec": 3.0
+  }
+}
+```
+
+### 11.2 `designer-dsp-render-osc`
+
+Render audio from an oscillator-like block.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-dsp-render-osc",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "target": "block",
+    "block_id": "OSC1",
+    "freq_hz": 440.0,
+    "pan_lfo_hz": 0.25,
+    "sample_rate": 48000.0,
+    "duration_sec": 3.0
+  }
+}
+```
+
+## 12. Analog Model Commands
+
+### 12.1 `designer-analog-model-inspect`
+
+Inspect the analog model extracted from an analog circuit block.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-analog-model-inspect",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "target": "block",
+    "block_id": "ANALOG_OSC1"
+  }
 }
 ```
 
 **Response**:
 ```json
 {
+  "ok": true,
+  "command": "designer-analog-model-inspect",
+  "error_code": null,
+  "error": null,
   "data": {
     "designer_session": { ... },
-    "optimization": {
-      "original": { ... IrModule ... },
-      "optimized": { ... IrModule ... },
-      "summaries": [ ... IrOptChangeSummary ... ]
-    }
-  }
-}
-```
-
-### 3.6 designer-propose-refactors
-
-**Purpose**: Propose transformation plans based on IR optimizations and known patterns.
-
-**Request**:
-```json
-{
-  "designer_session_id": "cd-1234",
-  "target": "block",
-  "passes": ["SimplifyAlgebraic", "FoldConstants"]
-}
-```
-
-**Response**:
-```json
-{
-  "data": {
-    "designer_session": { ... },
-    "plans": [
-      { "id": "IR_T1", "kind": "SimplifyDoubleInversion", ... },
-      { "id": "IR_T2", "kind": "SimplifyRedundantGate", ... }
-    ]
-  }
-}
-```
-
-### 3.7 designer-apply-refactors
-
-**Purpose**: Apply one or more transformation plans to the underlying branch, with behavior safety.
-
-**Request**:
-```json
-{
-  "designer_session_id": "cd-1234",
-  "plans": [
-    { ... full TransformationPlan object ... }
-  ],
-  "user_id": "ai-agent-1",
-  "allow_unverified": false
-}
-```
-
-**Response**:
-```json
-{
-  "data": {
-    "designer_session": { ... updated ... },
-    "applied_plan_ids": ["IR_T1"],
-    "new_circuit_revision": 42
-  }
-}
-```
-
-### 3.8 designer-diff
-
-**Purpose**: Get before/after insight after changes, based on current focus.
-
-**Request**:
-```json
-{
-  "designer_session_id": "cd-1234",
-  "compare_branch": "main",  // or other reference branch
-  "include_behavior_diff": true,
-  "include_ir_diff": true
-}
-```
-
-**Response**:
-```json
-{
-  "data": {
-    "designer_session": { ... },
-    "behavior_diff": { ... BehaviorDiff ... },
-    "ir_diff": { ... IrDiff ... }
-  }
-}
-```
-
-### 3.9 designer-codegen
-
-**Purpose**: Generate human-readable code for the focus point.
-
-**Request**:
-```json
-{
-  "designer_session_id": "cd-1234",
-  "target": "block",
-  "flavor": "PseudoVerilog",
-  "use_optimized_ir": true
-}
-```
-
-**Response**:
-```json
-{
-  "data": {
-    "designer_session": { ... },
-    "codegen": {
-      "id": "B3",
-      "name": "B3_Adder",
-      "flavor": "PseudoVerilog",
-      "code": "module B3_Adder(...);\n  ...\nendmodule\n"
-    }
-  }
-}
-```
-
-## 4. Integration with Existing Infrastructure
-
-The Co-Designer API is built on top of existing ProtoVM infrastructure:
-
-- **CircuitFacade**: Provides access to circuit state and analysis operations
-- **BehavioralAnalysis**: Behavioral inference for blocks and nodes
-- **HlsIrInference**: IR generation for blocks and node regions
-- **IrOptimization**: IR-level optimization passes and transformation plans
-- **Transformations**: Refactoring operations
-- **DiffAnalysis**: Comparison between circuit versions
-- **Codegen**: Human-readable code generation
-
-## 5. Example Workflows
-
-### 5.1 Optimize and Refactor an ALU Block with AI
-
-1. Create co-designer session for session 1 on main branch
-2. Set focus to ALU block B5
-3. Call analyze to get current behavior and IR
-4. Call optimize with ["SimplifyAlgebraic", "FoldConstants"] passes
-5. Call propose-refactors to get transformation plans
-6. Call apply-refactors for selected plans
-7. Call diff to see changes between before/after
-8. Call codegen to get optimized Verilog representation
-
-### 5.2 Compare Experimental Branch vs Main for a Given Block
-
-1. Create co-designer session for session 1 on experimental branch
-2. Set focus to target block B3
-3. Call designer-diff with compare_branch="main"
-4. Review behavior and IR differences
-
-## 6. Limitations
-
-- Co-designer sessions are in-memory only (not persisted beyond daemon lifetime)
-- No natural language processing (this is a structured API)
-- All operations are orchestrations over existing capabilities (no new functionality)
-- Session IDs are UUID-like strings but not full UUIDs
-
-## 7. Autonomous Playbook Integration (Phase 17)
-
-The Co-Designer API now supports autonomous playbooks that orchestrate multi-step design workflows as single high-level commands. The main playbook command is:
-
-### 7.1 designer-run-playbook
-
-Execute a structured, multi-step design workflow in a single command:
-
-**Request**:
-```json
-{
-  "designer_session_id": "cd-1234",
-  "playbook_kind": "OptimizeAndApplySafeRefactors",
-  "target": "block",
-  "block_id": "B3",
-  "baseline_branch": "main",
-  "passes": ["SimplifyAlgebraic", "FoldConstants"],
-  "use_optimized_ir": true,
-  "apply_refactors": true
-}
-```
-
-**Response**:
-```json
-{
-  "playbook_result": {
-    "kind": "OptimizeAndApplySafeRefactors",
-    "config": { ... },
-    "designer_session": { ... },
-    "initial_behavior": { ... },
-    "final_behavior": { ... },
-    "initial_ir": { ... },
-    "final_ir": { ... },
-    "optimization": { ... IrOptimizationResult ... },
-    "proposed_plans": [ ... ],
-    "applied_plan_ids": ["IR_T1", "IR_T2"],
-    "new_circuit_revision": 42,
-    "behavior_diff": { ... },
-    "ir_diff": { ... },
-    "codegen": { ... CodegenModule ... }
-  }
-}
-```
-
-### 7.2 designer-cdc (Optional)
-
-The Co-Designer API optionally supports CDC analysis that orchestrates the CDC analysis commands for the focused block or subsystem:
-
-**Request**:
-```json
-{
-  "designer_session_id": "cd-1234",
-  "target": "block",          // "block" or "system/subsystem"
-  "subsystem_id": "ALU_PIPE",
-  "block_ids": ["ALU_STAGE1", "ALU_STAGE2"]
-}
-```
-
-**Response**:
-```json
-{
-  "data": {
-    "designer_session": { ... },
-    "cdc_report": {
-      "id": "ALU_PIPE",
-      "clock_domains": [
-        { "signal_name": "CLK_A", "domain_id": 0 },
-        { "signal_name": "CLK_B", "domain_id": 1 }
+    "analog_model": {
+      "id": "ANALOG_OSC1",
+      "block_id": "ANALOG_OSC1",
+      "kind": "RcOscillator",
+      "state": [
+        { "name": "v_out", "kind": "Voltage", "value": 0.0 }
       ],
-      "crossings": [
-        {
-          "id": "CDCC_0001",
-          "src": { "reg_id": "R1", "clock_signal": "CLK_A", "domain_id": 0 },
-          "dst": { "reg_id": "R2", "clock_signal": "CLK_B", "domain_id": 1 },
-          "kind": "MultiBitBundle",
-          "is_single_bit": false,
-          "bit_width": 8,
-          "crosses_reset_boundary": false
-        }
+      "params": [
+        { "name": "R", "value": 10000.0 },
+        { "name": "C", "value": 1e-7 }
       ],
-      "issues": [
-        {
-          "id": "CDCISS_0001",
-          "severity": "Error",
-          "summary": "Multi-bit CDC bundle from CLK_A to CLK_B.",
-          "detail": "8-bit register crossing clock domains without recognized safe structure. Consider async FIFO or Gray code encoding."
-        }
-      ]
+      "output_state_name": "v_out",
+      "estimated_freq_hz": 159.15
     }
   }
 }
 ```
 
-## 8. Security & Authorization
+### 12.2 `designer-analog-render-osc`
 
-- Co-designer commands follow the same authorization model as other ProtoVM commands
-- Requires valid session ID with appropriate read/write permissions
-- User ID tracking follows the same pattern as other commands
+Render analog oscillator output to stereo audio with panning.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-analog-render-osc",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "target": "block",
+    "block_id": "ANALOG_OSC1",
+    "sample_rate_hz": 48000.0,
+    "duration_sec": 3.0,
+    "pan_lfo_hz": 0.25
+  }
+}
+```
+
+**Response**:
+```json
+{
+  "ok": true,
+  "command": "designer-analog-render-osc",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "designer_session": { ... },
+    "left_samples": [0.0, 0.01, 0.02, ...],
+    "right_samples": [0.0, 0.01, 0.02, ...],
+    "render_stats": {
+      "sample_rate_hz": 48000.0,
+      "duration_sec": 3.0,
+      "estimated_freq_hz": 159.15,
+      "pan_lfo_hz": 0.25,
+      "left_rms": 0.707,
+      "right_rms": 0.707,
+      "left_min": -0.999,
+      "left_max": 0.999,
+      "right_min": -0.999,
+      "right_max": 0.999,
+      "total_samples": 144000
+    }
+  }
+}
+```

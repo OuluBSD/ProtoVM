@@ -15,6 +15,14 @@
 #include "DiffAnalysis.h"
 #include "IrOptimization.h"
 #include "RetimingModel.h"
+#include "GlobalPipeline.h"
+#include "GlobalPipelineAnalysis.h"
+#include "GlobalPipelining.h"
+#include "StructuralSynthesis.h"
+#include "StructuralTransform.h"
+#include "CodegenIr.h"
+#include "CodegenIrInference.h"
+#include "CodeEmitter.h"
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
@@ -5649,6 +5657,824 @@ Upp::String CommandDispatcher::RunRetimeSubsystemApply(const CommandOptions& opt
     }
 }
 
+Upp::String CommandDispatcher::RunRetimeOptBlock(const CommandOptions& opts) {
+    try {
+        if (opts.Get("workspace").empty()) {
+            return JsonIO::ErrorResponse("retime-opt-block", "Workspace path is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("session-id").empty()) {
+            return JsonIO::ErrorResponse("retime-opt-block", "Session ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("block-id").empty()) {
+            return JsonIO::ErrorResponse("retime-opt-block", "Block ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("objective").empty()) {
+            return JsonIO::ErrorResponse("retime-opt-block", "Objective is required", "INVALID_ARGUMENT");
+        }
+
+        // Parse the workspace path and session ID
+        std::string workspace_path = opts.Get("workspace");
+        int session_id = std::stoi(opts.Get("session-id"));
+
+        // Parse the block ID
+        std::string block_id = opts.Get("block-id");
+
+        // Parse the branch name (optional, default to main)
+        std::string branch_name = opts.Get("branch", "main");
+
+        // Get the session metadata
+        auto load_result = session_store_->LoadSessionMetadata(session_id);
+        if (!load_result.ok) {
+            std::string error_code_str = ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("retime-opt-block", load_result.error_message, error_code_str);
+        }
+
+        SessionMetadata session = load_result.data;
+        std::string session_dir = workspace_path + "/sessions/" + std::to_string(session_id);
+
+        // Parse the objective
+        RetimingObjectiveKind objective_kind;
+        std::string objective_str = opts.Get("objective");
+        if (objective_str == "MinimizeMaxDepth") {
+            objective_kind = RetimingObjectiveKind::MinimizeMaxDepth;
+        } else if (objective_str == "MinimizeDepthWithBudget") {
+            objective_kind = RetimingObjectiveKind::MinimizeDepthWithBudget;
+        } else if (objective_str == "BalanceStages") {
+            objective_kind = RetimingObjectiveKind::BalanceStages;
+        } else {
+            return JsonIO::ErrorResponse("retime-opt-block", "Invalid objective: " + objective_str, "INVALID_ARGUMENT");
+        }
+
+        // Parse objective constraints
+        RetimingObjective objective;
+        objective.kind = objective_kind;
+
+        if (!opts.Get("target-max-depth").empty()) {
+            objective.target_max_depth = std::stoi(opts.Get("target-max-depth"));
+        }
+        if (!opts.Get("max-moves").empty()) {
+            objective.max_moves = std::stoi(opts.Get("max-moves"));
+        }
+        if (!opts.Get("max-extra-registers").empty()) {
+            objective.max_extra_registers = std::stoi(opts.Get("max-extra-registers"));
+        }
+
+        // Parse application options (if apply flag is present)
+        RetimingApplicationOptions* app_options = nullptr;
+        std::unique_ptr<RetimingApplicationOptions> app_opts_holder;
+        if (opts.Get("apply", "false") == "true") {
+            app_opts_holder = std::make_unique<RetimingApplicationOptions>();
+            app_opts_holder->apply_only_safe_moves = opts.Get("apply-only-safe", "true") == "true";
+            app_opts_holder->allow_suspicious_moves = opts.Get("allow-suspicious", "false") == "true";
+            if (!opts.Get("max-moves").empty()) {
+                app_opts_holder->max_moves = std::stoi(opts.Get("max-moves"));
+            }
+            app_options = app_opts_holder.get();
+        }
+
+        // Perform retiming optimization
+        CircuitFacade circuit_facade(session_store_);
+        auto result = circuit_facade.OptimizeRetimingForBlockInBranch(
+            session, session_dir, branch_name, block_id, objective, app_options);
+
+        if (!result.ok) {
+            std::string error_code_str = ErrorCodeToString(result.error_code);
+            return JsonIO::ErrorResponse("retime-opt-block", result.error_message, error_code_str);
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(block_id.c_str()));
+        response_data.Add("optimization_result", JsonIO::ToValueMap(result.data));
+
+        return JsonIO::SuccessResponse("retime-opt-block", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("retime-opt-block",
+                                   "Failed to optimize retiming for block: " + std::string(e.what()),
+                                   "RETIME_OPT_BLOCK_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunRetimeOptSubsystem(const CommandOptions& opts) {
+    try {
+        if (opts.Get("workspace").empty()) {
+            return JsonIO::ErrorResponse("retime-opt-subsystem", "Workspace path is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("session-id").empty()) {
+            return JsonIO::ErrorResponse("retime-opt-subsystem", "Session ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("subsystem-id").empty()) {
+            return JsonIO::ErrorResponse("retime-opt-subsystem", "Subsystem ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("block-ids").empty()) {
+            return JsonIO::ErrorResponse("retime-opt-subsystem", "Block IDs list is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("objective").empty()) {
+            return JsonIO::ErrorResponse("retime-opt-subsystem", "Objective is required", "INVALID_ARGUMENT");
+        }
+
+        // Parse the workspace path and session ID
+        std::string workspace_path = opts.Get("workspace");
+        int session_id = std::stoi(opts.Get("session-id"));
+
+        // Parse the subsystem ID and block IDs
+        std::string subsystem_id = opts.Get("subsystem-id");
+        std::vector<std::string> block_ids = JsonIO::ParseStringList(opts.Get("block-ids"));
+
+        // Parse the branch name (optional, default to main)
+        std::string branch_name = opts.Get("branch", "main");
+
+        // Get the session metadata
+        auto load_result = session_store_->LoadSessionMetadata(session_id);
+        if (!load_result.ok) {
+            std::string error_code_str = ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("retime-opt-subsystem", load_result.error_message, error_code_str);
+        }
+
+        SessionMetadata session = load_result.data;
+        std::string session_dir = workspace_path + "/sessions/" + std::to_string(session_id);
+
+        // Parse the objective
+        RetimingObjectiveKind objective_kind;
+        std::string objective_str = opts.Get("objective");
+        if (objective_str == "MinimizeMaxDepth") {
+            objective_kind = RetimingObjectiveKind::MinimizeMaxDepth;
+        } else if (objective_str == "MinimizeDepthWithBudget") {
+            objective_kind = RetimingObjectiveKind::MinimizeDepthWithBudget;
+        } else if (objective_str == "BalanceStages") {
+            objective_kind = RetimingObjectiveKind::BalanceStages;
+        } else {
+            return JsonIO::ErrorResponse("retime-opt-subsystem", "Invalid objective: " + objective_str, "INVALID_ARGUMENT");
+        }
+
+        // Parse objective constraints
+        RetimingObjective objective;
+        objective.kind = objective_kind;
+
+        if (!opts.Get("target-max-depth").empty()) {
+            objective.target_max_depth = std::stoi(opts.Get("target-max-depth"));
+        }
+        if (!opts.Get("max-moves").empty()) {
+            objective.max_moves = std::stoi(opts.Get("max-moves"));
+        }
+        if (!opts.Get("max-extra-registers").empty()) {
+            objective.max_extra_registers = std::stoi(opts.Get("max-extra-registers"));
+        }
+
+        // Parse application options (if apply flag is present)
+        RetimingApplicationOptions* app_options = nullptr;
+        std::unique_ptr<RetimingApplicationOptions> app_opts_holder;
+        if (opts.Get("apply", "false") == "true") {
+            app_opts_holder = std::make_unique<RetimingApplicationOptions>();
+            app_opts_holder->apply_only_safe_moves = opts.Get("apply-only-safe", "true") == "true";
+            app_opts_holder->allow_suspicious_moves = opts.Get("allow-suspicious", "false") == "true";
+            if (!opts.Get("max-moves").empty()) {
+                app_opts_holder->max_moves = std::stoi(opts.Get("max-moves"));
+            }
+            app_options = app_opts_holder.get();
+        }
+
+        // Perform retiming optimization
+        CircuitFacade circuit_facade(session_store_);
+        auto result = circuit_facade.OptimizeRetimingForSubsystemInBranch(
+            session, session_dir, branch_name, subsystem_id,
+            Vector<String>(block_ids.begin(), block_ids.end()),
+            objective, app_options);
+
+        if (!result.ok) {
+            std::string error_code_str = ErrorCodeToString(result.error_code);
+            return JsonIO::ErrorResponse("retime-opt-subsystem", result.error_message, error_code_str);
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("subsystem_id", Upp::String(subsystem_id.c_str()));
+        response_data.Add("block_ids", JsonIO::ToValueArray(Vector<String>(block_ids.begin(), block_ids.end())));
+        response_data.Add("optimization_result", JsonIO::ToValueMap(result.data));
+
+        return JsonIO::SuccessResponse("retime-opt-subsystem", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("retime-opt-subsystem",
+                                   "Failed to optimize retiming for subsystem: " + std::string(e.what()),
+                                   "RETIME_OPT_SUBSYSTEM_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunGlobalPipelineSubsystem(const CommandOptions& opts) {
+    try {
+        if (opts.Get("workspace").empty()) {
+            return JsonIO::ErrorResponse("global-pipeline-subsystem", "Workspace path is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("session-id").empty()) {
+            return JsonIO::ErrorResponse("global-pipeline-subsystem", "Session ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("subsystem-id").empty()) {
+            return JsonIO::ErrorResponse("global-pipeline-subsystem", "Subsystem ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("block-ids").empty()) {
+            return JsonIO::ErrorResponse("global-pipeline-subsystem", "Block IDs list is required", "INVALID_ARGUMENT");
+        }
+
+        // Parse the workspace path and session ID
+        std::string workspace_path = opts.Get("workspace");
+        int session_id = std::stoi(opts.Get("session-id"));
+
+        // Parse the subsystem ID and block IDs
+        std::string subsystem_id = opts.Get("subsystem-id");
+        std::vector<std::string> block_ids = JsonIO::ParseStringList(opts.Get("block-ids"));
+
+        // Parse the branch name (optional, default to main)
+        std::string branch_name = opts.Get("branch", "main");
+
+        // Get the session metadata
+        auto load_result = session_store_->LoadSessionMetadata(session_id);
+        if (!load_result.ok) {
+            std::string error_code_str = ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("global-pipeline-subsystem", load_result.error_message, error_code_str);
+        }
+
+        SessionMetadata session = load_result.data;
+        std::string session_dir = workspace_path + "/sessions/" + std::to_string(session_id);
+
+        // Build global pipeline map for the subsystem
+        CircuitFacade circuit_facade(session_store_);
+        auto result = circuit_facade.BuildGlobalPipelineMapForSubsystemInBranch(
+            session, session_dir, branch_name,
+            String(subsystem_id.c_str()),
+            Vector<String>(block_ids.begin(), block_ids.end()));
+
+        if (!result.ok()) {
+            std::string error_code_str = ErrorCodeToString(result.error_code);
+            return JsonIO::ErrorResponse("global-pipeline-subsystem", result.error_message, error_code_str);
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("subsystem_id", Upp::String(subsystem_id.c_str()));
+        response_data.Add("block_ids", JsonIO::ToValueArray(Vector<String>(block_ids.begin(), block_ids.end())));
+        response_data.Add("global_pipeline", JsonIO::GlobalPipelineMapToValueMap(result.value()));
+
+        return JsonIO::SuccessResponse("global-pipeline-subsystem", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("global-pipeline-subsystem",
+                                   "Failed to build global pipeline map for subsystem: " + std::string(e.what()),
+                                   "GLOBAL_PIPELINE_SUBSYSTEM_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunGlobalPipelineOptSubsystem(const CommandOptions& opts) {
+    try {
+        if (opts.Get("workspace").empty()) {
+            return JsonIO::ErrorResponse("global-pipeline-opt-subsystem", "Workspace path is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("session-id").empty()) {
+            return JsonIO::ErrorResponse("global-pipeline-opt-subsystem", "Session ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("subsystem-id").empty()) {
+            return JsonIO::ErrorResponse("global-pipeline-opt-subsystem", "Subsystem ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("block-ids").empty()) {
+            return JsonIO::ErrorResponse("global-pipeline-opt-subsystem", "Block IDs list is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("strategy").empty()) {
+            return JsonIO::ErrorResponse("global-pipeline-opt-subsystem", "Strategy is required", "INVALID_ARGUMENT");
+        }
+
+        // Parse the workspace path and session ID
+        std::string workspace_path = opts.Get("workspace");
+        int session_id = std::stoi(opts.Get("session-id"));
+
+        // Parse the subsystem ID and block IDs
+        std::string subsystem_id = opts.Get("subsystem-id");
+        std::vector<std::string> block_ids = JsonIO::ParseStringList(opts.Get("block-ids"));
+
+        // Parse the branch name (optional, default to main)
+        std::string branch_name = opts.Get("branch", "main");
+
+        // Get the session metadata
+        auto load_result = session_store_->LoadSessionMetadata(session_id);
+        if (!load_result.ok) {
+            std::string error_code_str = ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("global-pipeline-opt-subsystem", load_result.error_message, error_code_str);
+        }
+
+        SessionMetadata session = load_result.data;
+        std::string session_dir = workspace_path + "/sessions/" + std::to_string(session_id);
+
+        // Parse the strategy
+        GlobalPipeliningStrategyKind strategy_kind;
+        std::string strategy_str = opts.Get("strategy");
+        if (strategy_str == "BalanceStages") {
+            strategy_kind = GlobalPipeliningStrategyKind::BalanceStages;
+        } else if (strategy_str == "ReduceCriticalPath") {
+            strategy_kind = GlobalPipeliningStrategyKind::ReduceCriticalPath;
+        } else {
+            return JsonIO::ErrorResponse("global-pipeline-opt-subsystem", "Invalid strategy: " + strategy_str, "INVALID_ARGUMENT");
+        }
+
+        // Parse objective constraints
+        GlobalPipeliningObjective objective;
+        objective.kind = strategy_kind;
+
+        if (!opts.Get("target-stage-count").empty()) {
+            objective.target_stage_count = std::stoi(opts.Get("target-stage-count"));
+        }
+        if (!opts.Get("target-max-depth").empty()) {
+            objective.target_max_depth = std::stoi(opts.Get("target-max-depth"));
+        }
+        if (!opts.Get("max-extra-registers").empty()) {
+            objective.max_extra_registers = std::stoi(opts.Get("max-extra-registers"));
+        }
+        if (!opts.Get("max-total-moves").empty()) {
+            objective.max_total_moves = std::stoi(opts.Get("max-total-moves"));
+        }
+
+        // Build global pipelining plans for the subsystem
+        CircuitFacade circuit_facade(session_store_);
+        auto result = circuit_facade.ProposeGlobalPipeliningPlansInBranch(
+            session, session_dir, branch_name,
+            String(subsystem_id.c_str()),
+            Vector<String>(block_ids.begin(), block_ids.end()),
+            objective);
+
+        if (!result.ok()) {
+            std::string error_code_str = ErrorCodeToString(result.error_code);
+            return JsonIO::ErrorResponse("global-pipeline-opt-subsystem", result.error_message, error_code_str);
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("subsystem_id", Upp::String(subsystem_id.c_str()));
+        response_data.Add("block_ids", JsonIO::ToValueArray(Vector<String>(block_ids.begin(), block_ids.end())));
+        response_data.Add("global_plans", JsonIO::ToValueArray(result.value()));
+
+        return JsonIO::SuccessResponse("global-pipeline-opt-subsystem", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("global-pipeline-opt-subsystem",
+                                   "Failed to propose global pipelining plans for subsystem: " + std::string(e.what()),
+                                   "GLOBAL_PIPELINE_OPT_SUBSYSTEM_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunGlobalPipelineApply(const CommandOptions& opts) {
+    try {
+        if (opts.Get("workspace").empty()) {
+            return JsonIO::ErrorResponse("global-pipeline-apply", "Workspace path is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("session-id").empty()) {
+            return JsonIO::ErrorResponse("global-pipeline-apply", "Session ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("plan-id").empty()) {
+            return JsonIO::ErrorResponse("global-pipeline-apply", "Plan ID is required", "INVALID_ARGUMENT");
+        }
+
+        // Parse the workspace path and session ID
+        std::string workspace_path = opts.Get("workspace");
+        int session_id = std::stoi(opts.Get("session-id"));
+
+        // Parse the plan ID
+        std::string plan_id = opts.Get("plan-id");
+
+        // Parse the branch name (optional, default to main)
+        std::string branch_name = opts.Get("branch", "main");
+
+        // Get the session metadata
+        auto load_result = session_store_->LoadSessionMetadata(session_id);
+        if (!load_result.ok) {
+            std::string error_code_str = ErrorCodeToString(load_result.error_code);
+            return JsonIO::ErrorResponse("global-pipeline-apply", load_result.error_message, error_code_str);
+        }
+
+        SessionMetadata session = load_result.data;
+        std::string session_dir = workspace_path + "/sessions/" + std::to_string(session_id);
+
+        // Parse application options
+        RetimingApplicationOptions app_options;
+        app_options.apply_only_safe_moves = opts.Get("apply-only-safe", "true") == "true";
+        app_options.allow_suspicious_moves = opts.Get("allow-suspicious", "false") == "true";
+        if (!opts.Get("max-moves").empty()) {
+            app_options.max_moves = std::stoi(opts.Get("max-moves"));
+        }
+
+        // Create a temporary global pipelining plan with the given ID
+        // In a real implementation, we would load the plan from storage or retrieve it from a plan registry
+        // For now, we'll create a placeholder plan and fill in the ID
+        GlobalPipeliningPlan plan;
+        plan.id = String(plan_id.c_str());
+
+        // Apply the global pipelining plan
+        CircuitFacade circuit_facade(session_store_);
+        auto result = circuit_facade.ApplyGlobalPipeliningPlanInBranch(
+            session, session_dir, branch_name, plan, app_options);
+
+        if (!result.ok()) {
+            std::string error_code_str = ErrorCodeToString(result.error_code);
+            return JsonIO::ErrorResponse("global-pipeline-apply", result.error_message, error_code_str);
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("applied_plan", JsonIO::ToValueMap(result.value()));
+
+        return JsonIO::SuccessResponse("global-pipeline-apply", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("global-pipeline-apply",
+                                   "Failed to apply global pipelining plan: " + std::string(e.what()),
+                                   "GLOBAL_PIPELINE_APPLY_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunStructAnalyzeBlock(const CommandOptions& opts) {
+    try {
+        if (opts.Get("workspace").empty()) {
+            return JsonIO::ErrorResponse("struct-analyze-block", "Workspace path is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("session-id").empty()) {
+            return JsonIO::ErrorResponse("struct-analyze-block", "Session ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("block-id").empty()) {
+            return JsonIO::ErrorResponse("struct-analyze-block", "Block ID is required", "INVALID_ARGUMENT");
+        }
+
+        // Parse the workspace path and session ID
+        std::string workspace_path = opts.Get("workspace");
+        int session_id = std::stoi(opts.Get("session-id"));
+        std::string block_id = opts.Get("block-id");
+
+        // Parse the branch name (optional, default to main)
+        std::string branch_name = opts.Get("branch", "main");
+
+        // Load the session
+        auto session_load_result = session_store_->LoadSession(session_id);
+        if (!session_load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(session_load_result.error_code);
+            return JsonIO::ErrorResponse("struct-analyze-block", session_load_result.error_message, error_code_str);
+        }
+        SessionMetadata session = session_load_result.data;
+
+        // Check if the branch exists
+        std::optional<BranchMetadata> branch = FindBranchByName(session, branch_name);
+        if (!branch) {
+            return JsonIO::ErrorResponse("struct-analyze-block", "Branch not found: " + branch_name, "INVALID_ARGUMENT");
+        }
+
+        // Create CircuitFacade and analyze the block structure
+        CircuitFacade circuit_facade(session_store_);
+        auto analysis_result = circuit_facade.AnalyzeBlockStructureInBranch(
+            session,
+            workspace_path + "/sessions/" + std::to_string(session_id),
+            branch_name,
+            block_id
+        );
+
+        if (!analysis_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(analysis_result.error_code);
+            return JsonIO::ErrorResponse("struct-analyze-block", analysis_result.error_message, error_code_str);
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(block_id.c_str()));
+        response_data.Add("structural_refactor_plan", JsonIO::ToValueMap(analysis_result.data));
+
+        return JsonIO::SuccessResponse("struct-analyze-block", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("struct-analyze-block",
+                                   "Failed to analyze block structure: " + std::string(e.what()),
+                                   "STRUCT_ANALYZE_BLOCK_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunStructApplyBlock(const CommandOptions& opts) {
+    try {
+        if (opts.Get("workspace").empty()) {
+            return JsonIO::ErrorResponse("struct-apply-block", "Workspace path is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("session-id").empty()) {
+            return JsonIO::ErrorResponse("struct-apply-block", "Session ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("plan-id").empty()) {
+            return JsonIO::ErrorResponse("struct-apply-block", "Plan ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("block-id").empty()) {
+            return JsonIO::ErrorResponse("struct-apply-block", "Block ID is required", "INVALID_ARGUMENT");
+        }
+
+        // Parse the workspace path and session ID
+        std::string workspace_path = opts.Get("workspace");
+        int session_id = std::stoi(opts.Get("session-id"));
+        std::string plan_id = opts.Get("plan-id");
+        std::string block_id = opts.Get("block-id");
+
+        // Parse the branch name (optional, default to main)
+        std::string branch_name = opts.Get("branch", "main");
+
+        // Parse safe-only flag (optional, default to true)
+        bool apply_only_safe_moves = opts.Get("safe-only", "true") == "true";
+
+        // Load the session
+        auto session_load_result = session_store_->LoadSession(session_id);
+        if (!session_load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(session_load_result.error_code);
+            return JsonIO::ErrorResponse("struct-apply-block", session_load_result.error_message, error_code_str);
+        }
+        SessionMetadata session = session_load_result.data;
+
+        // Check if the branch exists
+        std::optional<BranchMetadata> branch = FindBranchByName(session, branch_name);
+        if (!branch) {
+            return JsonIO::ErrorResponse("struct-apply-block", "Branch not found: " + branch_name, "INVALID_ARGUMENT");
+        }
+
+        // For now, we'll need to retrieve the plan somehow - in a real implementation
+        // we would have a way to retrieve the plan by ID, but for this implementation
+        // we'll just create a dummy plan to demonstrate the structure.
+        // In a full implementation, we'd have a plan storage system.
+
+        // For this example, we'll assume we have a way to retrieve the plan by analyzing again
+        CircuitFacade circuit_facade(session_store_);
+        auto analysis_result = circuit_facade.AnalyzeBlockStructureInBranch(
+            session,
+            workspace_path + "/sessions/" + std::to_string(session_id),
+            branch_name,
+            block_id
+        );
+
+        if (!analysis_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(analysis_result.error_code);
+            return JsonIO::ErrorResponse("struct-apply-block", analysis_result.error_message, error_code_str);
+        }
+
+        // Find the plan with the matching ID
+        StructuralRefactorPlan target_plan;
+        bool found = false;
+        for (const auto& plan : analysis_result.data) {
+            if (std::string(plan.id.c_str()) == plan_id) {
+                target_plan = plan;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            return JsonIO::ErrorResponse("struct-apply-block", "Plan not found: " + plan_id, "INVALID_ARGUMENT");
+        }
+
+        // Apply the structural refactor plan
+        auto apply_result = circuit_facade.ApplyStructuralRefactorPlanInBranch(
+            session,
+            workspace_path + "/sessions/" + std::to_string(session_id),
+            branch_name,
+            target_plan,
+            apply_only_safe_moves
+        );
+
+        if (!apply_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(apply_result.error_code);
+            return JsonIO::ErrorResponse("struct-apply-block", apply_result.error_message, error_code_str);
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(block_id.c_str()));
+        response_data.Add("application_result", JsonIO::ToValueMap(apply_result.data));
+
+        return JsonIO::SuccessResponse("struct-apply-block", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("struct-apply-block",
+                                   "Failed to apply structural refactor: " + std::string(e.what()),
+                                   "STRUCT_APPLY_BLOCK_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunCodegenBlockIr(const CommandOptions& opts) {
+    try {
+        if (opts.Get("workspace").empty()) {
+            return JsonIO::ErrorResponse("codegen-block-ir", "Workspace path is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("session-id").empty()) {
+            return JsonIO::ErrorResponse("codegen-block-ir", "Session ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("block-id").empty()) {
+            return JsonIO::ErrorResponse("codegen-block-ir", "Block ID is required", "INVALID_ARGUMENT");
+        }
+
+        // Parse the workspace path and session ID
+        std::string workspace_path = opts.Get("workspace");
+        int session_id = std::stoi(opts.Get("session-id"));
+        std::string block_id = opts.Get("block-id");
+
+        // Parse the branch name (optional, default to main)
+        std::string branch_name = opts.Get("branch", "main");
+
+        // Load the session
+        auto session_load_result = session_store_->LoadSession(session_id);
+        if (!session_load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(session_load_result.error_code);
+            return JsonIO::ErrorResponse("codegen-block-ir", session_load_result.error_message, error_code_str);
+        }
+        SessionMetadata session = session_load_result.data;
+
+        // Check if the branch exists
+        std::optional<BranchMetadata> branch = FindBranchByName(session, branch_name);
+        if (!branch) {
+            return JsonIO::ErrorResponse("codegen-block-ir", "Branch not found: " + branch_name, "INVALID_ARGUMENT");
+        }
+
+        // Build the codegen module for the block
+        CircuitFacade circuit_facade(session_store_);
+        auto codegen_result = circuit_facade.BuildCodegenModuleForBlockInBranch(
+            session,
+            workspace_path + "/sessions/" + std::to_string(session_id),
+            branch_name,
+            block_id
+        );
+
+        if (!codegen_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(codegen_result.error_code);
+            return JsonIO::ErrorResponse("codegen-block-ir", codegen_result.error_message, error_code_str);
+        }
+
+        // Build response with the codegen module
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(block_id.c_str()));
+        response_data.Add("codegen_module", JsonIO::CodegenModuleToValueMap(codegen_result.data));
+
+        return JsonIO::SuccessResponse("codegen-block-ir", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("codegen-block-ir",
+                                   "Failed to build codegen IR for block: " + std::string(e.what()),
+                                   "CODEGEN_BLOCK_IR_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunCodegenBlockC(const CommandOptions& opts) {
+    try {
+        if (opts.Get("workspace").empty()) {
+            return JsonIO::ErrorResponse("codegen-block-c", "Workspace path is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("session-id").empty()) {
+            return JsonIO::ErrorResponse("codegen-block-c", "Session ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("block-id").empty()) {
+            return JsonIO::ErrorResponse("codegen-block-c", "Block ID is required", "INVALID_ARGUMENT");
+        }
+
+        // Parse the workspace path and session ID
+        std::string workspace_path = opts.Get("workspace");
+        int session_id = std::stoi(opts.Get("session-id"));
+        std::string block_id = opts.Get("block-id");
+
+        // Parse the branch name (optional, default to main)
+        std::string branch_name = opts.Get("branch", "main");
+
+        // Parse optional language parameter (default to C)
+        std::string lang_str = opts.Get("lang", "C");
+        CodegenTargetLanguage lang = (lang_str == "Cpp") ? CodegenTargetLanguage::Cpp : CodegenTargetLanguage::C;
+
+        // Parse optional parameters
+        bool emit_state_struct = opts.Get("emit-state-struct", "true") == "true";
+        std::string state_struct_name = opts.Get("state-struct-name", "BlockState");
+        std::string function_name = opts.Get("function-name", "BlockStep");
+
+        // Load the session
+        auto session_load_result = session_store_->LoadSession(session_id);
+        if (!session_load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(session_load_result.error_code);
+            return JsonIO::ErrorResponse("codegen-block-c", session_load_result.error_message, error_code_str);
+        }
+        SessionMetadata session = session_load_result.data;
+
+        // Check if the branch exists
+        std::optional<BranchMetadata> branch = FindBranchByName(session, branch_name);
+        if (!branch) {
+            return JsonIO::ErrorResponse("codegen-block-c", "Branch not found: " + branch_name, "INVALID_ARGUMENT");
+        }
+
+        // Generate C/C++ code for the block
+        CircuitFacade circuit_facade(session_store_);
+        auto code_result = circuit_facade.EmitCodeForBlockInBranch(
+            session,
+            workspace_path + "/sessions/" + std::to_string(session_id),
+            branch_name,
+            block_id,
+            lang,
+            emit_state_struct,
+            state_struct_name,
+            function_name
+        );
+
+        if (!code_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(code_result.error_code);
+            return JsonIO::ErrorResponse("codegen-block-c", code_result.error_message, error_code_str);
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(block_id.c_str()));
+        response_data.Add("language", Upp::String(lang_str.c_str()));
+        response_data.Add("code", Upp::String(code_result.data.c_str()));
+
+        return JsonIO::SuccessResponse("codegen-block-c", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("codegen-block-c",
+                                   "Failed to generate C/C++ code for block: " + std::string(e.what()),
+                                   "CODEGEN_BLOCK_C_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunCodegenBlockOscDemo(const CommandOptions& opts) {
+    try {
+        if (opts.Get("workspace").empty()) {
+            return JsonIO::ErrorResponse("codegen-block-osc-demo", "Workspace path is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("session-id").empty()) {
+            return JsonIO::ErrorResponse("codegen-block-osc-demo", "Session ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.Get("block-id").empty()) {
+            return JsonIO::ErrorResponse("codegen-block-osc-demo", "Block ID is required", "INVALID_ARGUMENT");
+        }
+
+        // Parse the workspace path and session ID
+        std::string workspace_path = opts.Get("workspace");
+        int session_id = std::stoi(opts.Get("session-id"));
+        std::string block_id = opts.Get("block-id");
+
+        // Parse the branch name (optional, default to main)
+        std::string branch_name = opts.Get("branch", "main");
+
+        // Parse optional language parameter (default to C)
+        std::string lang_str = opts.Get("lang", "C");
+        CodegenTargetLanguage lang = (lang_str == "Cpp") ? CodegenTargetLanguage::Cpp : CodegenTargetLanguage::C;
+
+        // Parse optional parameters
+        std::string state_struct_name = opts.Get("state-struct-name", "OscState");
+        std::string step_function_name = opts.Get("step-function-name", "OscStep");
+        std::string render_function_name = opts.Get("render-function-name", "OscRender");
+
+        // Load the session
+        auto session_load_result = session_store_->LoadSession(session_id);
+        if (!session_load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(session_load_result.error_code);
+            return JsonIO::ErrorResponse("codegen-block-osc-demo", session_load_result.error_message, error_code_str);
+        }
+        SessionMetadata session = session_load_result.data;
+
+        // Check if the branch exists
+        std::optional<BranchMetadata> branch = FindBranchByName(session, branch_name);
+        if (!branch) {
+            return JsonIO::ErrorResponse("codegen-block-osc-demo", "Branch not found: " + branch_name, "INVALID_ARGUMENT");
+        }
+
+        // Generate oscillator demo code for the block
+        CircuitFacade circuit_facade(session_store_);
+        auto code_result = circuit_facade.EmitOscillatorDemoForBlockInBranch(
+            session,
+            workspace_path + "/sessions/" + std::to_string(session_id),
+            branch_name,
+            block_id,
+            lang
+        );
+
+        if (!code_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(code_result.error_code);
+            return JsonIO::ErrorResponse("codegen-block-osc-demo", code_result.error_message, error_code_str);
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(block_id.c_str()));
+        response_data.Add("language", Upp::String(lang_str.c_str()));
+        response_data.Add("code", Upp::String(code_result.data.c_str()));
+
+        return JsonIO::SuccessResponse("codegen-block-osc-demo", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("codegen-block-osc-demo",
+                                   "Failed to generate oscillator demo code for block: " + std::string(e.what()),
+                                   "CODEGEN_BLOCK_OSC_DEMO_ERROR");
+    }
+}
+
 Upp::String CommandDispatcher::RunDesignerRetime(const CommandOptions& opts) {
     try {
         // Extract payload values
@@ -5793,6 +6619,846 @@ Upp::String CommandDispatcher::RunDesignerRetimeApply(const CommandOptions& opts
         return JsonIO::ErrorResponse("designer-retime-apply",
                                    "Failed to run designer retime apply: " + std::string(e.what()),
                                    "INTERNAL_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunDesignerRetimeOpt(const CommandOptions& opts) {
+    try {
+        // Extract payload values
+        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        if (designer_session_id.empty()) {
+            return JsonIO::ErrorResponse("designer-retime-opt", "designer_session_id is required", "INVALID_PARAMETER");
+        }
+
+        std::string target = opts.payload.Get("target", Upp::String("block")).ToStd();
+        if (target != "block" && target != "subsystem") {
+            return JsonIO::ErrorResponse("designer-retime-opt", "target must be either 'block' or 'subsystem'", "INVALID_PARAMETER");
+        }
+
+        // Create the request object
+        DesignerRetimeOptRequest request;
+        request.designer_session_id = designer_session_id;
+        request.target = target;
+
+        // Extract additional parameters based on target
+        if (target == "block") {
+            std::string block_id = opts.payload.Get("block_id", Upp::String("")).ToStd();
+            if (block_id.empty()) {
+                return JsonIO::ErrorResponse("designer-retime-opt", "block_id is required when target is 'block'", "INVALID_PARAMETER");
+            }
+            request.block_id = block_id;
+        } else if (target == "subsystem") {
+            std::string subsystem_id = opts.payload.Get("subsystem_id", Upp::String("")).ToStd();
+            if (subsystem_id.empty()) {
+                return JsonIO::ErrorResponse("designer-retime-opt", "subsystem_id is required when target is 'subsystem'", "INVALID_PARAMETER");
+            }
+            request.subsystem_id = subsystem_id;
+
+            // Parse block IDs
+            Upp::Value block_ids_value = opts.payload.Get("block_ids", Upp::Value());
+            if (block_ids_value.IsArray()) {
+                Upp::ValueArray block_ids_array = block_ids_value.Array();
+                for (int i = 0; i < block_ids_array.GetCount(); ++i) {
+                    if (block_ids_array[i].IsString()) {
+                        request.block_ids.push_back(block_ids_array[i].ToString().ToStd());
+                    }
+                }
+            } else {
+                return JsonIO::ErrorResponse("designer-retime-opt", "block_ids must be an array of strings when target is 'subsystem'", "INVALID_PARAMETER");
+            }
+        }
+
+        // Extract objective parameters
+        std::string objective_str = opts.payload.Get("objective", Upp::String("MinimizeMaxDepth")).ToStd();
+        if (objective_str == "MinimizeMaxDepth") {
+            request.objective.kind = RetimingObjectiveKind::MinimizeMaxDepth;
+        } else if (objective_str == "MinimizeDepthWithBudget") {
+            request.objective.kind = RetimingObjectiveKind::MinimizeDepthWithBudget;
+        } else if (objective_str == "BalanceStages") {
+            request.objective.kind = RetimingObjectiveKind::BalanceStages;
+        } else {
+            return JsonIO::ErrorResponse("designer-retime-opt", "Invalid objective: " + objective_str, "INVALID_PARAMETER");
+        }
+
+        // Extract objective constraints if provided
+        if (opts.payload.Find("target_max_depth") >= 0) {
+            request.objective.target_max_depth = opts.payload.Get("target_max_depth", -1).Int();
+        }
+        if (opts.payload.Find("max_moves") >= 0) {
+            request.objective.max_moves = opts.payload.Get("max_moves", -1).Int();
+        }
+        if (opts.payload.Find("max_extra_registers") >= 0) {
+            request.objective.max_extra_registers = opts.payload.Get("max_extra_registers", -1).Int();
+        }
+
+        // Extract apply parameters
+        request.apply = opts.payload.Get("apply", false).Bool();
+        request.apply_only_safe = opts.payload.Get("apply_only_safe", true).Bool();
+        request.allow_suspicious = opts.payload.Get("allow_suspicious", false).Bool();
+
+        // Get the designer manager instance
+        auto& designer_manager = CoDesigner::GetInstance().GetDesignerManager();
+
+        // Perform retiming optimization
+        auto result = designer_manager.OptimizeRetimeDesign(request);
+
+        if (!result.ok()) {
+            std::string error_code_str = ErrorCodeToString(result.error_code());
+            return JsonIO::ErrorResponse("designer-retime-opt", result.error_message(), error_code_str);
+        }
+
+        // Build response data
+        Upp::ValueMap response_data;
+        Upp::ValueMap designer_session_map;
+        // Add updated designer session information
+        designer_session_map.Add("designer_session_id", Upp::String(request.designer_session_id.c_str()));
+        // Add session state, etc. as needed
+        response_data.Add("designer_session", designer_session_map);
+
+        // Add optimization result
+        response_data.Add("optimization_result", JsonIO::ToValueMap(result.value()));
+
+        return JsonIO::SuccessResponse("designer-retime-opt", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("designer-retime-opt",
+                                   "Failed to run designer retiming optimization: " + std::string(e.what()),
+                                   "DESIGNER_RETIME_OPT_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunCodegenBlockCppClass(const CommandOptions& opts) {
+    try {
+        if (opts.workspace.empty()) {
+            return JsonIO::ErrorResponse("codegen-block-cpp-class", "Workspace path is required", "INVALID_ARGUMENT");
+        }
+        if (!opts.session_id.has_value()) {
+            return JsonIO::ErrorResponse("codegen-block-cpp-class", "Session ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.block_id.empty()) {
+            return JsonIO::ErrorResponse("codegen-block-cpp-class", "Block ID is required", "INVALID_ARGUMENT");
+        }
+
+        // Parse the workspace path and session ID
+        std::string workspace_path = opts.workspace;
+        int session_id = opts.session_id.value();
+        std::string block_id = opts.block_id;
+
+        // Parse the branch name (optional, default to main)
+        std::string branch_name = opts.branch.value_or("main");
+
+        // Parse additional options for the C++ class
+        std::string class_name = opts.payload.Get("class_name", Upp::String("BlockClass")).ToStd();
+        std::string state_class_name = opts.payload.Get("state_class_name", Upp::String("BlockState")).ToStd();
+        std::string namespace_name = opts.payload.Get("namespace", Upp::String("")).ToStd();
+        bool generate_render_method = opts.payload.Get("render_method", Upp::Value(false)).GetBool();
+
+        // Load the session
+        auto session_load_result = session_store_->LoadSession(session_id);
+        if (!session_load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(session_load_result.error_code);
+            return JsonIO::ErrorResponse("codegen-block-cpp-class", session_load_result.error_message, error_code_str);
+        }
+        SessionMetadata session = session_load_result.data;
+
+        // Check if the branch exists
+        std::optional<BranchMetadata> branch = FindBranchByName(session, branch_name);
+        if (!branch) {
+            return JsonIO::ErrorResponse("codegen-block-cpp-class", "Branch not found: " + branch_name, "INVALID_ARGUMENT");
+        }
+
+        // Prepare the CppClassOptions
+        CppClassOptions cpp_opts;
+        cpp_opts.class_name = class_name;
+        cpp_opts.state_class_name = state_class_name;
+        cpp_opts.namespace_name = namespace_name;
+        cpp_opts.generate_render_method = generate_render_method;
+
+        // Generate C++ class code for the block
+        CircuitFacade circuit_facade(session_store_);
+        auto code_result = circuit_facade.EmitCppClassForBlockInBranch(
+            session,
+            workspace_path + "/sessions/" + std::to_string(session_id),
+            branch_name,
+            block_id,
+            cpp_opts
+        );
+
+        if (!code_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(code_result.error_code);
+            return JsonIO::ErrorResponse("codegen-block-cpp-class", code_result.error_message, error_code_str);
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(block_id.c_str()));
+        response_data.Add("language", Upp::String("Cpp"));
+        response_data.Add("code", Upp::String(code_result.data.c_str()));
+
+        return JsonIO::SuccessResponse("codegen-block-cpp-class", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("codegen-block-cpp-class",
+                                   "Failed to generate C++ class code for block: " + std::string(e.what()),
+                                   "CODEGEN_BLOCK_CPP_CLASS_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunCodegenBlockAudioDemo(const CommandOptions& opts) {
+    try {
+        if (opts.workspace.empty()) {
+            return JsonIO::ErrorResponse("codegen-block-audio-demo", "Workspace path is required", "INVALID_ARGUMENT");
+        }
+        if (!opts.session_id.has_value()) {
+            return JsonIO::ErrorResponse("codegen-block-audio-demo", "Session ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.block_id.empty()) {
+            return JsonIO::ErrorResponse("codegen-block-audio-demo", "Block ID is required", "INVALID_ARGUMENT");
+        }
+
+        // Parse the workspace path and session ID
+        std::string workspace_path = opts.workspace;
+        int session_id = opts.session_id.value();
+        std::string block_id = opts.block_id;
+
+        // Parse the branch name (optional, default to main)
+        std::string branch_name = opts.branch.value_or("main");
+
+        // Parse audio demo parameters
+        double freq_hz = opts.payload.Get("freq_hz", 440.0); // Default to 440 Hz
+        double pan_lfo_hz = opts.payload.Get("pan_lfo_hz", 0.25); // Default to 0.25 Hz
+        double sample_rate = opts.payload.Get("sample_rate", 48000.0); // Default to 48kHz
+        double duration_sec = opts.payload.Get("duration_sec", 3.0); // Default to 3 seconds
+
+        // Parse C++ class options
+        std::string class_name = opts.payload.Get("class_name", Upp::String("OscBlock")).ToStd();
+        std::string state_class_name = opts.payload.Get("state_class_name", Upp::String("OscState")).ToStd();
+        std::string namespace_name = opts.payload.Get("namespace", Upp::String("")).ToStd();
+
+        // Load the session
+        auto session_load_result = session_store_->LoadSession(session_id);
+        if (!session_load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(session_load_result.error_code);
+            return JsonIO::ErrorResponse("codegen-block-audio-demo", session_load_result.error_message, error_code_str);
+        }
+        SessionMetadata session = session_load_result.data;
+
+        // Check if the branch exists
+        std::optional<BranchMetadata> branch = FindBranchByName(session, branch_name);
+        if (!branch) {
+            return JsonIO::ErrorResponse("codegen-block-audio-demo", "Branch not found: " + branch_name, "INVALID_ARGUMENT");
+        }
+
+        // Get the circuit facade
+        CircuitFacade circuit_facade(session_store_);
+
+        // Build the AudioDslGraph
+        auto graph_result = circuit_facade.BuildAudioDslForOscillatorBlockInBranch(
+            session,
+            workspace_path + "/sessions/" + std::to_string(session_id),
+            branch_name,
+            block_id,
+            freq_hz,
+            pan_lfo_hz,
+            sample_rate,
+            duration_sec
+        );
+
+        if (!graph_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(graph_result.error_code);
+            return JsonIO::ErrorResponse("codegen-block-audio-demo", graph_result.error_message, error_code_str);
+        }
+
+        // Prepare the CppClassOptions
+        CppClassOptions class_opts;
+        class_opts.class_name = class_name;
+        class_opts.state_class_name = state_class_name;
+        class_opts.namespace_name = namespace_name;
+        class_opts.generate_render_method = false; // Render method not needed for demo
+
+        // Generate audio demo code
+        auto code_result = circuit_facade.EmitAudioDemoForOscillatorBlockInBranch(
+            session,
+            workspace_path + "/sessions/" + std::to_string(session_id),
+            branch_name,
+            block_id,
+            class_opts,
+            graph_result.data
+        );
+
+        if (!code_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(code_result.error_code);
+            return JsonIO::ErrorResponse("codegen-block-audio-demo", code_result.error_message, error_code_str);
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(block_id.c_str()));
+        response_data.Add("language", Upp::String("Cpp"));
+        response_data.Add("audio_dsl", JsonIO::AudioDslGraphToValueMap(graph_result.data));
+        response_data.Add("code", Upp::String(code_result.data.c_str()));
+
+        return JsonIO::SuccessResponse("codegen-block-audio-demo", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("codegen-block-audio-demo",
+                                   "Failed to generate audio demo code for block: " + std::string(e.what()),
+                                   "CODEGEN_BLOCK_AUDIO_DEMO_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunDspGraphInspect(const CommandOptions& opts) {
+    try {
+        if (opts.workspace.empty()) {
+            return JsonIO::ErrorResponse("dsp-graph-inspect", "Workspace path is required", "INVALID_ARGUMENT");
+        }
+        if (!opts.session_id.has_value()) {
+            return JsonIO::ErrorResponse("dsp-graph-inspect", "Session ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.block_id.empty()) {
+            return JsonIO::ErrorResponse("dsp-graph-inspect", "Block ID is required", "INVALID_ARGUMENT");
+        }
+
+        // Parse the workspace path and session ID
+        std::string workspace_path = opts.workspace;
+        int session_id = opts.session_id.value();
+        std::string block_id = opts.block_id;
+
+        // Parse the branch name (optional, default to main)
+        std::string branch_name = opts.branch.value_or("main");
+
+        // Parse audio parameters
+        double freq_hz = opts.payload.Get("freq_hz", 440.0); // Default to 440 Hz
+        double pan_lfo_hz = opts.payload.Get("pan_lfo_hz", 0.25); // Default to 0.25 Hz
+        double sample_rate = opts.payload.Get("sample_rate", 48000.0); // Default to 48kHz
+        double duration_sec = opts.payload.Get("duration_sec", 3.0); // Default to 3 seconds
+
+        // Load the session
+        auto session_load_result = session_store_->LoadSession(session_id);
+        if (!session_load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(session_load_result.error_code);
+            return JsonIO::ErrorResponse("dsp-graph-inspect", session_load_result.error_message, error_code_str);
+        }
+        SessionMetadata session = session_load_result.data;
+
+        // Check if the branch exists
+        std::optional<BranchMetadata> branch = FindBranchByName(session, branch_name);
+        if (!branch) {
+            return JsonIO::ErrorResponse("dsp-graph-inspect", "Branch not found: " + branch_name, "INVALID_ARGUMENT");
+        }
+
+        // Get the circuit facade
+        CircuitFacade circuit_facade(session_store_);
+
+        // Build the AudioDslGraph
+        auto graph_result = circuit_facade.BuildAudioDslForOscillatorBlockInBranch(
+            session,
+            workspace_path + "/sessions/" + std::to_string(session_id),
+            branch_name,
+            block_id,
+            freq_hz,
+            pan_lfo_hz,
+            sample_rate,
+            duration_sec
+        );
+
+        if (!graph_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(graph_result.error_code);
+            return JsonIO::ErrorResponse("dsp-graph-inspect", graph_result.error_message, error_code_str);
+        }
+
+        // Build the DSP graph from the AudioDslGraph
+        auto dsp_graph_result = circuit_facade.BuildDspGraphForOscillatorBlockInBranch(
+            session,
+            workspace_path + "/sessions/" + std::to_string(session_id),
+            branch_name,
+            block_id,
+            graph_result.data
+        );
+
+        if (!dsp_graph_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(dsp_graph_result.error_code);
+            return JsonIO::ErrorResponse("dsp-graph-inspect", dsp_graph_result.error_message, error_code_str);
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(block_id.c_str()));
+        response_data.Add("dsp_graph", JsonIO::DspGraphToValueMap(dsp_graph_result.data));
+
+        return JsonIO::SuccessResponse("dsp-graph-inspect", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("dsp-graph-inspect",
+                                   "Failed to inspect DSP graph for block: " + std::string(e.what()),
+                                   "DSP_GRAPH_INSPECT_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunDspRenderOsc(const CommandOptions& opts) {
+    try {
+        if (opts.workspace.empty()) {
+            return JsonIO::ErrorResponse("dsp-render-osc", "Workspace path is required", "INVALID_ARGUMENT");
+        }
+        if (!opts.session_id.has_value()) {
+            return JsonIO::ErrorResponse("dsp-render-osc", "Session ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.block_id.empty()) {
+            return JsonIO::ErrorResponse("dsp-render-osc", "Block ID is required", "INVALID_ARGUMENT");
+        }
+
+        // Parse the workspace path and session ID
+        std::string workspace_path = opts.workspace;
+        int session_id = opts.session_id.value();
+        std::string block_id = opts.block_id;
+
+        // Parse the branch name (optional, default to main)
+        std::string branch_name = opts.branch.value_or("main");
+
+        // Parse audio parameters
+        double freq_hz = opts.payload.Get("freq_hz", 440.0); // Default to 440 Hz
+        double pan_lfo_hz = opts.payload.Get("pan_lfo_hz", 0.25); // Default to 0.25 Hz
+        double sample_rate = opts.payload.Get("sample_rate", 48000.0); // Default to 48kHz
+        double duration_sec = opts.payload.Get("duration_sec", 3.0); // Default to 3 seconds
+
+        // Load the session
+        auto session_load_result = session_store_->LoadSession(session_id);
+        if (!session_load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(session_load_result.error_code);
+            return JsonIO::ErrorResponse("dsp-render-osc", session_load_result.error_message, error_code_str);
+        }
+        SessionMetadata session = session_load_result.data;
+
+        // Check if the branch exists
+        std::optional<BranchMetadata> branch = FindBranchByName(session, branch_name);
+        if (!branch) {
+            return JsonIO::ErrorResponse("dsp-render-osc", "Branch not found: " + branch_name, "INVALID_ARGUMENT");
+        }
+
+        // Get the circuit facade
+        CircuitFacade circuit_facade(session_store_);
+
+        // Build the AudioDslGraph
+        auto graph_result = circuit_facade.BuildAudioDslForOscillatorBlockInBranch(
+            session,
+            workspace_path + "/sessions/" + std::to_string(session_id),
+            branch_name,
+            block_id,
+            freq_hz,
+            pan_lfo_hz,
+            sample_rate,
+            duration_sec
+        );
+
+        if (!graph_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(graph_result.error_code);
+            return JsonIO::ErrorResponse("dsp-render-osc", graph_result.error_message, error_code_str);
+        }
+
+        // Render the DSP graph
+        std::vector<float> out_left, out_right;
+        auto render_result = circuit_facade.RenderDspGraphForOscillatorBlockInBranch(
+            session,
+            workspace_path + "/sessions/" + std::to_string(session_id),
+            branch_name,
+            block_id,
+            graph_result.data,
+            out_left,
+            out_right
+        );
+
+        if (!render_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(render_result.error_code);
+            return JsonIO::ErrorResponse("dsp-render-osc", render_result.error_message, error_code_str);
+        }
+
+        // Calculate statistics
+        double left_rms = 0.0, right_rms = 0.0;
+        double left_sum = 0.0, right_sum = 0.0;
+
+        for (float sample : out_left) {
+            left_sum += sample * sample;
+        }
+        if (!out_left.empty()) {
+            left_rms = std::sqrt(left_sum / out_left.size());
+        }
+
+        for (float sample : out_right) {
+            right_sum += sample * sample;
+        }
+        if (!out_right.empty()) {
+            right_rms = std::sqrt(right_sum / out_right.size());
+        }
+
+        // Build response (truncate large arrays for performance)
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(block_id.c_str()));
+        response_data.Add("sample_rate_hz", sample_rate);
+        response_data.Add("duration_sec", duration_sec);
+        response_data.Add("total_samples", static_cast<int>(out_left.size()));
+
+        // Add truncated sample arrays (only first 100 samples to avoid large JSON)
+        Upp::ValueArray left_samples, right_samples;
+        size_t max_display_samples = std::min(static_cast<size_t>(100), out_left.size());
+        for (size_t i = 0; i < max_display_samples; ++i) {
+            left_samples.Add(out_left[i]);
+        }
+        for (size_t i = 0; i < max_display_samples; ++i) {
+            right_samples.Add(out_right[i]);
+        }
+        response_data.Add("left", left_samples);
+        response_data.Add("right", right_samples);
+
+        // Add statistics
+        Upp::ValueMap stats;
+        stats.Add("left_rms", left_rms);
+        stats.Add("right_rms", right_rms);
+        stats.Add("left_min", out_left.empty() ? 0.0 : *std::min_element(out_left.begin(), out_left.end()));
+        stats.Add("left_max", out_left.empty() ? 0.0 : *std::max_element(out_left.begin(), out_left.end()));
+        stats.Add("right_min", out_right.empty() ? 0.0 : *std::min_element(out_right.begin(), out_right.end()));
+        stats.Add("right_max", out_right.empty() ? 0.0 : *std::max_element(out_right.begin(), out_right.end()));
+        response_data.Add("render_stats", stats);
+
+        return JsonIO::SuccessResponse("dsp-render-osc", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("dsp-render-osc",
+                                   "Failed to render DSP graph for oscillator: " + std::string(e.what()),
+                                   "DSP_RENDER_OSC_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunAnalogModelInspect(const CommandOptions& opts) {
+    try {
+        if (opts.workspace.empty()) {
+            return JsonIO::ErrorResponse("analog-model-inspect", "Workspace path is required", "INVALID_ARGUMENT");
+        }
+        if (!opts.session_id.has_value()) {
+            return JsonIO::ErrorResponse("analog-model-inspect", "Session ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.block_id.empty()) {
+            return JsonIO::ErrorResponse("analog-model-inspect", "Block ID is required", "INVALID_ARGUMENT");
+        }
+
+        // Parse the workspace path and session ID
+        std::string workspace_path = opts.workspace;
+        int session_id = opts.session_id.value();
+        std::string block_id = opts.block_id;
+
+        // Parse the branch name (optional, default to main)
+        std::string branch_name = opts.branch.value_or("main");
+
+        // Load the session
+        auto session_load_result = session_store_->LoadSession(session_id);
+        if (!session_load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(session_load_result.error_code);
+            return JsonIO::ErrorResponse("analog-model-inspect", session_load_result.error_message, error_code_str);
+        }
+        SessionMetadata session = session_load_result.data;
+
+        // Check if the branch exists
+        std::optional<BranchMetadata> branch = FindBranchByName(session, branch_name);
+        if (!branch) {
+            return JsonIO::ErrorResponse("analog-model-inspect", "Branch not found: " + branch_name, "INVALID_ARGUMENT");
+        }
+
+        // Get the circuit facade
+        CircuitFacade circuit_facade(session_store_);
+
+        // Extract the analog model for the block
+        auto model_result = circuit_facade.ExtractAnalogModelForBlockInBranch(
+            session,
+            workspace_path + "/sessions/" + std::to_string(session_id),
+            branch_name,
+            block_id
+        );
+
+        if (!model_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(model_result.error_code);
+            return JsonIO::ErrorResponse("analog-model-inspect", model_result.error_message, error_code_str);
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(block_id.c_str()));
+        response_data.Add("analog_model", AnalogBlockModelToValueMap(model_result.data));
+
+        return JsonIO::SuccessResponse("analog-model-inspect", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("analog-model-inspect",
+                                   "Failed to inspect analog model: " + std::string(e.what()),
+                                   "ANALOG_MODEL_INSPECT_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunAnalogRenderOsc(const CommandOptions& opts) {
+    try {
+        if (opts.workspace.empty()) {
+            return JsonIO::ErrorResponse("analog-render-osc", "Workspace path is required", "INVALID_ARGUMENT");
+        }
+        if (!opts.session_id.has_value()) {
+            return JsonIO::ErrorResponse("analog-render-osc", "Session ID is required", "INVALID_ARGUMENT");
+        }
+        if (opts.block_id.empty()) {
+            return JsonIO::ErrorResponse("analog-render-osc", "Block ID is required", "INVALID_ARGUMENT");
+        }
+
+        // Parse the workspace path and session ID
+        std::string workspace_path = opts.workspace;
+        int session_id = opts.session_id.value();
+        std::string block_id = opts.block_id;
+
+        // Parse the branch name (optional, default to main)
+        std::string branch_name = opts.branch.value_or("main");
+
+        // Parse audio parameters
+        double pan_lfo_hz = opts.payload.Get("pan_lfo_hz", 0.25); // Default to 0.25 Hz
+        double sample_rate = opts.payload.Get("sample_rate", 48000.0); // Default to 48kHz
+        double duration_sec = opts.payload.Get("duration_sec", 3.0); // Default to 3 seconds
+
+        // Load the session
+        auto session_load_result = session_store_->LoadSession(session_id);
+        if (!session_load_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(session_load_result.error_code);
+            return JsonIO::ErrorResponse("analog-render-osc", session_load_result.error_message, error_code_str);
+        }
+        SessionMetadata session = session_load_result.data;
+
+        // Check if the branch exists
+        std::optional<BranchMetadata> branch = FindBranchByName(session, branch_name);
+        if (!branch) {
+            return JsonIO::ErrorResponse("analog-render-osc", "Branch not found: " + branch_name, "INVALID_ARGUMENT");
+        }
+
+        // Get the circuit facade
+        CircuitFacade circuit_facade(session_store_);
+
+        // Build the AudioDslGraph using the analog block
+        AudioDslGraph audio_graph;
+        audio_graph.block_id = block_id;
+        audio_graph.osc.id = "analog_osc_1";
+        audio_graph.osc.frequency_hz = 440.0; // This will be overridden by the analog model's estimate
+        audio_graph.pan_lfo.id = "pan_lfo_1";
+        audio_graph.pan_lfo.rate_hz = pan_lfo_hz;
+        audio_graph.output.sample_rate_hz = sample_rate;
+        audio_graph.output.duration_sec = duration_sec;
+
+        // Extract the analog model first to get the estimated frequency
+        auto model_result = circuit_facade.ExtractAnalogModelForBlockInBranch(
+            session,
+            workspace_path + "/sessions/" + std::to_string(session_id),
+            branch_name,
+            block_id
+        );
+
+        if (!model_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(model_result.error_code);
+            return JsonIO::ErrorResponse("analog-render-osc", model_result.error_message, error_code_str);
+        }
+
+        // Render the analog block as audio
+        std::vector<float> out_left, out_right;
+        auto render_result = circuit_facade.RenderAnalogBlockAsAudioInBranch(
+            session,
+            workspace_path + "/sessions/" + std::to_string(session_id),
+            branch_name,
+            block_id,
+            audio_graph,
+            out_left,
+            out_right
+        );
+
+        if (!render_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(render_result.error_code);
+            return JsonIO::ErrorResponse("analog-render-osc", render_result.error_message, error_code_str);
+        }
+
+        // Calculate statistics
+        double left_rms = 0.0, right_rms = 0.0;
+        double left_sum = 0.0, right_sum = 0.0;
+
+        for (float sample : out_left) {
+            left_sum += sample * sample;
+        }
+        if (!out_left.empty()) {
+            left_rms = std::sqrt(left_sum / out_left.size());
+        }
+
+        for (float sample : out_right) {
+            right_sum += sample * sample;
+        }
+        if (!out_right.empty()) {
+            right_rms = std::sqrt(right_sum / out_right.size());
+        }
+
+        // Build response (truncate large arrays for performance)
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("block_id", Upp::String(block_id.c_str()));
+        response_data.Add("sample_rate_hz", sample_rate);
+        response_data.Add("duration_sec", duration_sec);
+        response_data.Add("estimated_freq_hz", model_result.data.estimated_freq_hz);
+        response_data.Add("pan_lfo_hz", pan_lfo_hz);
+        response_data.Add("total_samples", static_cast<int>(out_left.size()));
+
+        // Add truncated sample arrays (only first 100 samples to avoid large JSON)
+        Upp::ValueArray left_samples, right_samples;
+        size_t max_display_samples = std::min(static_cast<size_t>(100), out_left.size());
+        for (size_t i = 0; i < max_display_samples; ++i) {
+            left_samples.Add(out_left[i]);
+        }
+        for (size_t i = 0; i < max_display_samples; ++i) {
+            right_samples.Add(out_right[i]);
+        }
+        response_data.Add("left_preview", left_samples);
+        response_data.Add("right_preview", right_samples);
+
+        // Add statistics
+        Upp::ValueMap stats;
+        stats.Add("left_rms", left_rms);
+        stats.Add("right_rms", right_rms);
+        stats.Add("left_min", out_left.empty() ? 0.0 : *std::min_element(out_left.begin(), out_left.end()));
+        stats.Add("left_max", out_left.empty() ? 0.0 : *std::max_element(out_left.begin(), out_left.end()));
+        stats.Add("right_min", out_right.empty() ? 0.0 : *std::min_element(out_right.begin(), out_right.end()));
+        stats.Add("right_max", out_right.empty() ? 0.0 : *std::max_element(out_right.begin(), out_right.end()));
+        response_data.Add("render_stats", stats);
+
+        return JsonIO::SuccessResponse("analog-render-osc", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("analog-render-osc",
+                                   "Failed to render analog oscillator: " + std::string(e.what()),
+                                   "ANALOG_RENDER_OSC_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunDesignerCodegenBlockCppClass(const CommandOptions& opts) {
+    try {
+        // Extract payload values
+        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        if (designer_session_id.empty()) {
+            return JsonIO::ErrorResponse("designer-codegen-block-cpp-class", "designer_session_id is required", "INVALID_PARAMETER");
+        }
+
+        std::string block_id = opts.payload.Get("block_id", Upp::String("")).ToStd();
+        if (block_id.empty()) {
+            return JsonIO::ErrorResponse("designer-codegen-block-cpp-class", "block_id is required", "INVALID_PARAMETER");
+        }
+
+        // Extract parameters
+        std::string class_name = opts.payload.Get("class_name", Upp::String("BlockClass")).ToStd();
+        std::string state_class_name = opts.payload.Get("state_class_name", Upp::String("BlockState")).ToStd();
+        std::string namespace_name = opts.payload.Get("namespace", Upp::String("")).ToStd();
+        bool generate_render_method = opts.payload.Get("render_method", Upp::Value(false)).GetBool();
+
+        // Create CoDesignerManager instance
+        auto circuit_facade = std::make_shared<CircuitFacade>(session_store_);
+        CoDesignerManager designer_manager(circuit_facade);
+
+        // Build the DesignerCodegenCppClassRequest (similar structure to other designer requests)
+        DesignerCodegenCppClassRequest request;
+        request.designer_session_id = designer_session_id;
+        request.block_id = block_id;
+        request.class_name = class_name;
+        request.state_class_name = state_class_name;
+        request.namespace_name = namespace_name;
+        request.generate_render_method = generate_render_method;
+
+        // Perform the operation via CoDesigner
+        auto result = designer_manager.CodegenCppClass(request);
+
+        if (!result.ok()) {
+            std::string error_code_str = ErrorCodeToString(result.error_code());
+            return JsonIO::ErrorResponse("designer-codegen-block-cpp-class", result.error_message(), error_code_str);
+        }
+
+        // Build response data
+        Upp::ValueMap response_data;
+        Upp::ValueMap designer_session_map;
+        // Add updated designer session information
+        designer_session_map.Add("designer_session_id", Upp::String(request.designer_session_id.c_str()));
+        // Add session state, etc. as needed
+        response_data.Add("designer_session", designer_session_map);
+
+        // Add codegen result
+        response_data.Add("code", Upp::String(result.value().code.c_str()));
+
+        return JsonIO::SuccessResponse("designer-codegen-block-cpp-class", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("designer-codegen-block-cpp-class",
+                                   "Failed to run designer C++ class codegen: " + std::string(e.what()),
+                                   "DESIGNER_CODEGEN_CPP_CLASS_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunDesignerCodegenBlockAudioDemo(const CommandOptions& opts) {
+    try {
+        // Extract payload values
+        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        if (designer_session_id.empty()) {
+            return JsonIO::ErrorResponse("designer-codegen-block-audio-demo", "designer_session_id is required", "INVALID_PARAMETER");
+        }
+
+        std::string block_id = opts.payload.Get("block_id", Upp::String("")).ToStd();
+        if (block_id.empty()) {
+            return JsonIO::ErrorResponse("designer-codegen-block-audio-demo", "block_id is required", "INVALID_PARAMETER");
+        }
+
+        // Extract parameters
+        double freq_hz = opts.payload.Get("freq_hz", 440.0); // Default to 440 Hz
+        double pan_lfo_hz = opts.payload.Get("pan_lfo_hz", 0.25); // Default to 0.25 Hz
+        double sample_rate = opts.payload.Get("sample_rate", 48000.0); // Default to 48kHz
+        double duration_sec = opts.payload.Get("duration_sec", 3.0); // Default to 3 seconds
+        std::string class_name = opts.payload.Get("class_name", Upp::String("OscBlock")).ToStd();
+        std::string state_class_name = opts.payload.Get("state_class_name", Upp::String("OscState")).ToStd();
+        std::string namespace_name = opts.payload.Get("namespace", Upp::String("")).ToStd();
+
+        // Create CoDesignerManager instance
+        auto circuit_facade = std::make_shared<CircuitFacade>(session_store_);
+        CoDesignerManager designer_manager(circuit_facade);
+
+        // Build the DesignerCodegenAudioDemoRequest (similar structure to other designer requests)
+        DesignerCodegenAudioDemoRequest request;
+        request.designer_session_id = designer_session_id;
+        request.block_id = block_id;
+        request.freq_hz = freq_hz;
+        request.pan_lfo_hz = pan_lfo_hz;
+        request.sample_rate = sample_rate;
+        request.duration_sec = duration_sec;
+        request.class_name = class_name;
+        request.state_class_name = state_class_name;
+        request.namespace_name = namespace_name;
+
+        // Perform the operation via CoDesigner
+        auto result = designer_manager.CodegenAudioDemo(request);
+
+        if (!result.ok()) {
+            std::string error_code_str = ErrorCodeToString(result.error_code());
+            return JsonIO::ErrorResponse("designer-codegen-block-audio-demo", result.error_message(), error_code_str);
+        }
+
+        // Build response data
+        Upp::ValueMap response_data;
+        Upp::ValueMap designer_session_map;
+        // Add updated designer session information
+        designer_session_map.Add("designer_session_id", Upp::String(request.designer_session_id.c_str()));
+        // Add session state, etc. as needed
+        response_data.Add("designer_session", designer_session_map);
+
+        // Add audio DSL and codegen result
+        response_data.Add("audio_dsl", JsonIO::AudioDslGraphToValueMap(result.value().audio_dsl));
+        response_data.Add("code", Upp::String(result.value().code.c_str()));
+
+        return JsonIO::SuccessResponse("designer-codegen-block-audio-demo", response_data);
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("designer-codegen-block-audio-demo",
+                                   "Failed to run designer audio demo codegen: " + std::string(e.what()),
+                                   "DESIGNER_CODEGEN_AUDIO_DEMO_ERROR");
     }
 }
 

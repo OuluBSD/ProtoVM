@@ -10,6 +10,10 @@
 #include "Codegen.h"  // For code generation
 #include "BehavioralAnalysis.h"  // For behavioral analysis
 #include "RetimingModel.h"  // For retiming analysis
+#include "GlobalPipeline.h"      // For global pipeline structures
+#include "GlobalPipelining.h"    // For global pipelining structures
+#include "StructuralSynthesis.h" // For structural synthesis analysis
+#include "AnalogModel.h"         // For analog model structures
 #include <string>
 #include <memory>
 #include <unordered_map>
@@ -91,6 +95,25 @@ struct DesignerCodegenRequest {
     bool use_optimized_ir;
 };
 
+// New codegen request structures
+struct DesignerCodegenBlockCRequest {
+    std::string designer_session_id;
+    std::string block_id;
+    CodegenTargetLanguage lang;
+    bool emit_state_struct;
+    std::string state_struct_name;
+    std::string function_name;
+};
+
+struct DesignerCodegenOscDemoRequest {
+    std::string designer_session_id;
+    std::string block_id;
+    CodegenTargetLanguage lang;
+    std::string state_struct_name;
+    std::string step_function_name;
+    std::string render_function_name;
+};
+
 // Response structures for designer commands
 struct DesignerCreateSessionResponse {
     CoDesignerSessionState designer_session;
@@ -160,6 +183,27 @@ struct DesignerCodegenResponse {
     } codegen;
 };
 
+// New codegen response structures
+struct DesignerCodegenBlockCResponse {
+    CoDesignerSessionState designer_session;
+    struct CodegenBlockCResult {
+        std::string block_id;
+        CodegenTargetLanguage lang;
+        std::string code;
+        std::string state_struct_name;
+        std::string function_name;
+    } result;
+};
+
+struct DesignerCodegenOscDemoResponse {
+    CoDesignerSessionState designer_session;
+    struct CodegenOscDemoResult {
+        std::string block_id;
+        CodegenTargetLanguage lang;
+        std::string osc_code;
+    } result;
+};
+
 // Designer retiming request structures
 struct DesignerRetimeRequest {
     std::string designer_session_id;
@@ -197,6 +241,197 @@ struct DesignerRetimeApplyResponse {
     DesignerRetimeApplyResponse() = default;
 };
 
+// Designer retiming optimization request/response structures
+struct DesignerRetimeOptRequest {
+    std::string designer_session_id;
+    std::string target;  // "block" or "subsystem"
+    std::string block_id;  // for block target
+    std::string subsystem_id;  // for subsystem target
+    std::vector<std::string> block_ids;  // for subsystem target
+    RetimingObjective objective;
+    bool apply = false;  // Whether to auto-apply the best plan
+    bool apply_only_safe = true;  // Apply only safe moves (default true)
+    bool allow_suspicious = false;  // Allow suspicious moves (default false)
+};
+
+struct DesignerRetimeOptResponse {
+    CoDesignerSessionState designer_session;
+    RetimingOptimizationResult optimization_result;
+
+    // Constructor
+    DesignerRetimeOptResponse() = default;
+};
+
+// Designer global pipelining request/response structures
+struct DesignerGlobalPipelineRequest {
+    std::string designer_session_id;
+    std::string target;  // "subsystem"
+    std::string subsystem_id;  // for subsystem target
+    std::vector<std::string> block_ids;  // for subsystem target
+    bool analyze_only = true;  // Whether to only analyze (true) or propose optimizations (false)
+};
+
+struct DesignerGlobalPipelineResponse {
+    CoDesignerSessionState designer_session;
+    std::optional<GlobalPipelineMap> global_pipeline;
+    std::optional<std::vector<GlobalPipeliningPlan>> global_plans;
+
+    // Constructor
+    DesignerGlobalPipelineResponse() = default;
+};
+
+struct DesignerGlobalPipelineOptRequest {
+    std::string designer_session_id;
+    std::string target;  // "subsystem"
+    std::string subsystem_id;  // for subsystem target
+    std::vector<std::string> block_ids;  // for subsystem target
+    GlobalPipeliningObjective objective;
+    bool apply = false;  // Whether to auto-apply the best plan
+    bool apply_only_safe = true;  // Apply only safe moves (default true)
+    bool allow_suspicious = false;  // Allow suspicious moves (default false)
+};
+
+struct DesignerGlobalPipelineApplyRequest {
+    std::string designer_session_id;
+    std::string plan_id;  // ID of the plan to apply
+    bool apply_only_safe = true;  // Apply only safe moves (default true)
+    bool allow_suspicious = false;  // Allow suspicious moves (default false)
+    int max_moves = -1;  // Max number of moves to apply (-1 for no limit)
+};
+
+struct DesignerGlobalPipelineApplyResponse {
+    CoDesignerSessionState designer_session;
+    GlobalPipeliningPlan application_result;
+
+    // Constructor
+    DesignerGlobalPipelineApplyResponse() = default;
+};
+
+// Designer structural synthesis request/response structures
+struct DesignerStructAnalyzeRequest {
+    std::string designer_session_id;
+    std::string target;  // "block" (currently only block is supported)
+    std::string block_id;  // for block target
+};
+
+struct DesignerStructAnalyzeResponse {
+    CoDesignerSessionState designer_session;
+    std::optional<StructuralRefactorPlan> structural_refactor_plan;
+
+    // Constructor
+    DesignerStructAnalyzeResponse() = default;
+};
+
+struct DesignerStructApplyRequest {
+    std::string designer_session_id;
+    std::string plan_id;  // ID of the plan to apply
+    bool apply_only_safe = true;  // Apply only safe moves (default true)
+    bool allow_suspicious = false;  // Allow suspicious moves (default false)
+};
+
+struct DesignerStructApplyResponse {
+    CoDesignerSessionState designer_session;
+    RetimingApplicationResult application_result;
+
+    // Constructor
+    DesignerStructApplyResponse() = default;
+};
+
+// Designer DSP graph request/response structures
+struct DesignerDspGraphInspectRequest {
+    std::string designer_session_id;
+    std::string target;  // "block"
+    std::string block_id;
+    double freq_hz;
+    double pan_lfo_hz;
+    double sample_rate;
+    double duration_sec;
+};
+
+struct DesignerDspGraphInspectResponse {
+    CoDesignerSessionState designer_session;
+    DspGraph dsp_graph;
+
+    // Constructor
+    DesignerDspGraphInspectResponse() = default;
+};
+
+struct DesignerDspRenderOscRequest {
+    std::string designer_session_id;
+    std::string target;  // "block"
+    std::string block_id;
+    double freq_hz;
+    double pan_lfo_hz;
+    double sample_rate;
+    double duration_sec;
+};
+
+struct DesignerDspRenderOscResponse {
+    CoDesignerSessionState designer_session;
+    std::vector<float> left_samples;
+    std::vector<float> right_samples;
+    struct RenderStats {
+        double sample_rate_hz;
+        double duration_sec;
+        double left_rms;
+        double right_rms;
+        double left_min;
+        double left_max;
+        double right_min;
+        double right_max;
+        int total_samples;
+    } render_stats;
+
+    // Constructor
+    DesignerDspRenderOscResponse() = default;
+};
+
+// Designer Analog Model request/response structures
+struct DesignerAnalogModelInspectRequest {
+    std::string designer_session_id;
+    std::string target;  // "block"
+    std::string block_id;
+};
+
+struct DesignerAnalogModelInspectResponse {
+    CoDesignerSessionState designer_session;
+    AnalogBlockModel analog_model;
+
+    // Constructor
+    DesignerAnalogModelInspectResponse() = default;
+};
+
+struct DesignerAnalogRenderOscRequest {
+    std::string designer_session_id;
+    std::string target;  // "block"
+    std::string block_id;
+    double sample_rate_hz;
+    double duration_sec;
+    double pan_lfo_hz;
+};
+
+struct DesignerAnalogRenderOscResponse {
+    CoDesignerSessionState designer_session;
+    std::vector<float> left_samples;
+    std::vector<float> right_samples;
+    struct RenderStats {
+        double sample_rate_hz;
+        double duration_sec;
+        double estimated_freq_hz;
+        double pan_lfo_hz;
+        double left_rms;
+        double right_rms;
+        double left_min;
+        double left_max;
+        double right_min;
+        double right_max;
+        int total_samples;
+    } render_stats;
+
+    // Constructor
+    DesignerAnalogRenderOscResponse() = default;
+};
+
 class CoDesignerManager {
 public:
     explicit CoDesignerManager(std::shared_ptr<CircuitFacade> circuit_facade)
@@ -208,6 +443,28 @@ public:
     Result<void> DestroySession(const std::string& designer_session_id);
     Result<DesignerRetimeResponse> RetimeDesign(const DesignerRetimeRequest& request);
     Result<DesignerRetimeApplyResponse> ApplyRetimeDesign(const DesignerRetimeApplyRequest& request);
+    Result<DesignerRetimeOptResponse> OptimizeRetimeDesign(const DesignerRetimeOptRequest& request);
+
+    // Codegen methods
+    Result<DesignerCodegenBlockCResponse> CodegenBlockC(const DesignerCodegenBlockCRequest& request);
+    Result<DesignerCodegenOscDemoResponse> CodegenOscDemo(const DesignerCodegenOscDemoRequest& request);
+
+    // Global pipelining methods
+    Result<DesignerGlobalPipelineResponse> AnalyzeGlobalPipeline(const DesignerGlobalPipelineRequest& request);
+    Result<DesignerGlobalPipelineResponse> OptimizeGlobalPipeline(const DesignerGlobalPipelineOptRequest& request);
+    Result<DesignerGlobalPipelineApplyResponse> ApplyGlobalPipeline(const DesignerGlobalPipelineApplyRequest& request);
+
+    // Structural synthesis methods
+    Result<DesignerStructAnalyzeResponse> AnalyzeStructural(const DesignerStructAnalyzeRequest& request);
+    Result<DesignerStructApplyResponse> ApplyStructural(const DesignerStructApplyRequest& request);
+
+    // DSP graph methods
+    Result<DesignerDspGraphInspectResponse> InspectDspGraph(const DesignerDspGraphInspectRequest& request);
+    Result<DesignerDspRenderOscResponse> RenderDspOsc(const DesignerDspRenderOscRequest& request);
+
+    // Analog model methods
+    Result<DesignerAnalogModelInspectResponse> InspectAnalogModel(const DesignerAnalogModelInspectRequest& request);
+    Result<DesignerAnalogRenderOscResponse> RenderAnalogOsc(const DesignerAnalogRenderOscRequest& request);
 
 private:
     // Helper method to generate unique designer session IDs

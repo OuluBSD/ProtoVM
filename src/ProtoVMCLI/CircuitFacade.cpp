@@ -15,6 +15,7 @@
 #include "DiffAnalysis.h"       // For diff analysis
 #include "RetimingModel.h"      // For retiming model
 #include "RetimingAnalysis.h"   // For retiming analysis
+#include "AnalogBlockExtractor.h" // For analog block extraction
 #include <fstream>
 #include <sstream>
 #include <filesystem>
@@ -2246,6 +2247,833 @@ Result<RetimingApplicationResult> CircuitFacade::ApplyRetimingPlanForSubsystemIn
         return Result<RetimingApplicationResult>::MakeError(
             ErrorCode::InternalError,
             std::string("Exception in ApplyRetimingPlanForSubsystemInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<RetimingOptimizationResult> CircuitFacade::OptimizeRetimingForBlockInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id,
+    const RetimingObjective& objective,
+    const RetimingApplicationOptions* app_options
+) {
+    try {
+        // Step 1: Get candidate retiming plans for the block
+        auto plans_result = AnalyzeRetimingForBlockInBranch(session, session_dir, branch_name, block_id);
+        if (!plans_result.ok) {
+            return Result<RetimingOptimizationResult>::MakeError(
+                plans_result.error_code,
+                plans_result.error_message
+            );
+        }
+
+        Vector<RetimingPlan> plans = plans_result.data;
+
+        // Step 2: Get pipeline, timing, and CDC information for more accurate scoring
+        auto pipeline_result = BuildPipelineMapForBlockInBranch(session, session_dir, branch_name, block_id);
+        const PipelineMap* pipeline = pipeline_result.ok ? &pipeline_result.data : nullptr;
+
+        // For simplicity, we won't build timing analysis here, but we could if needed
+        const TimingAnalysis* timing = nullptr;
+
+        auto cdc_result = BuildCdcReportForBlockInBranch(session, session_dir, branch_name, block_id);
+        const CdcReport* cdc_report = cdc_result.ok ? &cdc_result.data : nullptr;
+
+        // Step 3: Evaluate the plans based on the objective
+        if (app_options == nullptr) {
+            // Just evaluate, don't apply
+            return RetimingOptimizer::EvaluateRetimingPlans(
+                String(block_id.c_str()), plans, objective, pipeline, timing, cdc_report
+            );
+        } else {
+            // Evaluate and apply the best plan
+            SessionStore session_store;
+            return RetimingOptimizer::EvaluateAndApplyBestPlanInBranch(
+                String(block_id.c_str()), plans, objective, *app_options,
+                session_store, session, String(session_dir.c_str()), String(branch_name.c_str())
+            );
+        }
+    }
+    catch (const std::exception& e) {
+        return Result<RetimingOptimizationResult>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in OptimizeRetimingForBlockInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<RetimingOptimizationResult> CircuitFacade::OptimizeRetimingForSubsystemInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& subsystem_id,
+    const Vector<String>& block_ids,
+    const RetimingObjective& objective,
+    const RetimingApplicationOptions* app_options
+) {
+    try {
+        // Step 1: Get candidate retiming plans for the subsystem
+        auto plans_result = AnalyzeRetimingForSubsystemInBranch(session, session_dir, branch_name, subsystem_id, block_ids);
+        if (!plans_result.ok) {
+            return Result<RetimingOptimizationResult>::MakeError(
+                plans_result.error_code,
+                plans_result.error_message
+            );
+        }
+
+        Vector<RetimingPlan> plans = plans_result.data;
+
+        // Step 2: Get pipeline, timing, and CDC information for more accurate scoring
+        auto pipeline_result = BuildPipelineMapForSubsystemInBranch(
+            session, session_dir, branch_name, subsystem_id,
+            std::vector<std::string>(block_ids.Begin(), block_ids.End()));
+        const PipelineMap* pipeline = pipeline_result.ok ? &pipeline_result.data : nullptr;
+
+        // For simplicity, we won't build timing analysis here, but we could if needed
+        const TimingAnalysis* timing = nullptr;
+
+        auto cdc_result = BuildCdcReportForSubsystemInBranch(session, session_dir, branch_name, subsystem_id,
+                                                             std::vector<std::string>(block_ids.Begin(), block_ids.End()));
+        const CdcReport* cdc_report = cdc_result.ok ? &cdc_result.data : nullptr;
+
+        // Step 3: Evaluate the plans based on the objective
+        if (app_options == nullptr) {
+            // Just evaluate, don't apply
+            return RetimingOptimizer::EvaluateRetimingPlans(
+                String(subsystem_id.c_str()), plans, objective, pipeline, timing, cdc_report
+            );
+        } else {
+            // Evaluate and apply the best plan
+            SessionStore session_store;
+            return RetimingOptimizer::EvaluateAndApplyBestPlanInBranch(
+                String(subsystem_id.c_str()), plans, objective, *app_options,
+                session_store, session, String(session_dir.c_str()), String(branch_name.c_str())
+            );
+        }
+    }
+    catch (const std::exception& e) {
+        return Result<RetimingOptimizationResult>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in OptimizeRetimingForSubsystemInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<GlobalPipelineMap> CircuitFacade::BuildGlobalPipelineMapForSubsystemInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& subsystem_id,
+    const Vector<String>& block_ids
+) {
+    try {
+        // Step 1: Get the circuit graph for the specified branch
+        auto graph_result = BuildGraphForBranch(session, session_dir, branch_name);
+        if (!graph_result.ok) {
+            return Result<GlobalPipelineMap>::MakeError(
+                graph_result.error_code,
+                graph_result.error_message
+            );
+        }
+
+        const CircuitGraph& graph = graph_result.data;
+
+        // Step 2: Get pipeline maps for all specified blocks
+        Vector<PipelineMap> per_block_pipelines;
+        for (const auto& block_id : block_ids) {
+            auto pipeline_result = BuildPipelineMapForBlockInBranch(
+                session, session_dir, branch_name, std::string(block_id.c_str())
+            );
+            if (!pipeline_result.ok) {
+                return Result<GlobalPipelineMap>::MakeError(
+                    pipeline_result.error_code,
+                    "Error getting pipeline for block " + std::string(block_id.c_str()) + ": " + pipeline_result.error_message
+                );
+            }
+            per_block_pipelines.Add(pipeline_result.data);
+        }
+
+        // Step 3: Optionally get timing analysis for more accurate global pipeline analysis
+        auto timing_graph_result = BuildTimingGraphForBranch(session, session_dir, branch_name);
+        TimingAnalysis* timing = nullptr;  // We'll pass nullptr for now
+
+        // Step 4: Use the global pipeline analysis engine to build the map
+        auto global_pipeline_result = GlobalPipelineAnalysis::BuildGlobalPipelineMapForSubsystem(
+            String(subsystem_id.c_str()), block_ids, per_block_pipelines, graph, timing
+        );
+        if (!global_pipeline_result.ok()) {
+            return Result<GlobalPipelineMap>::MakeError(
+                global_pipeline_result.error_code,
+                global_pipeline_result.error_message
+            );
+        }
+
+        return Result<GlobalPipelineMap>::MakeOk(global_pipeline_result.value());
+    }
+    catch (const std::exception& e) {
+        return Result<GlobalPipelineMap>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in BuildGlobalPipelineMapForSubsystemInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<Vector<GlobalPipeliningPlan>> CircuitFacade::ProposeGlobalPipeliningPlansInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& subsystem_id,
+    const Vector<String>& block_ids,
+    const GlobalPipeliningObjective& objective
+) {
+    try {
+        // Step 1: Get the global pipeline map for the subsystem
+        auto global_pipeline_result = BuildGlobalPipelineMapForSubsystemInBranch(
+            session, session_dir, branch_name, subsystem_id, block_ids
+        );
+        if (!global_pipeline_result.ok) {
+            return Result<Vector<GlobalPipeliningPlan>>::MakeError(
+                global_pipeline_result.error_code,
+                global_pipeline_result.error_message
+            );
+        }
+        const GlobalPipelineMap& global_pipeline = global_pipeline_result.data;
+
+        // Step 2: Get optimization results for each block in the subsystem
+        Vector<RetimingOptimizationResult> per_block_opt_results;
+        for (const auto& block_id : block_ids) {
+            // Create a general retiming objective based on the global objective
+            RetimingObjective retiming_obj;
+            retiming_obj.kind = RetimingObjectiveKind::MinimizeMaxDepth;
+            retiming_obj.max_extra_registers = objective.max_extra_registers;
+            retiming_obj.max_moves = objective.max_total_moves;
+            retiming_obj.target_max_depth = objective.target_max_depth;
+
+            auto opt_result = OptimizeRetimingForBlockInBranch(
+                session, session_dir, branch_name, std::string(block_id.c_str()), retiming_obj, nullptr
+            );
+            if (!opt_result.ok) {
+                return Result<Vector<GlobalPipeliningPlan>>::MakeError(
+                    opt_result.error_code,
+                    "Error optimizing retiming for block " + std::string(block_id.c_str()) + ": " + opt_result.error_message
+                );
+            }
+            per_block_opt_results.Add(opt_result.data);
+        }
+
+        // Step 3: Use the global pipelining engine to propose plans
+        auto global_plan_result = GlobalPipeliningEngine::ProposeGlobalPipeliningPlans(
+            String(subsystem_id.c_str()), block_ids, objective, global_pipeline, per_block_opt_results
+        );
+        if (!global_plan_result.ok()) {
+            return Result<Vector<GlobalPipeliningPlan>>::MakeError(
+                global_plan_result.error_code,
+                global_plan_result.error_message
+            );
+        }
+
+        return Result<Vector<GlobalPipeliningPlan>>::MakeOk(global_plan_result.value());
+    }
+    catch (const std::exception& e) {
+        return Result<Vector<GlobalPipeliningPlan>>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in ProposeGlobalPipeliningPlansInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<GlobalPipeliningPlan> CircuitFacade::ApplyGlobalPipeliningPlanInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const GlobalPipeliningPlan& plan,
+    const RetimingApplicationOptions& app_options
+) {
+    try {
+        // Step 1: Use the global pipelining engine to apply the plan
+        SessionStore session_store;  // Create a session store instance
+        auto result = GlobalPipeliningEngine::ApplyGlobalPipeliningPlanInBranch(
+            plan, app_options, session_store, session,
+            String(session_dir.c_str()), String(branch_name.c_str())
+        );
+        return result;
+    }
+    catch (const std::exception& e) {
+        return Result<GlobalPipeliningPlan>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in ApplyGlobalPipeliningPlanInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<StructuralRefactorPlan> CircuitFacade::AnalyzeBlockStructureInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id
+) {
+    try {
+        // Step 1: Load the circuit for the specified branch
+        CircuitData circuit;
+        auto load_result = LoadCurrentCircuitForBranch(session, session_dir, branch_name, circuit);
+        if (!load_result.ok) {
+            return Result<StructuralRefactorPlan>::MakeError(
+                load_result.error_code,
+                "Failed to load circuit for branch: " + load_result.error_message
+            );
+        }
+
+        // Step 2: Build the circuit graph for analysis
+        auto graph_result = BuildGraphForBranch(session, session_dir, branch_name);
+        if (!graph_result.ok) {
+            return Result<StructuralRefactorPlan>::MakeError(
+                graph_result.error_code,
+                "Failed to build circuit graph: " + graph_result.error_message
+            );
+        }
+        const CircuitGraph& graph = graph_result.data;
+
+        // Step 3: Get behavioral analysis for the block (optional)
+        std::optional<BehaviorDescriptor> behavior;
+        auto behavior_result = InferBehaviorForBlockInBranch(
+            session, session_dir, branch_name, String(block_id.c_str())
+        );
+        if (behavior_result.ok) {
+            behavior = behavior_result.data;
+        }
+
+        // Step 4: Get HLS IR for the block (optional)
+        std::optional<IrModule> ir_module;
+        auto ir_result = BuildIrForBlockInBranch(
+            session, session_dir, branch_name, String(block_id.c_str())
+        );
+        if (ir_result.ok) {
+            ir_module = ir_result.data;
+        }
+
+        // Step 5: Get CDC report for the block (optional)
+        std::optional<CdcReport> cdc_report;
+        auto cdc_result = BuildCdcReportForBlockInBranch(
+            session, session_dir, branch_name, String(block_id.c_str())
+        );
+        if (cdc_result.ok) {
+            cdc_report = cdc_result.data;
+        }
+
+        // Step 6: Perform functional analysis for the block (optional)
+        std::optional<FunctionalAnalysis> functional;
+        // Note: Functional analysis is more complex to implement for a specific block
+        // For now we'll pass null, but in a complete implementation we might
+        // do more sophisticated analysis here
+
+        // Step 7: Analyze the block structure
+        auto analysis_result = StructuralAnalysis::AnalyzeBlockStructure(
+            String(block_id.c_str()),
+            graph,
+            functional ? &functional.value() : nullptr,
+            ir_module ? &ir_module.value() : nullptr,
+            cdc_report ? &cdc_report.value() : nullptr
+        );
+
+        if (!analysis_result.ok) {
+            return Result<StructuralRefactorPlan>::MakeError(
+                analysis_result.error_code,
+                "Failed to analyze block structure: " + analysis_result.error_message
+            );
+        }
+
+        return Result<StructuralRefactorPlan>::MakeOk(analysis_result.data);
+    }
+    catch (const std::exception& e) {
+        return Result<StructuralRefactorPlan>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in AnalyzeBlockStructureInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<RetimingApplicationResult> CircuitFacade::ApplyStructuralRefactorPlanInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const StructuralRefactorPlan& plan,
+    bool apply_only_safe_moves
+) {
+    try {
+        SessionStore session_store;  // Create a session store instance
+        auto result = StructuralTransform::ApplyStructuralRefactorInBranch(
+            plan,
+            apply_only_safe_moves,
+            session_store,
+            session,
+            String(session_dir.c_str()),
+            String(branch_name.c_str())
+        );
+        return result;
+    }
+    catch (const std::exception& e) {
+        return Result<RetimingApplicationResult>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in ApplyStructuralRefactorPlanInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<CodegenModule> CircuitFacade::BuildCodegenModuleForBlockInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id
+) {
+    return CodegenIrInference::BuildCodegenModuleForBlockInBranch(
+        session, session_dir, branch_name, block_id
+    );
+}
+
+Result<CodegenModule> CircuitFacade::BuildCodegenModuleForNodeRegionInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id,
+    const std::vector<std::string>& node_ids
+) {
+    return CodegenIrInference::BuildCodegenModuleForNodeRegionInBranch(
+        session, session_dir, branch_name, block_id, node_ids
+    );
+}
+
+Result<std::string> CircuitFacade::EmitCodeForBlockInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id,
+    CodegenTargetLanguage lang,
+    bool emit_state_struct,
+    const std::string& state_struct_name,
+    const std::string& function_name
+) {
+    // First, build the CodegenModule for the block
+    auto codegen_module_result = BuildCodegenModuleForBlockInBranch(
+        session, session_dir, branch_name, block_id
+    );
+
+    if (!codegen_module_result.ok) {
+        return Result<std::string>::Error(
+            codegen_module_result.error_code,
+            "Failed to build CodegenModule for block: " + codegen_module_result.error_message
+        );
+    }
+
+    // Then emit code for the module
+    auto emitter_result = CodeEmitter::EmitCodeForModule(
+        codegen_module_result.data,
+        lang,
+        emit_state_struct,
+        state_struct_name,
+        function_name
+    );
+
+    if (!emitter_result.ok) {
+        return Result<std::string>::Error(
+            emitter_result.error_code,
+            "Failed to emit code for block: " + emitter_result.error_message
+        );
+    }
+
+    return emitter_result;
+}
+
+Result<std::string> CircuitFacade::EmitOscillatorDemoForBlockInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id,
+    CodegenTargetLanguage lang
+) {
+    // First, build the CodegenModule for the block
+    auto codegen_module_result = BuildCodegenModuleForBlockInBranch(
+        session, session_dir, branch_name, block_id
+    );
+
+    if (!codegen_module_result.ok) {
+        return Result<std::string>::Error(
+            codegen_module_result.error_code,
+            "Failed to build CodegenModule for block: " + codegen_module_result.error_message
+        );
+    }
+
+    // Then emit oscillator demo code for the module
+    auto emitter_result = CodeEmitter::EmitOscillatorDemo(
+        codegen_module_result.data,
+        lang
+    );
+
+    if (!emitter_result.ok) {
+        return Result<std::string>::Error(
+            emitter_result.error_code,
+            "Failed to emit oscillator demo code: " + emitter_result.error_message
+        );
+    }
+
+    return emitter_result;
+}
+
+Result<std::string> CircuitFacade::EmitCppClassForBlockInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id,
+    const CppClassOptions& options
+) {
+    // First, build the CodegenModule for the block
+    auto codegen_module_result = BuildCodegenModuleForBlockInBranch(
+        session, session_dir, branch_name, block_id
+    );
+
+    if (!codegen_module_result.ok) {
+        return Result<std::string>::Error(
+            codegen_module_result.error_code,
+            "Failed to build CodegenModule for block: " + codegen_module_result.error_message
+        );
+    }
+
+    // Then emit C++ class code for the module
+    auto emitter_result = CodeEmitter::EmitCppClassForModule(
+        codegen_module_result.data,
+        options
+    );
+
+    if (!emitter_result.ok) {
+        return Result<std::string>::Error(
+            emitter_result.error_code,
+            "Failed to emit C++ class code for block: " + emitter_result.error_message
+        );
+    }
+
+    return emitter_result;
+}
+
+Result<AudioDslGraph> CircuitFacade::BuildAudioDslForOscillatorBlockInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id,
+    double target_frequency_hz,
+    double pan_lfo_rate_hz,
+    double sample_rate_hz,
+    double duration_sec
+) {
+    // First, build the CodegenModule for the block to verify it's oscillator-like
+    auto codegen_module_result = BuildCodegenModuleForBlockInBranch(
+        session, session_dir, branch_name, block_id
+    );
+
+    if (!codegen_module_result.ok) {
+        return Result<AudioDslGraph>::Error(
+            codegen_module_result.error_code,
+            "Failed to build CodegenModule for block: " + codegen_module_result.error_message
+        );
+    }
+
+    // Check if the module is oscillator-like
+    if (!codegen_module_result.data.is_oscillator_like) {
+        return Result<AudioDslGraph>::Error(
+            ErrorCode::InvalidArgument,
+            "Block is not oscillator-like, cannot create audio DSL for it"
+        );
+    }
+
+    // Build the AudioDslGraph
+    AudioDslGraph graph;
+    graph.block_id = block_id;
+    graph.osc.id = "osc1";  // Default ID
+    graph.osc.frequency_hz = target_frequency_hz;
+    graph.pan_lfo.id = "pan_lfo1";  // Default ID
+    graph.pan_lfo.rate_hz = pan_lfo_rate_hz;
+    graph.output.sample_rate_hz = sample_rate_hz;
+    graph.output.duration_sec = duration_sec;
+
+    return Result<AudioDslGraph>::Success(graph);
+}
+
+Result<std::string> CircuitFacade::EmitAudioDemoForOscillatorBlockInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id,
+    const CppClassOptions& class_opts,
+    const AudioDslGraph& graph
+) {
+    // First, build the CodegenModule for the block
+    auto codegen_module_result = BuildCodegenModuleForBlockInBranch(
+        session, session_dir, branch_name, block_id
+    );
+
+    if (!codegen_module_result.ok) {
+        return Result<std::string>::Error(
+            codegen_module_result.error_code,
+            "Failed to build CodegenModule for block: " + codegen_module_result.error_message
+        );
+    }
+
+    // Then emit audio demo code for the module
+    auto emitter_result = CodeEmitter::EmitAudioDemoForOscillator(
+        codegen_module_result.data,
+        class_opts,
+        graph
+    );
+
+    if (!emitter_result.ok) {
+        return Result<std::string>::Error(
+            emitter_result.error_code,
+            "Failed to emit audio demo code for block: " + emitter_result.error_message
+        );
+    }
+
+    return emitter_result;
+}
+
+Result<DspGraph> CircuitFacade::BuildDspGraphForOscillatorBlockInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id,
+    const AudioDslGraph& audio_graph
+) {
+    // Use the DspGraphBuilder to convert AudioDslGraph to DspGraph
+    auto builder_result = DspGraphBuilder::BuildGraphFromAudioDsl(audio_graph);
+
+    if (!builder_result.ok) {
+        return Result<DspGraph>::MakeError(
+            builder_result.error_code,
+            "Failed to build DSP graph from audio DSL: " + builder_result.error_message
+        );
+    }
+
+    return builder_result;
+}
+
+Result<void> CircuitFacade::RenderDspGraphForOscillatorBlockInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id,
+    const AudioDslGraph& audio_graph,
+    std::vector<float>& out_left,
+    std::vector<float>& out_right
+) {
+    // First, build the DSP graph
+    auto graph_result = BuildDspGraphForOscillatorBlockInBranch(
+        session, session_dir, branch_name, block_id, audio_graph
+    );
+
+    if (!graph_result.ok) {
+        return Result<void>::MakeError(
+            graph_result.error_code,
+            "Failed to build DSP graph: " + graph_result.error_message
+        );
+    }
+
+    // Initialize the DSP runtime with the graph
+    auto runtime_init_result = DspRuntime::Initialize(graph_result.data);
+    if (!runtime_init_result.ok) {
+        return Result<void>::MakeError(
+            runtime_init_result.error_code,
+            "Failed to initialize DSP runtime: " + runtime_init_result.error_message
+        );
+    }
+
+    DspRuntimeState state = runtime_init_result.data;
+
+    // Render the audio
+    auto render_result = DspRuntime::Render(state);
+    if (!render_result.ok) {
+        return Result<void>::MakeError(
+            render_result.error_code,
+            "Failed to render DSP graph: " + render_result.error_message
+        );
+    }
+
+    // Copy the rendered audio to the output vectors
+    out_left = state.out_left;
+    out_right = state.out_right;
+
+    return Result<void>::MakeOk({});
+}
+
+Result<AnalogBlockModel> CircuitFacade::ExtractAnalogModelForBlockInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id
+) {
+    try {
+        // First, build the circuit graph for the specified branch
+        auto graph_result = BuildGraphForBranch(session, session_dir, branch_name);
+        if (!graph_result.ok) {
+            return Result<AnalogBlockModel>::MakeError(
+                graph_result.error_code,
+                "Failed to build circuit graph: " + graph_result.error_message
+            );
+        }
+
+        CircuitGraph graph = graph_result.data;
+
+        // Use the AnalogBlockExtractor to extract the analog model
+        auto extraction_result = AnalogBlockExtractor::ExtractAnalogModelForBlock(
+            Upp::String(block_id.c_str()), graph
+        );
+
+        if (!extraction_result.ok) {
+            return Result<AnalogBlockModel>::MakeError(
+                extraction_result.error_code,
+                "Failed to extract analog model: " + extraction_result.error_message
+            );
+        }
+
+        return Result<AnalogBlockModel>::MakeOk(extraction_result.data);
+    }
+    catch (const std::exception& e) {
+        return Result<AnalogBlockModel>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in ExtractAnalogModelForBlockInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<void> CircuitFacade::RenderAnalogBlockAsAudioInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id,
+    const AudioDslGraph& audio_graph,
+    std::vector<float>& out_left,
+    std::vector<float>& out_right
+) {
+    try {
+        // First, extract the analog model for the block
+        auto model_result = ExtractAnalogModelForBlockInBranch(
+            session, session_dir, branch_name, block_id
+        );
+
+        if (!model_result.ok) {
+            return Result<void>::MakeError(
+                model_result.error_code,
+                "Failed to extract analog model: " + model_result.error_message
+            );
+        }
+
+        AnalogBlockModel analog_model = model_result.data;
+
+        // Create a DSP graph with an AnalogBlockSource as the oscillator
+        DspGraph dsp_graph;
+        dsp_graph.graph_id = "ANALOG_DSP_GRAPH_" + block_id;
+        dsp_graph.sample_rate_hz = audio_graph.output.sample_rate_hz;
+        dsp_graph.block_size = 64;  // Default block size
+        dsp_graph.total_samples = static_cast<int>(audio_graph.output.sample_rate_hz * audio_graph.output.duration_sec);
+
+        // Create nodes for the DSP graph
+        DspNode analog_osc_node;
+        analog_osc_node.id = "analog_osc_1";
+        analog_osc_node.kind = DspNodeKind::AnalogBlockSource;
+        analog_osc_node.input_port_names = {};
+        analog_osc_node.output_port_names = {"out"};
+        analog_osc_node.param_keys = {"analog_model_id"};
+        analog_osc_node.param_values = {static_cast<double>(std::hash<std::string>{}(analog_model.id.ToStd()))};
+
+        DspNode pan_lfo_node;
+        pan_lfo_node.id = "pan_lfo_1";
+        pan_lfo_node.kind = DspNodeKind::PanLfo;
+        pan_lfo_node.input_port_names = {};
+        pan_lfo_node.output_port_names = {"out"};
+        pan_lfo_node.param_keys = {"rate_hz"};
+        pan_lfo_node.param_values = {audio_graph.pan_lfo.rate_hz};
+
+        DspNode panner_node;
+        panner_node.id = "panner_1";
+        panner_node.kind = DspNodeKind::StereoPanner;
+        panner_node.input_port_names = {"in", "pan"};
+        panner_node.output_port_names = {"outL", "outR"};
+        panner_node.param_keys = {};
+        panner_node.param_values = {};
+
+        DspNode output_node;
+        output_node.id = "output_1";
+        output_node.kind = DspNodeKind::OutputSink;
+        output_node.input_port_names = {"inL", "inR"};
+        output_node.output_port_names = {};
+        output_node.param_keys = {};
+        output_node.param_values = {};
+
+        // Add nodes to the graph
+        dsp_graph.nodes.push_back(analog_osc_node);
+        dsp_graph.nodes.push_back(pan_lfo_node);
+        dsp_graph.nodes.push_back(panner_node);
+        dsp_graph.nodes.push_back(output_node);
+
+        // Add connections to match the signal flow
+        // analog_osc_out -> panner_in
+        DspConnection conn1;
+        conn1.from = {analog_osc_node.id, "out"};
+        conn1.to = {panner_node.id, "in"};
+        dsp_graph.connections.push_back(conn1);
+
+        // pan_lfo_out -> panner_pan
+        DspConnection conn2;
+        conn2.from = {pan_lfo_node.id, "out"};
+        conn2.to = {panner_node.id, "pan"};
+        dsp_graph.connections.push_back(conn2);
+
+        // panner_outL -> output_inL
+        DspConnection conn3;
+        conn3.from = {panner_node.id, "outL"};
+        conn3.to = {output_node.id, "inL"};
+        dsp_graph.connections.push_back(conn3);
+
+        // panner_outR -> output_inR
+        DspConnection conn4;
+        conn4.from = {panner_node.id, "outR"};
+        conn4.to = {output_node.id, "inR"};
+        dsp_graph.connections.push_back(conn4);
+
+        // Set special node IDs for runtime tracking
+        dsp_graph.osc_node_id = analog_osc_node.id;
+        dsp_graph.pan_lfo_node_id = pan_lfo_node.id;
+        dsp_graph.panner_node_id = panner_node.id;
+        dsp_graph.output_node_id = output_node.id;
+
+        // Initialize the DSP runtime with the graph
+        auto runtime_init_result = DspRuntime::Initialize(dsp_graph);
+        if (!runtime_init_result.ok) {
+            return Result<void>::MakeError(
+                runtime_init_result.error_code,
+                "Failed to initialize DSP runtime: " + runtime_init_result.error_message
+            );
+        }
+
+        DspRuntimeState state = runtime_init_result.data;
+
+        // Render the audio
+        auto render_result = DspRuntime::Render(state);
+        if (!render_result.ok) {
+            return Result<void>::MakeError(
+                render_result.error_code,
+                "Failed to render DSP graph: " + render_result.error_message
+            );
+        }
+
+        // Copy the rendered audio to the output vectors
+        out_left = state.out_left;
+        out_right = state.out_right;
+
+        return Result<void>::MakeOk({});
+    }
+    catch (const std::exception& e) {
+        return Result<void>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in RenderAnalogBlockAsAudioInBranch: ") + e.what()
         );
     }
 }

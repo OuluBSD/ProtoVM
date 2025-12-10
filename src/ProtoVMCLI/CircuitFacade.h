@@ -13,6 +13,19 @@
 #include "CdcModel.h"            // For CDC analysis
 #include "CdcAnalysis.h"         // For CDC analysis engine
 #include "RetimingTransform.h"   // For retiming transformation
+#include "RetimingOpt.h"         // For retiming optimization
+#include "GlobalPipeline.h"      // For global pipeline analysis
+#include "GlobalPipelineAnalysis.h" // For global pipeline analysis engine
+#include "GlobalPipelining.h"    // For global pipelining engine
+#include "StructuralSynthesis.h" // For structural synthesis analysis
+#include "CodegenIr.h"           // For codegen IR structures
+#include "CodegenIrInference.h"  // For codegen IR inference
+#include "CodeEmitter.h"         // For code emission
+#include "CodegenCpp.h"          // For C++ class options
+#include "AudioDsl.h"            // For audio DSL structures
+#include "DspGraph.h"            // For DSP graph structures
+#include "DspRuntime.h"          // For DSP runtime
+#include "AnalogModel.h"         // For analog model structures
 #include <string>
 #include <vector>
 #include <optional>
@@ -329,6 +342,174 @@ public:
         const RetimingApplicationOptions& options
     );
 
+    // Retiming optimization methods
+    Result<RetimingOptimizationResult> OptimizeRetimingForBlockInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id,
+        const RetimingObjective& objective,
+        const RetimingApplicationOptions* app_options = nullptr // optional; if null, just evaluate
+    );
+
+    Result<RetimingOptimizationResult> OptimizeRetimingForSubsystemInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& subsystem_id,
+        const Vector<String>& block_ids,
+        const RetimingObjective& objective,
+        const RetimingApplicationOptions* app_options = nullptr // optional; if null, just evaluate
+    );
+
+    // Global pipelining analysis methods
+    Result<GlobalPipelineMap> BuildGlobalPipelineMapForSubsystemInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& subsystem_id,
+        const Vector<String>& block_ids
+    );
+
+    // Global pipelining proposal & application.
+    Result<Vector<GlobalPipeliningPlan>> ProposeGlobalPipeliningPlansInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& subsystem_id,
+        const Vector<String>& block_ids,
+        const GlobalPipeliningObjective& objective
+    );
+
+    Result<GlobalPipeliningPlan> ApplyGlobalPipeliningPlanInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const GlobalPipeliningPlan& plan,
+        const RetimingApplicationOptions& app_options
+    );
+
+    // Structural synthesis analysis methods
+    Result<StructuralRefactorPlan> AnalyzeBlockStructureInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id
+    );
+
+    Result<RetimingApplicationResult> ApplyStructuralRefactorPlanInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const StructuralRefactorPlan& plan,
+        bool apply_only_safe_moves
+    );
+
+    // Codegen IR inference methods
+    Result<CodegenModule> BuildCodegenModuleForBlockInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id
+    );
+
+    Result<CodegenModule> BuildCodegenModuleForNodeRegionInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id,
+        const std::vector<std::string>& node_ids
+    );
+
+    // Code emission methods
+    Result<std::string> EmitCodeForBlockInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id,
+        CodegenTargetLanguage lang,
+        bool emit_state_struct = true,
+        const std::string& state_struct_name = "BlockState",
+        const std::string& function_name = "BlockStep"
+    );
+
+    // Optional oscillator demo:
+    Result<std::string> EmitOscillatorDemoForBlockInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id,
+        CodegenTargetLanguage lang
+    );
+
+    // C++ class emission methods
+    Result<std::string> EmitCppClassForBlockInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id,
+        const CppClassOptions& options
+    );
+
+    // Audio DSL methods
+    Result<AudioDslGraph> BuildAudioDslForOscillatorBlockInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id,
+        double target_frequency_hz,
+        double pan_lfo_rate_hz,
+        double sample_rate_hz,
+        double duration_sec
+    );
+
+    // Audio demo methods
+    Result<std::string> EmitAudioDemoForOscillatorBlockInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id,
+        const CppClassOptions& class_opts,
+        const AudioDslGraph& graph
+    );
+
+    // DSP graph methods
+    Result<DspGraph> BuildDspGraphForOscillatorBlockInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id,
+        const AudioDslGraph& audio_graph
+    );
+
+    Result<void> RenderDspGraphForOscillatorBlockInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id,
+        const AudioDslGraph& audio_graph,
+        std::vector<float>& out_left,
+        std::vector<float>& out_right
+    );
+
+    // Analog model methods
+    Result<AnalogBlockModel> ExtractAnalogModelForBlockInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id
+    );
+
+    Result<void> RenderAnalogBlockAsAudioInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id,
+        const AudioDslGraph& audio_graph,
+        std::vector<float>& out_left,
+        std::vector<float>& out_right
+    );
+
 private:
     // Internal helper to load circuit from initial file
     Result<bool> LoadInitialCircuit(const std::string& circuit_file_path, CircuitData& out_circuit);
@@ -360,6 +541,11 @@ private:
         const Vector<String>& block_ids,
         bool is_subsystem
     );
+
+public:
+    std::shared_ptr<ISessionStore> GetSessionStore() const {
+        return session_store_;
+    }
 
 private:
     std::shared_ptr<ISessionStore> session_store_;

@@ -5,6 +5,10 @@
 #include "Scheduling.h"
 #include "CdcModel.h"
 #include "RetimingModel.h"
+#include "CodegenIr.h"
+#include "AudioDsl.h"
+#include "DspGraph.h"
+#include "AnalogModel.h"
 #include <iostream>
 #include <sstream>
 
@@ -1313,6 +1317,189 @@ Upp::ValueArray JsonIO::CdcIssuesToValueArray(const Vector<CdcIssue>& issues) {
     return array;
 }
 
+Upp::Value JsonIO::GlobalPipeliningStrategyKindToJson(GlobalPipeliningStrategyKind kind) {
+    switch (kind) {
+        case GlobalPipeliningStrategyKind::BalanceStages:
+            return Upp::String("BalanceStages");
+        case GlobalPipeliningStrategyKind::ReduceCriticalPath:
+            return Upp::String("ReduceCriticalPath");
+        default:
+            return Upp::String("Unknown");
+    }
+}
+
+Upp::ValueMap JsonIO::GlobalPipelinePathToValueMap(const GlobalPipelinePath& path) {
+    Upp::ValueMap map;
+    map.Add("path_id", Upp::String(path.path_id.c_str()));
+
+    // Convert reg_ids vector to array
+    Upp::ValueArray reg_ids_array;
+    for (const auto& reg_id : path.reg_ids) {
+        reg_ids_array.Add(Upp::String(reg_id.c_str()));
+    }
+    map.Add("reg_ids", reg_ids_array);
+
+    // Convert block_ids vector to array
+    Upp::ValueArray block_ids_array;
+    for (const auto& block_id : path.block_ids) {
+        block_ids_array.Add(Upp::String(block_id.c_str()));
+    }
+    map.Add("block_ids", block_ids_array);
+
+    map.Add("domain_id", path.domain_id);
+    map.Add("total_stages", path.total_stages);
+    map.Add("total_comb_depth_estimate", path.total_comb_depth_estimate);
+
+    // Convert segment_depths vector to array
+    Upp::ValueArray segment_depths_array;
+    for (const auto& depth : path.segment_depths) {
+        segment_depths_array.Add(depth);
+    }
+    map.Add("segment_depths", segment_depths_array);
+
+    return map;
+}
+
+Upp::ValueMap JsonIO::GlobalPipelineStageToValueMap(const GlobalPipelineStage& stage) {
+    Upp::ValueMap map;
+    map.Add("stage_index", stage.stage_index);
+    map.Add("domain_id", stage.domain_id);
+
+    // Convert reg_ids vector to array
+    Upp::ValueArray reg_ids_array;
+    for (const auto& reg_id : stage.reg_ids) {
+        reg_ids_array.Add(Upp::String(reg_id.c_str()));
+    }
+    map.Add("reg_ids", reg_ids_array);
+
+    // Convert block_ids vector to array
+    Upp::ValueArray block_ids_array;
+    for (const auto& block_id : stage.block_ids) {
+        block_ids_array.Add(Upp::String(block_id.c_str()));
+    }
+    map.Add("block_ids", block_ids_array);
+
+    map.Add("max_comb_depth_estimate", stage.max_comb_depth_estimate);
+    map.Add("avg_comb_depth_estimate", stage.avg_comb_depth_estimate);
+
+    return map;
+}
+
+Upp::ValueMap JsonIO::GlobalPipelineMapToValueMap(const GlobalPipelineMap& global_pipeline) {
+    Upp::ValueMap map;
+    map.Add("subsystem_id", Upp::String(global_pipeline.subsystem_id.c_str()));
+
+    // Convert block_ids vector to array
+    Upp::ValueArray block_ids_array;
+    for (const auto& block_id : global_pipeline.block_ids) {
+        block_ids_array.Add(Upp::String(block_id.c_str()));
+    }
+    map.Add("block_ids", block_ids_array);
+
+    // Convert clock domains
+    Upp::ValueArray clock_domains_array;
+    for (const auto& clock_domain : global_pipeline.clock_domains) {
+        Upp::ValueMap clock_map;
+        clock_map.Add("signal_name", Upp::String(clock_domain.signal_name.c_str()));
+        clock_map.Add("domain_id", clock_domain.domain_id);
+        clock_domains_array.Add(clock_map);
+    }
+    map.Add("clock_domains", clock_domains_array);
+
+    // Convert stages
+    map.Add("stages", GlobalPipelineStagesToValueArray(global_pipeline.stages));
+
+    // Convert paths
+    map.Add("paths", GlobalPipelinePathsToValueArray(global_pipeline.paths));
+
+    map.Add("max_total_depth", global_pipeline.max_total_depth);
+    map.Add("max_stages", global_pipeline.max_stages);
+
+    return map;
+}
+
+Upp::ValueMap JsonIO::GlobalPipeliningObjectiveToValueMap(const GlobalPipeliningObjective& objective) {
+    Upp::ValueMap map;
+    map.Add("kind", GlobalPipeliningStrategyKindToJson(objective.kind));
+    map.Add("target_stage_count", objective.target_stage_count);
+    map.Add("target_max_depth", objective.target_max_depth);
+    map.Add("max_extra_registers", objective.max_extra_registers);
+    map.Add("max_total_moves", objective.max_total_moves);
+    return map;
+}
+
+Upp::ValueMap JsonIO::GlobalPipeliningStepToValueMap(const GlobalPipeliningStep& step) {
+    Upp::ValueMap map;
+    map.Add("block_id", Upp::String(step.block_id.c_str()));
+    map.Add("retiming_plan_id", Upp::String(step.retiming_plan_id.c_str()));
+    return map;
+}
+
+Upp::ValueMap JsonIO::GlobalPipeliningPlanToValueMap(const GlobalPipeliningPlan& plan) {
+    Upp::ValueMap map;
+    map.Add("id", Upp::String(plan.id.c_str()));
+    map.Add("subsystem_id", Upp::String(plan.subsystem_id.c_str()));
+
+    // Convert block_ids vector to array
+    Upp::ValueArray block_ids_array;
+    for (const auto& block_id : plan.block_ids) {
+        block_ids_array.Add(Upp::String(block_id.c_str()));
+    }
+    map.Add("block_ids", block_ids_array);
+
+    // Convert objective
+    map.Add("objective", GlobalPipeliningObjectiveToValueMap(plan.objective));
+
+    // Convert steps
+    map.Add("steps", GlobalPipeliningStepsToValueArray(plan.steps));
+
+    map.Add("estimated_global_depth_before", plan.estimated_global_depth_before);
+    map.Add("estimated_global_depth_after", plan.estimated_global_depth_after);
+    map.Add("respects_cdc_fences", plan.respects_cdc_fences);
+
+    return map;
+}
+
+Upp::ValueArray JsonIO::GlobalPipelinePathsToValueArray(const std::vector<GlobalPipelinePath>& paths) {
+    Upp::ValueArray array;
+    for (const auto& path : paths) {
+        array.Add(GlobalPipelinePathToValueMap(path));
+    }
+    return array;
+}
+
+Upp::ValueArray JsonIO::GlobalPipelineStagesToValueArray(const std::vector<GlobalPipelineStage>& stages) {
+    Upp::ValueArray array;
+    for (const auto& stage : stages) {
+        array.Add(GlobalPipelineStageToValueMap(stage));
+    }
+    return array;
+}
+
+Upp::ValueArray JsonIO::GlobalPipeliningObjectivesToValueArray(const std::vector<GlobalPipeliningObjective>& objectives) {
+    Upp::ValueArray array;
+    for (const auto& objective : objectives) {
+        array.Add(GlobalPipeliningObjectiveToValueMap(objective));
+    }
+    return array;
+}
+
+Upp::ValueArray JsonIO::GlobalPipeliningStepsToValueArray(const std::vector<GlobalPipeliningStep>& steps) {
+    Upp::ValueArray array;
+    for (const auto& step : steps) {
+        array.Add(GlobalPipeliningStepToValueMap(step));
+    }
+    return array;
+}
+
+Upp::ValueArray JsonIO::GlobalPipeliningPlansToValueArray(const std::vector<GlobalPipeliningPlan>& plans) {
+    Upp::ValueArray array;
+    for (const auto& plan : plans) {
+        array.Add(GlobalPipeliningPlanToValueMap(plan));
+    }
+    return array;
+}
+
 Upp::Value JsonIO::RetimingMoveDirectionToJson(RetimingMoveDirection direction) {
     switch (direction) {
         case RetimingMoveDirection::Forward:
@@ -1423,5 +1610,524 @@ Upp::ValueMap JsonIO::RetimingApplicationResultToValueMap(const RetimingApplicat
 
     return map;
 }
+
+Upp::Value JsonIO::RetimingObjectiveKindToJson(RetimingObjectiveKind kind) {
+    std::string kind_str = "MinimizeMaxDepth";
+    switch (kind) {
+        case RetimingObjectiveKind::MinimizeMaxDepth:
+            kind_str = "MinimizeMaxDepth";
+            break;
+        case RetimingObjectiveKind::MinimizeDepthWithBudget:
+            kind_str = "MinimizeDepthWithBudget";
+            break;
+        case RetimingObjectiveKind::BalanceStages:
+            kind_str = "BalanceStages";
+            break;
+    }
+    return Upp::String(kind_str.c_str());
+}
+
+Upp::ValueMap JsonIO::RetimingObjectiveToValueMap(const RetimingObjective& objective) {
+    Upp::ValueMap map;
+    map.Add("kind", RetimingObjectiveKindToJson(objective.kind));
+    map.Add("max_extra_registers", objective.max_extra_registers);
+    map.Add("max_moves", objective.max_moves);
+    map.Add("target_max_depth", objective.target_max_depth);
+    return map;
+}
+
+Upp::ValueMap JsonIO::RetimingPlanScoreToValueMap(const RetimingPlanScore& score) {
+    Upp::ValueMap map;
+    map.Add("plan_id", Upp::String(score.plan_id));
+    map.Add("estimated_max_depth_before", score.estimated_max_depth_before);
+    map.Add("estimated_max_depth_after", score.estimated_max_depth_after);
+    map.Add("applied_move_count", score.applied_move_count);
+    map.Add("safe_move_count", score.safe_move_count);
+    map.Add("suspicious_move_count", score.suspicious_move_count);
+    map.Add("forbidden_move_count", score.forbidden_move_count);
+    map.Add("estimated_register_count_before", score.estimated_register_count_before);
+    map.Add("estimated_register_count_after", score.estimated_register_count_after);
+    map.Add("respects_cdc_fences", score.respects_cdc_fences);
+    map.Add("meets_objective", score.meets_objective);
+    map.Add("cost", score.cost);
+    return map;
+}
+
+Upp::ValueMap JsonIO::RetimingOptimizationResultToValueMap(const RetimingOptimizationResult& result) {
+    Upp::ValueMap map;
+    map.Add("target_id", Upp::String(result.target_id));
+    map.Add("objective", RetimingObjectiveToValueMap(result.objective));
+    map.Add("plan_scores", RetimingPlanScoresToValueArray(result.plan_scores));
+    map.Add("best_plan_id", Upp::String(result.best_plan_id));
+    map.Add("applied", result.applied);
+    map.Add("application_result", RetimingApplicationResultToValueMap(result.application_result));
+    return map;
+}
+
+Upp::ValueArray JsonIO::RetimingPlanScoresToValueArray(const Vector<RetimingPlanScore>& scores) {
+    Upp::ValueArray array;
+    for (const auto& score : scores) {
+        array.Add(RetimingPlanScoreToValueMap(score));
+    }
+    return array;
+}
+
+// Structural synthesis serialization functions
+Upp::Value JsonIO::StructuralPatternKindToJson(StructuralPatternKind kind) {
+    std::string kind_str;
+    switch (kind) {
+        case StructuralPatternKind::RedundantLogic:
+            kind_str = "RedundantLogic";
+            break;
+        case StructuralPatternKind::CommonSubexpression:
+            kind_str = "CommonSubexpression";
+            break;
+        case StructuralPatternKind::CanonicalMux:
+            kind_str = "CanonicalMux";
+            break;
+        case StructuralPatternKind::CanonicalAdder:
+            kind_str = "CanonicalAdder";
+            break;
+        case StructuralPatternKind::CanonicalComparator:
+            kind_str = "CanonicalComparator";
+            break;
+        case StructuralPatternKind::ConstantPropagation:
+            kind_str = "ConstantPropagation";
+            break;
+        case StructuralPatternKind::DeadLogic:
+            kind_str = "DeadLogic";
+            break;
+        default:
+            kind_str = "Unknown";
+            break;
+    }
+    return Upp::String(kind_str.c_str());
+}
+
+Upp::ValueMap JsonIO::StructuralPatternToValueMap(const StructuralPattern& pattern) {
+    Upp::ValueMap map;
+    map.Add("pattern_id", Upp::String(pattern.pattern_id));
+    map.Add("kind", StructuralPatternKindToJson(pattern.kind));
+    map.Add("node_ids", StringVectorToValueArray(pattern.node_ids));
+    map.Add("description", Upp::String(pattern.description));
+    return map;
+}
+
+Upp::ValueArray JsonIO::StructuralPatternsToValueArray(const Vector<StructuralPattern>& patterns) {
+    Upp::ValueArray array;
+    for (const auto& pattern : patterns) {
+        array.Add(StructuralPatternToValueMap(pattern));
+    }
+    return array;
+}
+
+Upp::Value JsonIO::StructuralRefactorSafetyToJson(StructuralRefactorSafety safety) {
+    std::string safety_str;
+    switch (safety) {
+        case StructuralRefactorSafety::Safe:
+            safety_str = "Safe";
+            break;
+        case StructuralRefactorSafety::Suspicious:
+            safety_str = "Suspicious";
+            break;
+        case StructuralRefactorSafety::Forbidden:
+            safety_str = "Forbidden";
+            break;
+        default:
+            safety_str = "Unknown";
+            break;
+    }
+    return Upp::String(safety_str.c_str());
+}
+
+Upp::ValueMap JsonIO::StructuralRefactorMoveToValueMap(const StructuralRefactorMove& move) {
+    Upp::ValueMap map;
+    map.Add("move_id", Upp::String(move.move_id));
+    map.Add("target_block_id", Upp::String(move.target_block_id));
+    map.Add("kind", StructuralPatternKindToJson(move.kind));
+    map.Add("affected_node_ids", StringVectorToValueArray(move.affected_node_ids));
+    map.Add("safety", StructuralRefactorSafetyToJson(move.safety));
+    map.Add("safety_reason", Upp::String(move.safety_reason));
+    map.Add("transform_hint", Upp::String(move.transform_hint));
+    return map;
+}
+
+Upp::ValueArray JsonIO::StructuralRefactorMovesToValueArray(const Vector<StructuralRefactorMove>& moves) {
+    Upp::ValueArray array;
+    for (const auto& move : moves) {
+        array.Add(StructuralRefactorMoveToValueMap(move));
+    }
+    return array;
+}
+
+Upp::ValueMap JsonIO::StructuralRefactorPlanToValueMap(const StructuralRefactorPlan& plan) {
+    Upp::ValueMap map;
+    map.Add("id", Upp::String(plan.id));
+    map.Add("target_block_id", Upp::String(plan.target_block_id));
+    map.Add("patterns", StructuralPatternsToValueArray(plan.patterns));
+    map.Add("moves", StructuralRefactorMovesToValueArray(plan.moves));
+    map.Add("gate_count_before", plan.gate_count_before);
+    map.Add("gate_count_after_estimate", plan.gate_count_after_estimate);
+    map.Add("depth_before", plan.depth_before);
+    map.Add("depth_after_estimate", plan.depth_after_estimate);
+    map.Add("respects_cdc_fences", plan.respects_cdc_fences);
+    return map;
+}
+
+Upp::Value JsonIO::CodegenTargetLanguageToJson(CodegenTargetLanguage lang) {
+    std::string lang_str;
+    switch (lang) {
+        case CodegenTargetLanguage::C:
+            lang_str = "C";
+            break;
+        case CodegenTargetLanguage::Cpp:
+            lang_str = "Cpp";
+            break;
+        default:
+            lang_str = "Unknown";
+            break;
+    }
+    return Upp::String(lang_str.c_str());
+}
+
+Upp::Value JsonIO::CodegenExprKindToJson(CodegenExprKind kind) {
+    std::string kind_str;
+    switch (kind) {
+        case CodegenExprKind::Value:
+            kind_str = "Value";
+            break;
+        case CodegenExprKind::UnaryOp:
+            kind_str = "UnaryOp";
+            break;
+        case CodegenExprKind::BinaryOp:
+            kind_str = "BinaryOp";
+            break;
+        case CodegenExprKind::TernaryOp:
+            kind_str = "TernaryOp";
+            break;
+        case CodegenExprKind::Call:
+            kind_str = "Call";
+            break;
+        default:
+            kind_str = "Unknown";
+            break;
+    }
+    return Upp::String(kind_str.c_str());
+}
+
+Upp::Value JsonIO::CodegenStorageKindToJson(CodegenStorageKind kind) {
+    std::string kind_str;
+    switch (kind) {
+        case CodegenStorageKind::Input:
+            kind_str = "Input";
+            break;
+        case CodegenStorageKind::Output:
+            kind_str = "Output";
+            break;
+        case CodegenStorageKind::Local:
+            kind_str = "Local";
+            break;
+        case CodegenStorageKind::State:
+            kind_str = "State";
+            break;
+        default:
+            kind_str = "Unknown";
+            break;
+    }
+    return Upp::String(kind_str.c_str());
+}
+
+Upp::ValueMap JsonIO::CodegenValueToValueMap(const CodegenValue& value) {
+    Upp::ValueMap map;
+    map.Add("name", Upp::String(value.name.c_str()));
+    map.Add("c_type", Upp::String(value.c_type.c_str()));
+    map.Add("bit_width", value.bit_width);
+    map.Add("storage", CodegenStorageKindToJson(value.storage));
+    map.Add("is_array", value.is_array);
+    map.Add("array_length", value.array_length);
+    return map;
+}
+
+Upp::ValueMap JsonIO::CodegenExprToValueMap(const CodegenExpr& expr) {
+    Upp::ValueMap map;
+    map.Add("kind", CodegenExprKindToJson(expr.kind));
+    map.Add("op", Upp::String(expr.op.c_str()));
+    map.Add("args", CodegenValuesToValueArray(expr.args));
+    map.Add("literal", Upp::String(expr.literal.c_str()));
+    return map;
+}
+
+Upp::ValueMap JsonIO::CodegenAssignmentToValueMap(const CodegenAssignment& assign) {
+    Upp::ValueMap map;
+    map.Add("target", CodegenValueToValueMap(assign.target));
+    map.Add("expr", CodegenExprToValueMap(assign.expr));
+    return map;
+}
+
+Upp::ValueMap JsonIO::CodegenModuleToValueMap(const CodegenModule& module) {
+    Upp::ValueMap map;
+    map.Add("id", Upp::String(module.id.c_str()));
+    map.Add("block_id", Upp::String(module.block_id.c_str()));
+    map.Add("inputs", CodegenValuesToValueArray(module.inputs));
+    map.Add("outputs", CodegenValuesToValueArray(module.outputs));
+    map.Add("locals", CodegenValuesToValueArray(module.locals));
+    map.Add("state", CodegenValuesToValueArray(module.state));
+    map.Add("comb_assigns", CodegenAssignmentsToValueArray(module.comb_assigns));
+    map.Add("state_updates", CodegenAssignmentsToValueArray(module.state_updates));
+    map.Add("is_oscillator_like", module.is_oscillator_like);
+    map.Add("behavior_summary", Upp::String(module.behavior_summary.c_str()));
+    return map;
+}
+
+Upp::ValueArray JsonIO::CodegenValuesToValueArray(const std::vector<CodegenValue>& values) {
+    Upp::ValueArray array;
+    for (const auto& value : values) {
+        array.Add(CodegenValueToValueMap(value));
+    }
+    return array;
+}
+
+Upp::ValueArray JsonIO::CodegenExprsToValueArray(const std::vector<CodegenExpr>& exprs) {
+    Upp::ValueArray array;
+    for (const auto& expr : exprs) {
+        array.Add(CodegenExprToValueMap(expr));
+    }
+    return array;
+}
+
+Upp::ValueArray JsonIO::CodegenAssignmentsToValueArray(const std::vector<CodegenAssignment>& assigns) {
+    Upp::ValueArray array;
+    for (const auto& assign : assigns) {
+        array.Add(CodegenAssignmentToValueMap(assign));
+    }
+    return array;
+}
+
+Upp::ValueMap JsonIO::AudioDslOscillatorToValueMap(const AudioDslOscillator& oscillator) {
+    Upp::ValueMap map;
+    map.Add("id", Upp::String(oscillator.id.c_str()));
+    map.Add("frequency_hz", oscillator.frequency_hz);
+    return map;
+}
+
+Upp::ValueMap JsonIO::AudioDslPanLfoToValueMap(const AudioDslPanLfo& pan_lfo) {
+    Upp::ValueMap map;
+    map.Add("id", Upp::String(pan_lfo.id.c_str()));
+    map.Add("rate_hz", pan_lfo.rate_hz);
+    return map;
+}
+
+Upp::ValueMap JsonIO::AudioDslOutputConfigToValueMap(const AudioDslOutputConfig& output_config) {
+    Upp::ValueMap map;
+    map.Add("sample_rate_hz", output_config.sample_rate_hz);
+    map.Add("duration_sec", output_config.duration_sec);
+    return map;
+}
+
+Upp::ValueMap JsonIO::AudioDslGraphToValueMap(const AudioDslGraph& graph) {
+    Upp::ValueMap map;
+    map.Add("block_id", Upp::String(graph.block_id.c_str()));
+    map.Add("osc", AudioDslOscillatorToValueMap(graph.osc));
+    map.Add("pan_lfo", AudioDslPanLfoToValueMap(graph.pan_lfo));
+    map.Add("output", AudioDslOutputConfigToValueMap(graph.output));
+    return map;
+}
+
+    // DSP graph serialization methods
+    Upp::Value JsonIO::DspNodeKindToJson(DspNodeKind kind) {
+        switch (kind) {
+            case DspNodeKind::Oscillator:   return Upp::String("oscillator");
+            case DspNodeKind::PanLfo:       return Upp::String("pan_lfo");
+            case DspNodeKind::StereoPanner: return Upp::String("stereo_panner");
+            case DspNodeKind::OutputSink:   return Upp::String("output_sink");
+            default:                        return Upp::String("unknown");
+        }
+    }
+
+    Upp::Value JsonIO::DspPortDirectionToJson(DspPortDirection direction) {
+        switch (direction) {
+            case DspPortDirection::Input:  return Upp::String("input");
+            case DspPortDirection::Output: return Upp::String("output");
+            default:                       return Upp::String("unknown");
+        }
+    }
+
+    Upp::Value JsonIO::DspPortTypeToJson(DspPortType type) {
+        switch (type) {
+            case DspPortType::Audio:   return Upp::String("audio");
+            case DspPortType::Control: return Upp::String("control");
+            default:                   return Upp::String("unknown");
+        }
+    }
+
+    Upp::ValueMap JsonIO::DspPortIdToValueMap(const DspPortId& port_id) {
+        Upp::ValueMap result;
+        result.Add("node_id", Upp::String(port_id.node_id));
+        result.Add("port_name", Upp::String(port_id.port_name));
+        return result;
+    }
+
+    Upp::ValueMap JsonIO::DspNodeToValueMap(const DspNode& node) {
+        Upp::ValueMap result;
+        result.Add("id", Upp::String(node.id));
+        result.Add("kind", DspNodeKindToJson(node.kind));
+
+        // Add input ports
+        Upp::ValueArray input_ports;
+        for (const auto& input_port : node.input_port_names) {
+            input_ports.Add(Upp::String(input_port));
+        }
+        result.Add("input_ports", input_ports);
+
+        // Add output ports
+        Upp::ValueArray output_ports;
+        for (const auto& output_port : node.output_port_names) {
+            output_ports.Add(Upp::String(output_port));
+        }
+        result.Add("output_ports", output_ports);
+
+        // Add parameters
+        Upp::ValueMap params;
+        for (size_t i = 0; i < node.param_keys.size() && i < node.param_values.size(); ++i) {
+            params.Add(Upp::String(node.param_keys[i]), node.param_values[i]);
+        }
+        result.Add("params", params);
+
+        return result;
+    }
+
+    Upp::ValueMap JsonIO::DspConnectionToValueMap(const DspConnection& connection) {
+        Upp::ValueMap result;
+        result.Add("from", DspPortIdToValueMap(connection.from));
+        result.Add("to", DspPortIdToValueMap(connection.to));
+        return result;
+    }
+
+    Upp::ValueMap JsonIO::DspGraphToValueMap(const DspGraph& graph) {
+        Upp::ValueMap result;
+        result.Add("graph_id", Upp::String(graph.graph_id));
+        result.Add("sample_rate_hz", graph.sample_rate_hz);
+        result.Add("block_size", graph.block_size);
+        result.Add("total_samples", graph.total_samples);
+
+        // Add nodes
+        Upp::ValueArray nodes_array;
+        for (const auto& node : graph.nodes) {
+            nodes_array.Add(DspNodeToValueMap(node));
+        }
+        result.Add("nodes", nodes_array);
+
+        // Add connections
+        Upp::ValueArray connections_array;
+        for (const auto& connection : graph.connections) {
+            connections_array.Add(DspConnectionToValueMap(connection));
+        }
+        result.Add("connections", connections_array);
+
+        // Add special node IDs
+        result.Add("osc_node_id", Upp::String(graph.osc_node_id));
+        result.Add("pan_lfo_node_id", Upp::String(graph.pan_lfo_node_id));
+        result.Add("panner_node_id", Upp::String(graph.panner_node_id));
+        result.Add("output_node_id", Upp::String(graph.output_node_id));
+
+        return result;
+    }
+
+    Upp::ValueArray JsonIO::DspNodesToValueArray(const std::vector<DspNode>& nodes) {
+        Upp::ValueArray result;
+        for (const auto& node : nodes) {
+            result.Add(DspNodeToValueMap(node));
+        }
+        return result;
+    }
+
+    Upp::ValueArray JsonIO::DspConnectionsToValueArray(const std::vector<DspConnection>& connections) {
+        Upp::ValueArray result;
+        for (const auto& connection : connections) {
+            result.Add(DspConnectionToValueMap(connection));
+        }
+        return result;
+    }
+
+    Upp::Value JsonIO::AnalogBlockKindToJson(AnalogBlockKind kind) {
+        switch (kind) {
+            case AnalogBlockKind::RcOscillator:
+                return Upp::String("RcOscillator");
+            case AnalogBlockKind::SimpleFilter:
+                return Upp::String("SimpleFilter");
+            case AnalogBlockKind::TransistorStage:
+                return Upp::String("TransistorStage");
+            case AnalogBlockKind::Unknown:
+            default:
+                return Upp::String("Unknown");
+        }
+    }
+
+    Upp::Value JsonIO::AnalogStateKindToJson(AnalogStateKind kind) {
+        switch (kind) {
+            case AnalogStateKind::Voltage:
+                return Upp::String("Voltage");
+            case AnalogStateKind::Current:
+                return Upp::String("Current");
+            default:
+                return Upp::String("Unknown");
+        }
+    }
+
+    Upp::ValueMap JsonIO::AnalogStateVarToValueMap(const AnalogStateVar& state) {
+        Upp::ValueMap result;
+        result.Add("name", Upp::String(state.name));
+        result.Add("kind", AnalogStateKindToJson(state.kind));
+        result.Add("value", state.value);
+        return result;
+    }
+
+    Upp::ValueMap JsonIO::AnalogParamToValueMap(const AnalogParam& param) {
+        Upp::ValueMap result;
+        result.Add("name", Upp::String(param.name));
+        result.Add("value", param.value);
+        return result;
+    }
+
+    Upp::ValueMap JsonIO::AnalogBlockModelToValueMap(const AnalogBlockModel& model) {
+        Upp::ValueMap result;
+        result.Add("id", Upp::String(model.id));
+        result.Add("block_id", Upp::String(model.block_id));
+        result.Add("kind", AnalogBlockKindToJson(model.kind));
+        result.Add("output_state_name", Upp::String(model.output_state_name));
+        result.Add("estimated_freq_hz", model.estimated_freq_hz);
+
+        // Add state variables
+        Upp::ValueArray state_array;
+        for (const auto& state : model.state) {
+            state_array.Add(AnalogStateVarToValueMap(state));
+        }
+        result.Add("state", state_array);
+
+        // Add parameters
+        Upp::ValueArray param_array;
+        for (const auto& param : model.params) {
+            param_array.Add(AnalogParamToValueMap(param));
+        }
+        result.Add("params", param_array);
+
+        return result;
+    }
+
+    Upp::ValueArray JsonIO::AnalogStateVarsToValueArray(const std::vector<AnalogStateVar>& states) {
+        Upp::ValueArray result;
+        for (const auto& state : states) {
+            result.Add(AnalogStateVarToValueMap(state));
+        }
+        return result;
+    }
+
+    Upp::ValueArray JsonIO::AnalogParamsToValueArray(const std::vector<AnalogParam>& params) {
+        Upp::ValueArray result;
+        for (const auto& param : params) {
+            result.Add(AnalogParamToValueMap(param));
+        }
+        return result;
+    }
 
 } // namespace ProtoVMCLI

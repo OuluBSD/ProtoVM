@@ -9,6 +9,9 @@
 #include "BlockAnalysis.h"
 #include "IrOptimization.h"
 #include "Playbooks.h"
+#include "GlobalPipeline.h"
+#include "GlobalPipelining.h"
+#include "StructuralSynthesis.h"
 #include <string>
 
 namespace ProtoVMCLI {
@@ -285,6 +288,42 @@ public:
 
     static Upp::ValueArray RetimingPlansToValueArray(const Vector<RetimingPlan>& plans);
 
+    // Retiming optimization serialization methods
+    static Upp::Value RetimingObjectiveKindToJson(RetimingObjectiveKind kind);
+
+    static Upp::ValueMap RetimingObjectiveToValueMap(const RetimingObjective& objective);
+
+    static Upp::ValueMap RetimingPlanScoreToValueMap(const RetimingPlanScore& score);
+
+    static Upp::ValueMap RetimingOptimizationResultToValueMap(const RetimingOptimizationResult& result);
+
+    static Upp::ValueArray RetimingPlanScoresToValueArray(const Vector<RetimingPlanScore>& scores);
+
+    // Global Pipeline serialization methods
+    static Upp::Value GlobalPipeliningStrategyKindToJson(GlobalPipeliningStrategyKind kind);
+
+    static Upp::ValueMap GlobalPipelinePathToValueMap(const GlobalPipelinePath& path);
+
+    static Upp::ValueMap GlobalPipelineStageToValueMap(const GlobalPipelineStage& stage);
+
+    static Upp::ValueMap GlobalPipelineMapToValueMap(const GlobalPipelineMap& global_pipeline);
+
+    static Upp::ValueMap GlobalPipeliningObjectiveToValueMap(const GlobalPipeliningObjective& objective);
+
+    static Upp::ValueMap GlobalPipeliningStepToValueMap(const GlobalPipeliningStep& step);
+
+    static Upp::ValueMap GlobalPipeliningPlanToValueMap(const GlobalPipeliningPlan& plan);
+
+    static Upp::ValueArray GlobalPipelinePathsToValueArray(const std::vector<GlobalPipelinePath>& paths);
+
+    static Upp::ValueArray GlobalPipelineStagesToValueArray(const std::vector<GlobalPipelineStage>& stages);
+
+    static Upp::ValueArray GlobalPipeliningObjectivesToValueArray(const std::vector<GlobalPipeliningObjective>& objectives);
+
+    static Upp::ValueArray GlobalPipeliningStepsToValueArray(const std::vector<GlobalPipeliningStep>& steps);
+
+    static Upp::ValueArray GlobalPipeliningPlansToValueArray(const std::vector<GlobalPipeliningPlan>& plans);
+
     // CoDesigner serialization methods
     static Upp::ValueMap CoDesignerSessionStateToValueMap(const CoDesignerSessionState& session);
 
@@ -293,7 +332,25 @@ public:
 
     static Upp::ValueMap PlaybookConfigToValueMap(const PlaybookConfig& config);
 
+    // Codegen IR serialization methods
+    static Upp::Value CodegenTargetLanguageToJson(CodegenTargetLanguage lang);
+    static Upp::Value CodegenExprKindToJson(CodegenExprKind kind);
+    static Upp::Value CodegenStorageKindToJson(CodegenStorageKind kind);
+
+    static Upp::ValueMap CodegenValueToValueMap(const CodegenValue& value);
+    static Upp::ValueMap CodegenExprToValueMap(const CodegenExpr& expr);
+    static Upp::ValueMap CodegenAssignmentToValueMap(const CodegenAssignment& assign);
     static Upp::ValueMap CodegenModuleToValueMap(const CodegenModule& module);
+
+    static Upp::ValueArray CodegenValuesToValueArray(const std::vector<CodegenValue>& values);
+    static Upp::ValueArray CodegenExprsToValueArray(const std::vector<CodegenExpr>& exprs);
+    static Upp::ValueArray CodegenAssignmentsToValueArray(const std::vector<CodegenAssignment>& assigns);
+
+    // Audio DSL serialization methods
+    static Upp::ValueMap AudioDslOscillatorToValueMap(const AudioDslOscillator& oscillator);
+    static Upp::ValueMap AudioDslPanLfoToValueMap(const AudioDslPanLfo& pan_lfo);
+    static Upp::ValueMap AudioDslOutputConfigToValueMap(const AudioDslOutputConfig& output_config);
+    static Upp::ValueMap AudioDslGraphToValueMap(const AudioDslGraph& graph);
 
     static Upp::ValueMap BlockPlaybookResultToValueMap(const BlockPlaybookResult& result);
 
@@ -302,6 +359,40 @@ public:
     static Upp::ValueArray TransformationPlansToValueArray(const std::vector<TransformationPlan>& plans);
 
     static Upp::ValueArray StringVectorToValueArray(const std::vector<std::string>& strings);
+
+    // Structural synthesis data structure serialization functions
+    static Upp::Value StructuralPatternKindToJson(StructuralPatternKind kind);
+    static Upp::ValueMap StructuralPatternToValueMap(const StructuralPattern& pattern);
+    static Upp::ValueArray StructuralPatternsToValueArray(const Vector<StructuralPattern>& patterns);
+
+    static Upp::Value StructuralRefactorSafetyToJson(StructuralRefactorSafety safety);
+    static Upp::ValueMap StructuralRefactorMoveToValueMap(const StructuralRefactorMove& move);
+    static Upp::ValueArray StructuralRefactorMovesToValueArray(const Vector<StructuralRefactorMove>& moves);
+
+    static Upp::ValueMap StructuralRefactorPlanToValueMap(const StructuralRefactorPlan& plan);
+
+    // DSP graph serialization methods
+    static Upp::Value DspNodeKindToJson(DspNodeKind kind);
+    static Upp::Value DspPortDirectionToJson(DspPortDirection direction);
+    static Upp::Value DspPortTypeToJson(DspPortType type);
+
+    static Upp::ValueMap DspPortIdToValueMap(const DspPortId& port_id);
+    static Upp::ValueMap DspNodeToValueMap(const DspNode& node);
+    static Upp::ValueMap DspConnectionToValueMap(const DspConnection& connection);
+    static Upp::ValueMap DspGraphToValueMap(const DspGraph& graph);
+
+    static Upp::ValueArray DspNodesToValueArray(const std::vector<DspNode>& nodes);
+    static Upp::ValueArray DspConnectionsToValueArray(const std::vector<DspConnection>& connections);
+
+    // Analog model serialization methods
+    static Upp::Value AnalogBlockKindToJson(AnalogBlockKind kind);
+    static Upp::Value AnalogStateKindToJson(AnalogStateKind kind);
+    static Upp::ValueMap AnalogStateVarToValueMap(const AnalogStateVar& state);
+    static Upp::ValueMap AnalogParamToValueMap(const AnalogParam& param);
+    static Upp::ValueMap AnalogBlockModelToValueMap(const AnalogBlockModel& model);
+
+    static Upp::ValueArray AnalogStateVarsToValueArray(const std::vector<AnalogStateVar>& states);
+    static Upp::ValueArray AnalogParamsToValueArray(const std::vector<AnalogParam>& params);
 };
 
 // Template implementation needs to be in header

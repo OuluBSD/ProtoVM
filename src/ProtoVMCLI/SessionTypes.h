@@ -148,6 +148,16 @@ struct CommandOptions {
     std::optional<bool> allow_suspicious;   // Allow suspicious moves (default false)
     std::optional<int> max_moves;           // Max number of moves to apply (default -1, no limit)
 
+    // Code generation parameters
+    std::optional<std::string> block_id;        // Block ID for codegen operations
+    std::optional<std::string> node_id;         // Node ID for codegen operations
+    std::optional<std::string> lang;            // Language for codegen: "C" or "Cpp"
+    std::optional<std::string> emit_state_struct;  // Whether to emit state struct (true/false as string)
+    std::optional<std::string> state_struct_name;  // State struct name
+    std::optional<std::string> function_name;      // Function name for generated code
+    std::optional<std::string> step_function_name; // Step function name for oscillator demos
+    std::optional<std::string> render_function_name; // Render function name for oscillator demos
+
     // Add more options as needed
 };
 

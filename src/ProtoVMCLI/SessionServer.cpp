@@ -1375,6 +1375,142 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
 
             return Result<void>::MakeOk();
         }
+        else if (req.command == "codegen-block-ir") {
+            // Create a CommandOptions object from the DaemonRequest
+            CommandOptions opts;
+            opts.workspace = req.workspace;
+            opts.session_id = req.session_id;
+            opts.user_id = req.user_id;
+
+            // Extract branch from payload if provided
+            if (req.payload.Get("branch", Upp::Value()).IsString()) {
+                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract block_id from payload
+            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
+                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            }
+
+            // Use the CommandDispatcher to handle the codegen-block-ir command
+            CommandDispatcher dispatcher(std::make_unique<JsonFilesystemSessionStore>(req.workspace));
+            Upp::String response = dispatcher.RunCodegenBlockIr(opts);
+
+            // Parse the response and convert to DaemonResponse
+            Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
+            out_resp.id = req.id;
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.command = req.command;
+            out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
+            out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
+            out_resp.data = parsed_response.Get("data", Upp::ValueMap());
+
+            return Result<void>::MakeOk();
+        }
+        else if (req.command == "codegen-block-c") {
+            // Create a CommandOptions object from the DaemonRequest
+            CommandOptions opts;
+            opts.workspace = req.workspace;
+            opts.session_id = req.session_id;
+            opts.user_id = req.user_id;
+
+            // Extract branch from payload if provided
+            if (req.payload.Get("branch", Upp::Value()).IsString()) {
+                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract block_id from payload
+            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
+                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract language from payload
+            if (req.payload.Get("lang", Upp::Value()).IsString()) {
+                opts.lang = req.payload.Get("lang", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract emit-state-struct from payload (boolean as string)
+            if (req.payload.Get("emit_state_struct", Upp::Value()).IsString()) {
+                opts.emit_state_struct = req.payload.Get("emit_state_struct", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract state-struct-name from payload
+            if (req.payload.Get("state_struct_name", Upp::Value()).IsString()) {
+                opts.state_struct_name = req.payload.Get("state_struct_name", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract function-name from payload
+            if (req.payload.Get("function_name", Upp::Value()).IsString()) {
+                opts.function_name = req.payload.Get("function_name", Upp::Value()).ToString().ToStd();
+            }
+
+            // Use the CommandDispatcher to handle the codegen-block-c command
+            CommandDispatcher dispatcher(std::make_unique<JsonFilesystemSessionStore>(req.workspace));
+            Upp::String response = dispatcher.RunCodegenBlockC(opts);
+
+            // Parse the response and convert to DaemonResponse
+            Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
+            out_resp.id = req.id;
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.command = req.command;
+            out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
+            out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
+            out_resp.data = parsed_response.Get("data", Upp::ValueMap());
+
+            return Result<void>::MakeOk();
+        }
+        else if (req.command == "codegen-block-osc-demo") {
+            // Create a CommandOptions object from the DaemonRequest
+            CommandOptions opts;
+            opts.workspace = req.workspace;
+            opts.session_id = req.session_id;
+            opts.user_id = req.user_id;
+
+            // Extract branch from payload if provided
+            if (req.payload.Get("branch", Upp::Value()).IsString()) {
+                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract block_id from payload
+            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
+                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract language from payload
+            if (req.payload.Get("lang", Upp::Value()).IsString()) {
+                opts.lang = req.payload.Get("lang", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract state-struct-name from payload
+            if (req.payload.Get("state_struct_name", Upp::Value()).IsString()) {
+                opts.state_struct_name = req.payload.Get("state_struct_name", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract step-function-name from payload
+            if (req.payload.Get("step_function_name", Upp::Value()).IsString()) {
+                opts.step_function_name = req.payload.Get("step_function_name", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract render-function-name from payload
+            if (req.payload.Get("render_function_name", Upp::Value()).IsString()) {
+                opts.render_function_name = req.payload.Get("render_function_name", Upp::Value()).ToString().ToStd();
+            }
+
+            // Use the CommandDispatcher to handle the codegen-block-osc-demo command
+            CommandDispatcher dispatcher(std::make_unique<JsonFilesystemSessionStore>(req.workspace));
+            Upp::String response = dispatcher.RunCodegenBlockOscDemo(opts);
+
+            // Parse the response and convert to DaemonResponse
+            Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
+            out_resp.id = req.id;
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.command = req.command;
+            out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
+            out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
+            out_resp.data = parsed_response.Get("data", Upp::ValueMap());
+
+            return Result<void>::MakeOk();
+        }
         else if (req.command == "designer-create-session") {
             return HandleDesignerCreateSession(req);
         }
@@ -1401,6 +1537,12 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
         }
         else if (req.command == "designer-codegen") {
             return HandleDesignerCodegen(req);
+        }
+        else if (req.command == "designer-codegen-block-c") {
+            return HandleDesignerCodegenBlockC(req);
+        }
+        else if (req.command == "designer-codegen-osc-demo") {
+            return HandleDesignerCodegenOscDemo(req);
         }
         else if (req.command == "designer-run-playbook") {
             return HandleDesignerRunPlaybook(req);
@@ -2672,6 +2814,108 @@ Result<DaemonResponse> SessionServer::HandleDesignerCodegen(const DaemonRequest&
     codegen_map.Add("code", Upp::String(code.c_str()));
 
     data_map.Add("codegen", codegen_map);
+
+    return CreateSuccessResponse(req, data_map);
+}
+
+Result<DaemonResponse> SessionServer::HandleDesignerCodegenBlockC(const DaemonRequest& req) {
+    // Extract parameters
+    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
+    std::string block_id = req.payload.Get("block_id", Upp::String("")).ToStd();
+    std::string lang_str = req.payload.Get("language", Upp::String("C")).ToStd();
+    bool emit_state_struct = req.payload.Get("emit_state_struct", true);
+    std::string state_struct_name = req.payload.Get("state_struct_name", Upp::String("BlockState")).ToStd();
+    std::string function_name = req.payload.Get("function_name", Upp::String("BlockStep")).ToStd();
+
+    // Validate required parameters
+    if (designer_session_id.empty()) {
+        return CreateErrorResponse(req, "designer_session_id is required", "INVALID_PARAMETER");
+    }
+    if (block_id.empty()) {
+        return CreateErrorResponse(req, "block_id is required", "INVALID_PARAMETER");
+    }
+
+    // Convert language string to enum
+    CodegenTargetLanguage lang = (lang_str == "Cpp") ? CodegenTargetLanguage::Cpp : CodegenTargetLanguage::C;
+
+    // Create request object
+    DesignerCodegenBlockCRequest codegen_request;
+    codegen_request.designer_session_id = designer_session_id;
+    codegen_request.block_id = block_id;
+    codegen_request.lang = lang;
+    codegen_request.emit_state_struct = emit_state_struct;
+    codegen_request.state_struct_name = state_struct_name;
+    codegen_request.function_name = function_name;
+
+    // Call the CoDesigner manager
+    auto result = co_designer_manager_->CodegenBlockC(codegen_request);
+
+    if (!result.ok) {
+        return CreateErrorResponse(req, result.error_message, JsonIO::ErrorCodeToString(result.error_code));
+    }
+
+    // Create response data
+    Upp::ValueMap data_map;
+    data_map.Add("designer_session", JsonIO::CoDesignerSessionStateToValueMap(result.data.designer_session));
+
+    Upp::ValueMap result_map;
+    result_map.Add("block_id", Upp::String(result.data.result.block_id.c_str()));
+    result_map.Add("language", Upp::String(lang_str.c_str()));
+    result_map.Add("code", Upp::String(result.data.result.code.c_str()));
+    result_map.Add("state_struct_name", Upp::String(result.data.result.state_struct_name.c_str()));
+    result_map.Add("function_name", Upp::String(result.data.result.function_name.c_str()));
+
+    data_map.Add("result", result_map);
+
+    return CreateSuccessResponse(req, data_map);
+}
+
+Result<DaemonResponse> SessionServer::HandleDesignerCodegenOscDemo(const DaemonRequest& req) {
+    // Extract parameters
+    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
+    std::string block_id = req.payload.Get("block_id", Upp::String("")).ToStd();
+    std::string lang_str = req.payload.Get("language", Upp::String("C")).ToStd();
+    std::string state_struct_name = req.payload.Get("state_struct_name", Upp::String("OscState")).ToStd();
+    std::string step_function_name = req.payload.Get("step_function_name", Upp::String("OscStep")).ToStd();
+    std::string render_function_name = req.payload.Get("render_function_name", Upp::String("OscRender")).ToStd();
+
+    // Validate required parameters
+    if (designer_session_id.empty()) {
+        return CreateErrorResponse(req, "designer_session_id is required", "INVALID_PARAMETER");
+    }
+    if (block_id.empty()) {
+        return CreateErrorResponse(req, "block_id is required", "INVALID_PARAMETER");
+    }
+
+    // Convert language string to enum
+    CodegenTargetLanguage lang = (lang_str == "Cpp") ? CodegenTargetLanguage::Cpp : CodegenTargetLanguage::C;
+
+    // Create request object
+    DesignerCodegenOscDemoRequest codegen_request;
+    codegen_request.designer_session_id = designer_session_id;
+    codegen_request.block_id = block_id;
+    codegen_request.lang = lang;
+    codegen_request.state_struct_name = state_struct_name;
+    codegen_request.step_function_name = step_function_name;
+    codegen_request.render_function_name = render_function_name;
+
+    // Call the CoDesigner manager
+    auto result = co_designer_manager_->CodegenOscDemo(codegen_request);
+
+    if (!result.ok) {
+        return CreateErrorResponse(req, result.error_message, JsonIO::ErrorCodeToString(result.error_code));
+    }
+
+    // Create response data
+    Upp::ValueMap data_map;
+    data_map.Add("designer_session", JsonIO::CoDesignerSessionStateToValueMap(result.data.designer_session));
+
+    Upp::ValueMap result_map;
+    result_map.Add("block_id", Upp::String(result.data.result.block_id.c_str()));
+    result_map.Add("language", Upp::String(lang_str.c_str()));
+    result_map.Add("osc_code", Upp::String(result.data.result.osc_code.c_str()));
+
+    data_map.Add("result", result_map);
 
     return CreateSuccessResponse(req, data_map);
 }

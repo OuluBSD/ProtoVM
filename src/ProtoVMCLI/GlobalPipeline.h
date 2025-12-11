@@ -2,7 +2,7 @@
 #define _ProtoVM_GlobalPipeline_h_
 
 #include "SessionTypes.h"  // For Result<T>
-#include "ProtoVM.h"       // For Upp types
+#include <ProtoVM/ProtoVM.h>       // For Upp types
 #include "PipelineModel.h" // For PipelineMap, ClockSignalInfo, etc.
 #include <string>
 #include <vector>

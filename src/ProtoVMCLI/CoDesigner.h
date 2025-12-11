@@ -7,7 +7,7 @@
 #include "HlsIrInference.h"  // For IR generation
 #include "Transformations.h"  // For transformation plans
 #include "DiffAnalysis.h"  // For diff operations
-#include "Codegen.h"  // For code generation
+#include "CodegenIr.h"  // For code generation
 #include "BehavioralAnalysis.h"  // For behavioral analysis
 #include "RetimingModel.h"  // For retiming analysis
 #include "GlobalPipeline.h"      // For global pipeline structures
@@ -129,12 +129,6 @@ struct DesignerGetContextResponse {
     std::optional<BehaviorDescriptor> node_behavior;
 };
 
-struct DesignerAnalyzeResponse {
-    CoDesignerSessionState designer_session;
-    std::optional<struct BlockAnalysisResult> block;  // Contains behavior and IR if block_id is set
-    std::optional<struct NodeAnalysisResult> node;    // Contains behavior and IR if node_id is set
-};
-
 struct BlockAnalysisResult {
     std::string block_id;
     BehaviorDescriptor behavior;
@@ -145,6 +139,12 @@ struct NodeAnalysisResult {
     std::string node_id;
     BehaviorDescriptor behavior;
     IrModule ir;
+};
+
+struct DesignerAnalyzeResponse {
+    CoDesignerSessionState designer_session;
+    std::optional<BlockAnalysisResult> block;  // Contains behavior and IR if block_id is set
+    std::optional<NodeAnalysisResult> node;    // Contains behavior and IR if node_id is set
 };
 
 struct DesignerOptimizeResponse {

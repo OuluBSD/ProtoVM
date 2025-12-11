@@ -1,5 +1,7 @@
 description "\377B128,0,0";
 
+noblitz;
+
 uses
 	plugin/chips,
 	Core;

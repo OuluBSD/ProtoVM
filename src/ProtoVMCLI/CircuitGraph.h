@@ -3,7 +3,7 @@
 
 #include "CircuitData.h"
 #include "SessionTypes.h"  // For Result<T>
-#include "ProtoVM.h"
+#include <ProtoVM/ProtoVM.h>
 #include <string>
 #include <vector>
 

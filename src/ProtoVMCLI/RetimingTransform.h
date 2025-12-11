@@ -5,7 +5,7 @@
 #include "Transformations.h"
 #include "SessionTypes.h"
 #include "SessionStore.h"
-#include "ProtoVM.h"
+#include <ProtoVM/ProtoVM.h>
 #include <string>
 #include <vector>
 
@@ -49,7 +49,7 @@ public:
     static Result<RetimingApplicationResult> ApplyRetimingPlanInBranch(
         const RetimingPlan& retiming_plan,
         const RetimingApplicationOptions& options,
-        SessionStore& session_store,
+        ISessionStore& session_store,
         const SessionMetadata& session,
         const String& session_dir,
         const String& branch_name

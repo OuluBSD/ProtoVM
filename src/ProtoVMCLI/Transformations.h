@@ -1,14 +1,15 @@
 #ifndef PROTOVM_TRANSFORMATIONS_H
 #define PROTOVM_TRANSFORMATIONS_H
 
-#include <Core/Vector.h>
-#include <Core/String.h>
-#include <Core/Result.h>
-#include "SessionTypes.h"
-#include "CircuitOps.h"
+#include "SessionTypes.h"  // For Result<T>, SessionMetadata
+#include "CircuitOps.h"    // For EditOperation
+#include "CircuitGraph.h"  // For CircuitGraph
+#include "PipelineModel.h" // For PipelineMap
+#include "TimingAnalysis.h" // For TimingAnalysis
+#include <vector>
+#include <string>
 
-// Forward declarations
-class CircuitGraph;
+// Forward declarations that may still be needed
 class BlockGraph;
 class Circuit;
 class BlockInstance;
@@ -29,85 +30,85 @@ enum class PreservationLevel {
 };
 
 struct TransformationTarget {
-    String subject_id;          // e.g. block ID, component ID, or region identifier
-    String subject_kind;        // "Block", "Component", "Region"
+    std::string subject_id;          // e.g. block ID, component ID, or region identifier
+    std::string subject_kind;        // "Block", "Component", "Region"
 };
 
 struct TransformationStep {
-    String description;         // human-readable
+    std::string description;         // human-readable
     // You may include references to components/pins/nets as needed.
 };
 
 struct TransformationPlan {
-    String id;                              // unique transformation ID (per proposal)
+    std::string id;                              // unique transformation ID (per proposal)
     TransformationKind kind;
     TransformationTarget target;
-    Vector<PreservationLevel> guarantees;   // what we assert is preserved
-    Vector<TransformationStep> steps;       // high-level steps
+    std::vector<PreservationLevel> guarantees;   // what we assert is preserved
+    std::vector<TransformationStep> steps;       // high-level steps
     // Optional: pre- and post- BehaviorDescriptor snapshots (for verification)
 };
 
 class TransformationEngine {
 public:
     // Discover transformation opportunities for a given branch.
-    Result<Vector<TransformationPlan>> ProposeTransformationsForBranch(
-        const SessionMetadata& session,
-        const String& session_dir,
-        const String& branch_name,
+    ProtoVMCLI::Result<std::vector<TransformationPlan>> ProposeTransformationsForBranch(
+        const ProtoVMCLI::SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
         int max_plans
     );
 
     // Propose transformations for a specific block.
-    Result<Vector<TransformationPlan>> ProposeTransformationsForBlock(
-        const SessionMetadata& session,
-        const String& session_dir,
-        const String& branch_name,
-        const String& block_id,
+    ProtoVMCLI::Result<std::vector<TransformationPlan>> ProposeTransformationsForBlock(
+        const ProtoVMCLI::SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id,
         int max_plans
     );
 
     // Convert a TransformationPlan into a sequence of CircuitOps edit operations.
-    Result<Vector<EditOperation>> MaterializePlan(
+    ProtoVMCLI::Result<std::vector<ProtoVMCLI::EditOperation>> MaterializePlan(
         const TransformationPlan& plan
     );
 
     // Verify that a transformation plan preserves behavior
-    Result<bool> VerifyBehaviorPreserved(
-        const SessionMetadata& session,
-        const String& session_dir,
-        const String& branch_name,
+    ProtoVMCLI::Result<bool> VerifyBehaviorPreserved(
+        const ProtoVMCLI::SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
         const TransformationPlan& plan
     );
 
 private:
     // Internal helper methods
-    Vector<TransformationPlan> FindDoubleInversionPatterns(const CircuitGraph& graph, int max_plans);
-    Vector<TransformationPlan> FindRedundantGatePatterns(const CircuitGraph& graph, int max_plans);
-    Vector<TransformationPlan> FindKnownBlockReplacementPatterns(
+    std::vector<TransformationPlan> FindDoubleInversionPatterns(const ProtoVMCLI::CircuitGraph& graph, int max_plans);
+    std::vector<TransformationPlan> FindRedundantGatePatterns(const ProtoVMCLI::CircuitGraph& graph, int max_plans);
+    std::vector<TransformationPlan> FindKnownBlockReplacementPatterns(
         const Circuit& circuit,
         const BlockGraph& block_graph,
         int max_plans
     );
-    Vector<TransformationPlan> FindDoubleInversionPatternsInBlock(
-        const CircuitGraph& graph,
-        const String& block_id,
+    std::vector<TransformationPlan> FindDoubleInversionPatternsInBlock(
+        const ProtoVMCLI::CircuitGraph& graph,
+        const std::string& block_id,
         int max_plans
     );
-    Vector<TransformationPlan> FindRedundantGatePatternsInBlock(
-        const CircuitGraph& graph,
-        const String& block_id,
+    std::vector<TransformationPlan> FindRedundantGatePatternsInBlock(
+        const ProtoVMCLI::CircuitGraph& graph,
+        const std::string& block_id,
         int max_plans
     );
 
     // Materialization methods
-    Vector<EditOperation> MaterializeDoubleInversionSimplification(const TransformationPlan& plan);
-    Vector<EditOperation> MaterializeRedundantGateSimplification(const TransformationPlan& plan);
-    Vector<EditOperation> MaterializeKnownBlockReplacement(const TransformationPlan& plan);
-    Vector<EditOperation> MaterializeEquivalentBlockMerge(const TransformationPlan& plan);
-    Vector<EditOperation> MaterializeFanoutRewiring(const TransformationPlan& plan);
+    std::vector<ProtoVMCLI::EditOperation> MaterializeDoubleInversionSimplification(const TransformationPlan& plan);
+    std::vector<ProtoVMCLI::EditOperation> MaterializeRedundantGateSimplification(const TransformationPlan& plan);
+    std::vector<ProtoVMCLI::EditOperation> MaterializeKnownBlockReplacement(const TransformationPlan& plan);
+    std::vector<ProtoVMCLI::EditOperation> MaterializeEquivalentBlockMerge(const TransformationPlan& plan);
+    std::vector<ProtoVMCLI::EditOperation> MaterializeFanoutRewiring(const TransformationPlan& plan);
 
     // Helper for applying edit operations
-    Result<void> ApplyEditOperation(Circuit& circuit, const EditOperation& op);
+    ProtoVMCLI::Result<void> ApplyEditOperation(Circuit& circuit, const ProtoVMCLI::EditOperation& op);
 
     // Helper for analyzing block structure
     struct BlockAnalysisResult {

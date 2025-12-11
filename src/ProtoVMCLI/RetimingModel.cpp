@@ -1,5 +1,5 @@
 #include "RetimingModel.h"
-#include "ProtoVM.h"
+#include <ProtoVM/ProtoVM.h>
 
 namespace ProtoVMCLI {
 

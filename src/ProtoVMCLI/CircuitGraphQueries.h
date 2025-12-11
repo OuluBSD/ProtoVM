@@ -3,6 +3,7 @@
 
 #include "CircuitGraph.h"
 #include <vector>
+#include <unordered_set>
 
 namespace ProtoVMCLI {
 

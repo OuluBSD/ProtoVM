@@ -1,7 +1,7 @@
 #ifndef _ProtoVM_AnalogModel_h_
 #define _ProtoVM_AnalogModel_h_
 
-#include "ProtoVM.h"  // Include U++ types
+#include <ProtoVM/ProtoVM.h>  // Include U++ types
 #include "SessionTypes.h"  // Include session types
 #include <string>
 #include <vector>

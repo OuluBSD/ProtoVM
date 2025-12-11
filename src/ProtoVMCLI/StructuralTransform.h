@@ -6,7 +6,7 @@
 #include "Transformations.h"
 #include "RetimingTransform.h"  // For RetimingApplicationResult
 
-#include <Upp/Upp.h>
+#include <Core/Core.h>
 using namespace Upp;
 
 class StructuralTransform {

@@ -2,7 +2,7 @@
 #define _ProtoVM_ProtoVM_h_
 
 #include <Core/Core.h>
-using namespace UPP;
+using namespace Upp;
 
 #include <plugin/chips/chips.h>
 

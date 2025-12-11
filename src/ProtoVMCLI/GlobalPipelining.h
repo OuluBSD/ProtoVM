@@ -7,7 +7,7 @@
 #include "RetimingTransform.h"
 #include "SessionTypes.h"
 #include "SessionStore.h"
-#include "ProtoVM.h"
+#include <ProtoVM/ProtoVM.h>
 #include <string>
 #include <vector>
 
@@ -64,7 +64,7 @@ public:
     static Result<GlobalPipeliningPlan> ApplyGlobalPipeliningPlanInBranch(
         const GlobalPipeliningPlan& plan,
         const RetimingApplicationOptions& default_app_options,
-        SessionStore& session_store,
+        ISessionStore& session_store,
         const SessionMetadata& session,
         const String& session_dir,
         const String& branch_name

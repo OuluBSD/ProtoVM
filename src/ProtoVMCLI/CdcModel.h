@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Core/Core.h>
-#include <plugin/Result.h>
+#include "SessionTypes.h"  // For Result<T>
 
 using namespace Upp;
 

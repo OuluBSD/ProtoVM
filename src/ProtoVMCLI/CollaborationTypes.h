@@ -2,7 +2,7 @@
 #define _ProtoVM_CollaborationTypes_h_
 
 #include "CircuitOps.h"
-#include "ProtoVM.h"
+#include <ProtoVM/ProtoVM.h>
 #include <string>
 #include <vector>
 

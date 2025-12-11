@@ -2,7 +2,7 @@
 #define _ProtoVM_RetimingModel_h_
 
 #include "SessionTypes.h"  // For Result<T>
-#include "ProtoVM.h"       // For Upp types
+#include <ProtoVM/ProtoVM.h>       // For Upp types
 #include <string>
 #include <vector>
 

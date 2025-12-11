@@ -102,7 +102,7 @@ public:
     static Result<PlaybookResult> RunPlaybook(
         const PlaybookConfig& config,
         CoDesignerManager& designer_manager,
-        SessionStore& session_store,
+        ISessionStore& session_store,
         const std::string& workspace_dir
     );
 };

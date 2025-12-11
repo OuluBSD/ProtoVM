@@ -2,7 +2,7 @@
 #define _ProtoVM_EngineFacade_h_
 
 #include "SessionTypes.h"
-#include "ProtoVM.h"
+#include <ProtoVM/ProtoVM.h>
 #include <memory>
 #include <string>
 

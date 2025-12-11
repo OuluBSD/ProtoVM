@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Result.h"
+#include "SessionTypes.h"  // For Result<T>
 #include "CircuitGraph.h"
 #include "FunctionalAnalysis.h"
 #include "HlsIr.h"
 #include "CdcAnalysis.h"  // For CDC fences
 #include "Transformations.h"  // For TransformationPlan
 
-#include <Upp/Upp.h>
+#include <Core/Core.h>
 using namespace Upp;
 
 enum class StructuralPatternKind {
@@ -72,44 +72,44 @@ struct StructuralRefactorPlan {
 class StructuralAnalysis {
 public:
     // Analyze a block for structural simplification patterns.
-    static Result<StructuralRefactorPlan> AnalyzeBlockStructure(
+    static ProtoVMCLI::Result<StructuralRefactorPlan> AnalyzeBlockStructure(
         const String& block_id,
-        const CircuitGraph& graph,
-        const FunctionalAnalysis* functional = nullptr,  // optional
-        const HlsIrModule* ir_module = nullptr,          // optional: IR view of the block
+        const ProtoVMCLI::CircuitGraph& graph,
+        const ProtoVMCLI::FunctionalAnalysis* functional = nullptr,  // optional
+        const ProtoVMCLI::IrModule* ir_module = nullptr,          // optional: IR view of the block
         const CdcReport* cdc_report = nullptr            // optional: do not cross CDC fences
     );
 
     // Helper methods for pattern detection
     static Vector<StructuralPattern> DetectRedundantLogic(
         const String& block_id,
-        const CircuitGraph& graph,
-        const FunctionalAnalysis* functional
+        const ProtoVMCLI::CircuitGraph& graph,
+        const ProtoVMCLI::FunctionalAnalysis* functional
     );
-    
+
     static Vector<StructuralPattern> DetectCommonSubexpressions(
         const String& block_id,
-        const CircuitGraph& graph,
-        const FunctionalAnalysis* functional,
-        const HlsIrModule* ir_module
+        const ProtoVMCLI::CircuitGraph& graph,
+        const ProtoVMCLI::FunctionalAnalysis* functional,
+        const ProtoVMCLI::IrModule* ir_module
     );
-    
+
     static Vector<StructuralPattern> DetectCanonicalForms(
         const String& block_id,
-        const CircuitGraph& graph,
-        const HlsIrModule* ir_module
+        const ProtoVMCLI::CircuitGraph& graph,
+        const ProtoVMCLI::IrModule* ir_module
     );
-    
+
     static Vector<StructuralPattern> DetectConstantPropagation(
         const String& block_id,
-        const CircuitGraph& graph,
-        const HlsIrModule* ir_module
+        const ProtoVMCLI::CircuitGraph& graph,
+        const ProtoVMCLI::IrModule* ir_module
     );
-    
+
     static Vector<StructuralPattern> DetectDeadLogic(
         const String& block_id,
-        const CircuitGraph& graph,
-        const FunctionalAnalysis* functional
+        const ProtoVMCLI::CircuitGraph& graph,
+        const ProtoVMCLI::FunctionalAnalysis* functional
     );
 
     // Assign safety levels to refactor moves

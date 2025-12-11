@@ -1,7 +1,7 @@
 #ifndef _ProtoVM_SessionTypes_h_
 #define _ProtoVM_SessionTypes_h_
 
-#include "ProtoVM.h"  // Include U++ types
+#include <ProtoVM/ProtoVM.h>  // Include U++ types
 #include "BranchTypes.h"  // Include branch types
 #include <string>
 #include <vector>
@@ -50,6 +50,26 @@ struct Result {
 
     static Result<T> MakeError(ErrorCode code, const std::string& message) {
         return Result<T>(false, code, message, T{});
+    }
+};
+
+// Specialization for void type
+template<>
+struct Result<void> {
+    bool ok;
+    ErrorCode error_code;
+    std::string error_message;  // human-readable message
+
+    Result() : ok(true), error_code(ErrorCode::None), error_message("") {}
+    Result(bool is_ok, ErrorCode code, const std::string& msg)
+        : ok(is_ok), error_code(code), error_message(msg) {}
+
+    static Result<void> MakeOk() {
+        return Result<void>(true, ErrorCode::None, "");
+    }
+
+    static Result<void> MakeError(ErrorCode code, const std::string& message) {
+        return Result<void>(false, code, message);
     }
 };
 

@@ -5,6 +5,7 @@
 #include "SessionTypes.h"  // For Result<T>
 #include <string>
 #include <vector>
+#include <unordered_set>
 
 namespace ProtoVMCLI {
 

@@ -3,7 +3,7 @@
 
 #include "SessionTypes.h"
 #include "CircuitData.h"  // The enhanced version with IDs
-#include "ProtoVM.h"      // For Upp types
+#include <ProtoVM/ProtoVM.h>      // For Upp types
 #include "CollaborationTypes.h"  // For collaboration features
 #include "BehavioralAnalysis.h"  // For behavioral analysis
 #include "ScheduledIr.h"         // For scheduled IR

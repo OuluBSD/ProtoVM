@@ -9,9 +9,9 @@
  * This will directly output the character that gets printed to stdout
  */
 
-class Dummy4004CPU : public ElectricNodeBase {
+class Dummy4004CPULite : public ElectricNodeBase {
 public:
-    Dummy4004CPU() {
+    Dummy4004CPULite() {
         // Add pins that we need for the test
         AddSource("OUT0");  // Output port 0
         for (int i = 0; i < 4; i++) {
@@ -27,7 +27,7 @@ public:
         output_char = 0;  // Will store the character to output
     }
 
-    String GetClassName() const override { return "Dummy4004CPU"; }
+    String GetClassName() const override { return "Dummy4004CPULite"; }
 
     bool Tick() override {
         // Simple execution model for the test program:
@@ -98,7 +98,7 @@ public:
             // Output the character to stdout (this is the key functionality we're testing)
             Cout() << (char)output_char;
             Cout().Flush();  // Ensure the output is displayed immediately
-            LOG("Dummy4004CPU: WR0 executed, output character '" << (char)output_char << "'");
+            LOG("Dummy4004CPULite: WR0 executed, output character '" << (char)output_char << "'");
             
             program_counter++;
             step++;
@@ -144,40 +144,40 @@ private:
 };
 
 // Function to test the dummy CPU class
-bool TestDummy4004CPU() {
-    LOG("Testing Dummy4004CPU (simplified WR0 output test)...");
+bool TestDummy4004CPULite() {
+    LOG("Testing Dummy4004CPULite (simplified WR0 output test)...");
     
     try {
         Machine mach;
         Pcb& pcb = mach.AddPcb();
         
         // Add the dummy CPU
-        Dummy4004CPU& cpu = pcb.Add<Dummy4004CPU>("DUMMY_CPU4004");
+        Dummy4004CPULite& cpu = pcb.Add<Dummy4004CPULite>("DUMMY_CPU4004");
         
         // Run the simulation for enough ticks to execute the program
         for (int i = 0; i < 20; i++) {
             mach.Tick();
         }
         
-        LOG("✓ Dummy4004CPU test completed");
+        LOG("✓ Dummy4004CPULite test completed");
         return true;
     }
     catch (Exc e) {
-        LOG("Error in TestDummy4004CPU: " << e);
+        LOG("Error in TestDummy4004CPULite: " << e);
         return false;
     }
 }
 
 // Test function that runs the dummy CPU in the same circuit as the original
 bool TestDummy4004InCircuit() {
-    LOG("Testing Dummy4004CPU in minimax4004 circuit...");
+    LOG("Testing Dummy4004CPULite in minimax4004 circuit...");
     
     try {
         Machine mach;
         Pcb& pcb = mach.AddPcb();
         
         // Create the dummy CPU that will output 'A' when WR0 is executed
-        Dummy4004CPU& cpu = pcb.Add<Dummy4004CPU>("DUMMY_CPU4004");
+        Dummy4004CPULite& cpu = pcb.Add<Dummy4004CPULite>("DUMMY_CPU4004");
         
         // Add required components as per the original SetupMiniMax4004
         IC4001& rom = pcb.Add<IC4001>("ROM4001");  // ROM component

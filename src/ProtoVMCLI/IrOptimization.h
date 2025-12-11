@@ -6,7 +6,7 @@
 #include "DiffAnalysis.h"
 #include "SessionTypes.h"
 #include "Transformations.h"
-#include "ProtoVM.h"  // Include U++ types
+#include <ProtoVM/ProtoVM.h>  // Include U++ types
 #include <string>
 #include <vector>
 

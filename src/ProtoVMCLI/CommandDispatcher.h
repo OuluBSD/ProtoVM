@@ -3,7 +3,7 @@
 
 #include "SessionTypes.h"
 #include "SessionStore.h"
-#include "ProtoVM.h"
+#include <ProtoVM/ProtoVM.h>
 #include <memory>
 #include <string>
 

@@ -165,6 +165,11 @@ public:
     Upp::String RunAnalogModelInspect(const CommandOptions& opts);
     Upp::String RunAnalogRenderOsc(const CommandOptions& opts);
 
+    // Audio QA analysis commands
+    Upp::String RunDesignerQaAnalyze(const CommandOptions& opts);
+    Upp::String RunDesignerQaDiff(const CommandOptions& opts);
+    Upp::String RunDesignerQaVerify(const CommandOptions& opts);
+
     // Hybrid instrument commands
     Upp::String RunInstrumentBuildHybrid(const CommandOptions& opts);
     Upp::String RunInstrumentRenderHybrid(const CommandOptions& opts);

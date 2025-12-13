@@ -19,6 +19,10 @@ enum class PlaybookKind {
     // System-level playbooks (Phase 18)
     SystemOptimizeAndReport,
     SystemOptimizeAndApplySafeRefactors,
+    // Audio QA playbooks (Phase 29)
+    OptimizeAndVerifySound,
+    RefactorUntilNoRegression,
+    RetimingWithAudioGuard,
     // extendable in the future
 };
 

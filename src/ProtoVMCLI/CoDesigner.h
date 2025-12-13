@@ -14,6 +14,9 @@
 #include "GlobalPipelining.h"    // For global pipelining structures
 #include "StructuralSynthesis.h" // For structural synthesis analysis
 #include "AnalogModel.h"         // For analog model structures
+#include "AudioQa.h"             // For Audio QA structures
+#include "AudioQaAnalysis.h"     // For Audio QA analysis
+#include "AudioQaDiff.h"        // For Audio QA diff operations
 #include <string>
 #include <memory>
 #include <unordered_map>
@@ -608,6 +611,11 @@ public:
 
     // Plugin project export methods
     Result<DesignerInstrumentExportPluginProjectResponse> ExportInstrumentAsPluginProject(const DesignerInstrumentExportPluginProjectRequest& request);
+
+    // Audio QA analysis methods
+    Result<AudioQaReport> DesignerQaAnalyze(const std::string& designer_session_id, const std::string& target, const std::string& block_id);
+    Result<AudioQaDiff> DesignerQaDiff(const std::string& designer_session_id, const std::string& target, const std::string& before_block_id, const std::string& after_block_id);
+    Result<AudioQaReport> DesignerQaVerify(const std::string& designer_session_id, const std::string& target, const std::string& block_id, const AudioQaThresholdProfile& profile);
 
 private:
     // Helper method to generate unique designer session IDs

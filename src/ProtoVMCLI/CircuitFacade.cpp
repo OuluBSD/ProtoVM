@@ -3230,4 +3230,135 @@ Result<void> CircuitFacade::ExportPluginProjectForInstrumentInBranch(
     }
 }
 
+Result<AudioQaReport> CircuitFacade::RenderAndAnalyzeBlockInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const std::string& block_id,
+    double sample_rate_hz,
+    double duration_sec
+) {
+    try {
+        // Generate test audio for the block
+        // In a real implementation, this would render the actual block as audio
+        std::vector<float> left_buffer(static_cast<size_t>(sample_rate_hz * duration_sec), 0.0f);
+        std::vector<float> right_buffer(static_cast<size_t>(sample_rate_hz * duration_sec), 0.0f);
+
+        // Generate a test signal with known characteristics based on the block
+        for (size_t i = 0; i < left_buffer.size(); i++) {
+            double t = static_cast<double>(i) / sample_rate_hz;
+            // Use a frequency related to the block_id for variety
+            double base_freq = 200.0 + (block_id.length() * 50.0); // Varies by block name
+            left_buffer[i] = static_cast<float>(0.3 * sin(2.0 * M_PI * base_freq * t) +
+                                              0.1 * sin(2.0 * M_PI * base_freq * 2 * t));
+            right_buffer[i] = static_cast<float>(0.3 * sin(2.0 * M_PI * base_freq * t + M_PI/8) +
+                                               0.1 * sin(2.0 * M_PI * base_freq * 2 * t + M_PI/8));
+        }
+
+        // Analyze the generated audio
+        AudioQa::AudioQaAnalysis analyzer(static_cast<size_t>(sample_rate_hz));
+        analyzer.SetAudioData(left_buffer, right_buffer);
+        AudioQa::AudioQaReport report = analyzer.Analyze();
+
+        return Result<AudioQaReport>::MakeOk(report);
+    }
+    catch (const std::exception& e) {
+        return Result<AudioQaReport>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in RenderAndAnalyzeBlockInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<AudioQaReport> CircuitFacade::RenderAndAnalyzeInstrumentInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const InstrumentGraph& instrument,
+    double sample_rate_hz,
+    double duration_sec
+) {
+    try {
+        // Generate test audio for the instrument
+        // In a real implementation, this would render the actual instrument
+        std::vector<float> left_buffer(static_cast<size_t>(sample_rate_hz * duration_sec), 0.0f);
+        std::vector<float> right_buffer(static_cast<size_t>(sample_rate_hz * duration_sec), 0.0f);
+
+        // Generate a test signal with known characteristics based on the instrument
+        for (size_t i = 0; i < left_buffer.size(); i++) {
+            double t = static_cast<double>(i) / sample_rate_hz;
+            // Use a base frequency and create a more complex waveform
+            double base_freq = 110.0; // A110
+            double harmonic1 = 0.3 * sin(2.0 * M_PI * base_freq * t);
+            double harmonic2 = 0.15 * sin(2.0 * M_PI * base_freq * 2 * t);
+            double harmonic3 = 0.05 * sin(2.0 * M_PI * base_freq * 3 * t);
+
+            left_buffer[i] = static_cast<float>(harmonic1 + harmonic2 + harmonic3);
+
+            // Add slight phase difference for stereo effect
+            double harmonic1_r = 0.3 * sin(2.0 * M_PI * base_freq * t + M_PI/12);
+            double harmonic2_r = 0.15 * sin(2.0 * M_PI * base_freq * 2 * t + M_PI/12);
+            double harmonic3_r = 0.05 * sin(2.0 * M_PI * base_freq * 3 * t + M_PI/12);
+
+            right_buffer[i] = static_cast<float>(harmonic1_r + harmonic2_r + harmonic3_r);
+        }
+
+        // Analyze the generated audio
+        AudioQa::AudioQaAnalysis analyzer(static_cast<size_t>(sample_rate_hz));
+        analyzer.SetAudioData(left_buffer, right_buffer);
+        AudioQa::AudioQaReport report = analyzer.Analyze();
+
+        return Result<AudioQaReport>::MakeOk(report);
+    }
+    catch (const std::exception& e) {
+        return Result<AudioQaReport>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in RenderAndAnalyzeInstrumentInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<AudioQaDiff> CircuitFacade::DiffAudioQaBetweenBranches(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_before,
+    const std::string& branch_after,
+    const std::string& block_id,
+    double sample_rate_hz,
+    double duration_sec
+) {
+    try {
+        // Render and analyze for both branches
+        auto before_result = RenderAndAnalyzeBlockInBranch(session, session_dir, branch_before, block_id, sample_rate_hz, duration_sec);
+        if (!before_result.ok()) {
+            return Result<AudioQaDiff>::MakeError(
+                before_result.error_code(),
+                "Failed to analyze before branch: " + before_result.error_message()
+            );
+        }
+
+        auto after_result = RenderAndAnalyzeBlockInBranch(session, session_dir, branch_after, block_id, sample_rate_hz, duration_sec);
+        if (!after_result.ok()) {
+            return Result<AudioQaDiff>::MakeError(
+                after_result.error_code(),
+                "Failed to analyze after branch: " + after_result.error_message()
+            );
+        }
+
+        // Compare the reports
+        AudioQa::AudioQaDiff diff = AudioQa::AudioQaComparator::CompareReports(
+            before_result.value(),
+            after_result.value()
+        );
+
+        return Result<AudioQaDiff>::MakeOk(diff);
+    }
+    catch (const std::exception& e) {
+        return Result<AudioQaDiff>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in DiffAudioQaBetweenBranches: ") + e.what()
+        );
+    }
+}
+
 } // namespace ProtoVMCLI

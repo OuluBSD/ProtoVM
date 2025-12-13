@@ -905,6 +905,9 @@ Upp::Value JsonIO::PlaybookKindToJson(PlaybookKind kind) {
         case PlaybookKind::OptimizeAndApplySafeRefactors: kind_str = "OptimizeAndApplySafeRefactors"; break;
         case PlaybookKind::SystemOptimizeAndReport: kind_str = "SystemOptimizeAndReport"; break;
         case PlaybookKind::SystemOptimizeAndApplySafeRefactors: kind_str = "SystemOptimizeAndApplySafeRefactors"; break;
+        case PlaybookKind::OptimizeAndVerifySound: kind_str = "OptimizeAndVerifySound"; break;
+        case PlaybookKind::RefactorUntilNoRegression: kind_str = "RefactorUntilNoRegression"; break;
+        case PlaybookKind::RetimingWithAudioGuard: kind_str = "RetimingWithAudioGuard"; break;
     }
     return Upp::String(kind_str.c_str());
 }

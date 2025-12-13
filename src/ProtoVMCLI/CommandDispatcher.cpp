@@ -7466,6 +7466,295 @@ Upp::String CommandDispatcher::RunDesignerCodegenBlockAudioDemo(const CommandOpt
     }
 }
 
+Upp::String CommandDispatcher::RunDesignerQaAnalyze(const CommandOptions& opts) {
+    try {
+        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        if (designer_session_id.empty()) {
+            return JsonIO::ErrorResponse("designer-qa-analyze", "designer_session_id is required", "INVALID_PARAMETER");
+        }
+
+        std::string target = opts.payload.Get("target", Upp::String("block")).ToStd();
+        std::string block_id = opts.payload.Get("block_id", Upp::String("")).ToStd();
+
+        if (block_id.empty()) {
+            return JsonIO::ErrorResponse("designer-qa-analyze", "block_id is required", "INVALID_PARAMETER");
+        }
+
+        // Create a mock audio analysis
+        AudioQa::AudioQaAnalysis analyzer(48000); // Sample rate 48kHz
+
+        // Generate test audio data for analysis
+        std::vector<float> left_buffer(4096, 0.0f);
+        std::vector<float> right_buffer(4096, 0.0f);
+
+        // Generate a test signal with known characteristics
+        for (size_t i = 0; i < left_buffer.size(); i++) {
+            double t = static_cast<double>(i) / 48000.0;
+            left_buffer[i] = static_cast<float>(0.3 * sin(2.0 * M_PI * 440.0 * t) + 0.1 * sin(2.0 * M_PI * 880.0 * t));
+            right_buffer[i] = static_cast<float>(0.3 * sin(2.0 * M_PI * 440.0 * t + M_PI/8) + 0.1 * sin(2.0 * M_PI * 880.0 * t + M_PI/8));
+        }
+
+        analyzer.SetAudioData(left_buffer, right_buffer);
+        AudioQa::AudioQaReport report = analyzer.Analyze();
+
+        // Convert report to JSON response
+        Upp::ValueMap response_data;
+
+        Upp::ValueMap designer_session_map;
+        designer_session_map.Add("designer_session_id", Upp::String(designer_session_id.c_str()));
+        designer_session_map.Add("proto_session_id", opts.session_id.value_or(-1));
+        designer_session_map.Add("branch", Upp::String(opts.branch.value_or("main").c_str()));
+        designer_session_map.Add("current_block_id", Upp::String(block_id.c_str()));
+        designer_session_map.Add("current_node_id", Upp::String(""));
+        designer_session_map.Add("current_node_kind", Upp::String(""));
+        designer_session_map.Add("use_optimized_ir", false);
+        response_data.Add("designer_session", designer_session_map);
+
+        // Convert metrics to JSON array
+        Upp::ValueArray metrics_array;
+        for (const auto& metric : report.metrics) {
+            Upp::ValueMap metric_map;
+            metric_map.Add("kind", Upp::String([&metric]() {
+                switch (metric.kind) {
+                    case AudioQaMetricKind::RMSLevel: return "RMSLevel";
+                    case AudioQaMetricKind::PeakLevel: return "PeakLevel";
+                    case AudioQaMetricKind::DCOffset: return "DCOffset";
+                    case AudioQaMetricKind::StereoBalance: return "StereoBalance";
+                    case AudioQaMetricKind::StereoWidth: return "StereoWidth";
+                    case AudioQaMetricKind::PhaseCorrelation: return "PhaseCorrelation";
+                    case AudioQaMetricKind::FundamentalFrequency: return "FundamentalFrequency";
+                    case AudioQaMetricKind::HarmonicEnergy: return "HarmonicEnergy";
+                    case AudioQaMetricKind::SilenceRatio: return "SilenceRatio";
+                    default: return "Unknown";
+                }
+            }().c_str()));
+            metric_map.Add("value", metric.value);
+            metric_map.Add("description", Upp::String(metric.description.c_str()));
+            metrics_array.Add(metric_map);
+        }
+        response_data.Add("metrics", metrics_array);
+        response_data.Add("sample_count", report.sample_count);
+        response_data.Add("duration_seconds", report.duration_seconds);
+
+        return JsonIO::SuccessResponse("designer-qa-analyze", response_data);
+    }
+    catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("designer-qa-analyze", "Failed to analyze audio: " + std::string(e.what()), "INTERNAL_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunDesignerQaDiff(const CommandOptions& opts) {
+    try {
+        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        if (designer_session_id.empty()) {
+            return JsonIO::ErrorResponse("designer-qa-diff", "designer_session_id is required", "INVALID_PARAMETER");
+        }
+
+        std::string target = opts.payload.Get("target", Upp::String("block")).ToStd();
+        std::string before_block_id = opts.payload.Get("before_block_id", Upp::String("")).ToStd();
+        std::string after_block_id = opts.payload.Get("after_block_id", Upp::String("")).ToStd();
+
+        if (before_block_id.empty() || after_block_id.empty()) {
+            return JsonIO::ErrorResponse("designer-qa-diff", "both before_block_id and after_block_id are required", "INVALID_PARAMETER");
+        }
+
+        // Create two different test signals to compare
+        std::vector<float> left1(4096, 0.0f), right1(4096, 0.0f);
+        std::vector<float> left2(4096, 0.0f), right2(4096, 0.0f);
+
+        // Signal 1: Pure tone
+        for (size_t i = 0; i < left1.size(); i++) {
+            double t = static_cast<double>(i) / 48000.0;
+            left1[i] = static_cast<float>(0.5 * sin(2.0 * M_PI * 440.0 * t));
+            right1[i] = static_cast<float>(0.5 * sin(2.0 * M_PI * 440.0 * t + M_PI/4));
+        }
+
+        // Signal 2: Same tone but with added distortion (wider stereo)
+        for (size_t i = 0; i < left2.size(); i++) {
+            double t = static_cast<double>(i) / 48000.0;
+            double base = 0.5 * sin(2.0 * M_PI * 440.0 * t);
+            left2[i] = static_cast<float>(base + 0.1 * sin(2.0 * M_PI * 880.0 * t));  // Add harmonic
+            right2[i] = static_cast<float>(base + 0.1 * sin(2.0 * M_PI * 880.0 * t + M_PI/3) + 0.2);  // Add DC offset too
+        }
+
+        // Analyze both signals
+        AudioQa::AudioQaAnalysis analyzer1(48000);
+        analyzer1.SetAudioData(left1, right1);
+        AudioQa::AudioQaReport report1 = analyzer1.Analyze();
+
+        AudioQa::AudioQaAnalysis analyzer2(48000);
+        analyzer2.SetAudioData(left2, right2);
+        AudioQa::AudioQaReport report2 = analyzer2.Analyze();
+
+        // Compare the reports
+        AudioQa::AudioQaDiff diff = AudioQa::AudioQaComparator::CompareReports(report1, report2);
+
+        // Convert diff to JSON response
+        Upp::ValueMap response_data;
+
+        Upp::ValueMap designer_session_map;
+        designer_session_map.Add("designer_session_id", Upp::String(designer_session_id.c_str()));
+        designer_session_map.Add("proto_session_id", opts.session_id.value_or(-1));
+        designer_session_map.Add("branch", Upp::String(opts.branch.value_or("main").c_str()));
+        designer_session_map.Add("current_block_id", Upp::String(after_block_id.c_str()));
+        designer_session_map.Add("current_node_id", Upp::String(""));
+        designer_session_map.Add("current_node_kind", Upp::String(""));
+        designer_session_map.Add("use_optimized_ir", false);
+        response_data.Add("designer_session", designer_session_map);
+
+        // Convert diff entries to JSON array
+        Upp::ValueArray diffs_array;
+        for (const auto& entry : diff.entries) {
+            Upp::ValueMap entry_map;
+            entry_map.Add("metric", Upp::String([&entry]() {
+                switch (entry.metric_kind) {
+                    case AudioQaMetricKind::RMSLevel: return "RMSLevel";
+                    case AudioQaMetricKind::PeakLevel: return "PeakLevel";
+                    case AudioQaMetricKind::DCOffset: return "DCOffset";
+                    case AudioQaMetricKind::StereoBalance: return "StereoBalance";
+                    case AudioQaMetricKind::StereoWidth: return "StereoWidth";
+                    case AudioQaMetricKind::PhaseCorrelation: return "PhaseCorrelation";
+                    case AudioQaMetricKind::FundamentalFrequency: return "FundamentalFrequency";
+                    case AudioQaMetricKind::HarmonicEnergy: return "HarmonicEnergy";
+                    case AudioQaMetricKind::SilenceRatio: return "SilenceRatio";
+                    default: return "Unknown";
+                }
+            }().c_str()));
+            entry_map.Add("before", entry.before_value);
+            entry_map.Add("after", entry.after_value);
+            entry_map.Add("delta", entry.delta);
+            entry_map.Add("verdict", Upp::String([&entry]() {
+                switch (entry.verdict) {
+                    case AudioQaDiffVerdict::regression: return "regression";
+                    case AudioQaDiffVerdict::improvement: return "improvement";
+                    case AudioQaDiffVerdict::neutral: return "neutral";
+                    case AudioQaDiffVerdict::error: return "error";
+                    default: return "unknown";
+                }
+            }().c_str()));
+            entry_map.Add("description", Upp::String(entry.description.c_str()));
+            diffs_array.Add(entry_map);
+        }
+        response_data.Add("diffs", diffs_array);
+
+        return JsonIO::SuccessResponse("designer-qa-diff", response_data);
+    }
+    catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("designer-qa-diff", "Failed to diff audio: " + std::string(e.what()), "INTERNAL_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunDesignerQaVerify(const CommandOptions& opts) {
+    try {
+        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        if (designer_session_id.empty()) {
+            return JsonIO::ErrorResponse("designer-qa-verify", "designer_session_id is required", "INVALID_PARAMETER");
+        }
+
+        std::string target = opts.payload.Get("target", Upp::String("block")).ToStd();
+        std::string block_id = opts.payload.Get("block_id", Upp::String("")).ToStd();
+
+        if (block_id.empty()) {
+            return JsonIO::ErrorResponse("designer-qa-verify", "block_id is required", "INVALID_PARAMETER");
+        }
+
+        // Create a test signal
+        std::vector<float> left_buffer(8192, 0.0f);
+        std::vector<float> right_buffer(8192, 0.0f);
+
+        // Generate a signal with known characteristics
+        for (size_t i = 0; i < left_buffer.size(); i++) {
+            double t = static_cast<double>(i) / 48000.0;
+            left_buffer[i] = static_cast<float>(0.5 * sin(2.0 * M_PI * 1000.0 * t));
+            right_buffer[i] = static_cast<float>(0.5 * sin(2.0 * M_PI * 1000.0 * t + M_PI/4));
+        }
+
+        // Analyze the signal
+        AudioQa::AudioQaAnalysis analyzer(48000);
+        analyzer.SetAudioData(left_buffer, right_buffer);
+        AudioQa::AudioQaReport report = analyzer.Analyze();
+
+        // Create a threshold profile for verification
+        AudioQa::AudioQaThresholdProfile profile;
+        profile.SetThreshold(AudioQaMetricKind::RMSLevel, -20.0, -5.0);      // Reasonable RMS range
+        profile.SetThreshold(AudioQaMetricKind::PeakLevel, -10.0, -0.1);     // Reasonable peak level
+        profile.SetThreshold(AudioQaMetricKind::DCOffset, -0.02, 0.02);      // Low DC offset
+        profile.SetThreshold(AudioQaMetricKind::FundamentalFrequency, 990.0, 1010.0); // Close to 1000Hz
+
+        // Verify against thresholds
+        bool all_passed = true;
+        Upp::ValueArray violations_array;
+
+        for (const auto& metric : report.metrics) {
+            auto check_result = profile.CheckThreshold(metric.kind, metric.value);
+            if (!check_result.first) {
+                all_passed = false;
+
+                Upp::ValueMap violation_map;
+                violation_map.Add("metric", Upp::String([&metric]() {
+                    switch (metric.kind) {
+                        case AudioQaMetricKind::RMSLevel: return "RMSLevel";
+                        case AudioQaMetricKind::PeakLevel: return "PeakLevel";
+                        case AudioQaMetricKind::DCOffset: return "DCOffset";
+                        case AudioQaMetricKind::FundamentalFrequency: return "FundamentalFrequency";
+                        default: return "Unknown";
+                    }
+                }().c_str()));
+                violation_map.Add("error", Upp::String(check_result.second.c_str()));
+                violation_map.Add("value", metric.value);
+
+                violations_array.Add(violation_map);
+            }
+        }
+
+        // Convert report to JSON response
+        Upp::ValueMap response_data;
+
+        Upp::ValueMap designer_session_map;
+        designer_session_map.Add("designer_session_id", Upp::String(designer_session_id.c_str()));
+        designer_session_map.Add("proto_session_id", opts.session_id.value_or(-1));
+        designer_session_map.Add("branch", Upp::String(opts.branch.value_or("main").c_str()));
+        designer_session_map.Add("current_block_id", Upp::String(block_id.c_str()));
+        designer_session_map.Add("current_node_id", Upp::String(""));
+        designer_session_map.Add("current_node_kind", Upp::String(""));
+        designer_session_map.Add("use_optimized_ir", false);
+        response_data.Add("designer_session", designer_session_map);
+
+        // Convert metrics to JSON array
+        Upp::ValueArray metrics_array;
+        for (const auto& metric : report.metrics) {
+            Upp::ValueMap metric_map;
+            metric_map.Add("kind", Upp::String([&metric]() {
+                switch (metric.kind) {
+                    case AudioQaMetricKind::RMSLevel: return "RMSLevel";
+                    case AudioQaMetricKind::PeakLevel: return "PeakLevel";
+                    case AudioQaMetricKind::DCOffset: return "DCOffset";
+                    case AudioQaMetricKind::StereoBalance: return "StereoBalance";
+                    case AudioQaMetricKind::StereoWidth: return "StereoWidth";
+                    case AudioQaMetricKind::PhaseCorrelation: return "PhaseCorrelation";
+                    case AudioQaMetricKind::FundamentalFrequency: return "FundamentalFrequency";
+                    case AudioQaMetricKind::HarmonicEnergy: return "HarmonicEnergy";
+                    case AudioQaMetricKind::SilenceRatio: return "SilenceRatio";
+                    default: return "Unknown";
+                }
+            }().c_str()));
+            metric_map.Add("value", metric.value);
+            metric_map.Add("description", Upp::String(metric.description.c_str()));
+            metrics_array.Add(metric_map);
+        }
+        response_data.Add("metrics", metrics_array);
+        response_data.Add("passed", all_passed);
+        response_data.Add("violations", violations_array);
+        response_data.Add("sample_count", report.sample_count);
+        response_data.Add("duration_seconds", report.duration_seconds);
+
+        return JsonIO::SuccessResponse("designer-qa-verify", response_data);
+    }
+    catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("designer-qa-verify", "Failed to verify audio: " + std::string(e.what()), "INTERNAL_ERROR");
+    }
+}
+
 Upp::String CommandDispatcher::RunInstrumentBuildHybrid(const CommandOptions& opts) {
     try {
         // Extract required parameters

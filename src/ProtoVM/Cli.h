@@ -40,11 +40,18 @@ private:
 	void Process4004PeekCommand(const Vector<String>& tokens);
 	void Process4004DebugCommand(const Vector<String>& tokens);
 
+	// Audio QA commands
+	void ProcessQaRenderBlockCommand(const Vector<String>& tokens);
+	void ProcessQaRenderInstrumentCommand(const Vector<String>& tokens);
+	void ProcessQaAnalyzeBufferCommand(const Vector<String>& tokens);
+	void ProcessQaDiffCommand(const Vector<String>& tokens);
+	void ProcessQaVerifyCommand(const Vector<String>& tokens);
+
 public:
 	// Public API for programmatic access to CLI functionality
 	void AddSignalTrace(const String& componentName, const String& pinName, int pcbId = 0);
 	void ShowSignalTraceLog();
-	
+
 private:
 	// Additional members
 	bool running_in_step_mode; // Track if in step mode

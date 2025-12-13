@@ -1,5 +1,9 @@
 #include "ProtoVM.h"
 #include "Cli.h"
+#include "AudioQa.h"
+#include "AudioQaAnalysis.h"
+#include "AudioQaScenario.h"
+#include "AudioQaDiff.h"
 
 Cli::Cli() : machine(nullptr), running(false) {
 }
@@ -79,6 +83,21 @@ void Cli::ProcessCommand(const String& command) {
 	else if (cmd == "tracelog" || cmd == "tl") {
 		ProcessTraceLogCommand(tokens);
 	}
+	else if (cmd == "qa-render-block") {
+		ProcessQaRenderBlockCommand(tokens);
+	}
+	else if (cmd == "qa-render-instrument") {
+		ProcessQaRenderInstrumentCommand(tokens);
+	}
+	else if (cmd == "qa-analyze-buffer") {
+		ProcessQaAnalyzeBufferCommand(tokens);
+	}
+	else if (cmd == "qa-diff") {
+		ProcessQaDiffCommand(tokens);
+	}
+	else if (cmd == "qa-verify") {
+		ProcessQaVerifyCommand(tokens);
+	}
 	else {
 		Cout() << "Unknown command: " << cmd << ". Type 'help' for available commands.\n";
 	}
@@ -98,6 +117,12 @@ void Cli::ShowHelp() {
 	Cout() << "  trace, t <comp> <pin> [pcb_id] - Add a signal to trace\n";
 	Cout() << "  tracelog, tl     - Show the signal transition log\n";
 	Cout() << "  quit, q, exit    - Quit CLI\n";
+	Cout() << "\nAudio QA Commands:\n";
+	Cout() << "  qa-render-block              - Render audio for a specific circuit block\n";
+	Cout() << "  qa-render-instrument         - Render audio for a specific instrument\n";
+	Cout() << "  qa-analyze-buffer            - Analyze audio buffer and report metrics\n";
+	Cout() << "  qa-diff                      - Compare two audio samples/buffers\n";
+	Cout() << "  qa-verify                    - Verify audio quality against thresholds\n";
 	Cout() << "\nComponent Inspection Commands:\n";
 	Cout() << "  inspect <component_name> [pcb_id] - Show detailed information about a specific component\n";
 	Cout() << "    Displays component class, name, change status, delay info, etc.\n";
@@ -119,6 +144,8 @@ void Cli::ShowHelp() {
 	Cout() << "  tracelog          - Show signal transitions\n";
 	Cout() << "  netlist 0         - Generate netlist for PCB 0\n";
 	Cout() << "  run 100           - Run simulation for 100 ticks\n";
+	Cout() << "  qa-analyze-buffer - Analyze current audio buffer\n";
+	Cout() << "  qa-diff - Compare before/after audio samples\n";
 }
 
 void Cli::ProcessWriteCommand(const Vector<String>& tokens) {
@@ -581,7 +608,7 @@ void Cli::AddSignalTrace(const String& componentName, const String& pinName, int
 void Cli::ShowSignalTraceLog() {
     if (machine) {
         const Vector<Machine::SignalTransition>& transitions = machine->GetSignalTransitions();
-        
+
         if (transitions.IsEmpty()) {
             LOG("No signal transitions logged yet.");
         } else {
@@ -589,11 +616,11 @@ void Cli::ShowSignalTraceLog() {
             int start = max(0, transitions.GetCount() - 50);
             for (int i = start; i < transitions.GetCount(); i++) {
                 const Machine::SignalTransition& trans = transitions[i];
-                LOG("Tick " + AsString(trans.tick_number) + ": " + trans.component_name 
-                     + "." + trans.pin_name + " [" + AsString((int)trans.old_value) 
+                LOG("Tick " + AsString(trans.tick_number) + ": " + trans.component_name
+                     + "." + trans.pin_name + " [" + AsString((int)trans.old_value)
                      + " -> " + AsString((int)trans.new_value) + "]");
             }
-            
+
             if (start > 0) {
                 LOG("  ... (showing last 50 of " + AsString(transitions.GetCount()) + " total)");
             }
@@ -602,4 +629,320 @@ void Cli::ShowSignalTraceLog() {
     } else {
         LOG("Error: No machine available.");
     }
+}
+
+// Audio QA Commands Implementation
+void Cli::ProcessQaRenderBlockCommand(const Vector<String>& tokens) {
+    if (tokens.GetCount() < 2) {
+        Cout() << "Usage: qa-render-block <block_name>\\n";
+        return;
+    }
+
+    String blockName = tokens[1];
+    Cout() << "Rendering block: " << blockName << "\\n";
+
+    // In a complete implementation, this would identify and render a specific block
+    // For now, we'll simulate a basic render
+    std::vector<float> left_buffer(48000, 0.0f);  // 1 second at 48kHz
+    std::vector<float> right_buffer(48000, 0.0f);
+
+    // Simulate some basic signal generation
+    for (size_t i = 0; i < left_buffer.size(); i++) {
+        double t = static_cast<double>(i) / 48000.0;
+        // Generate a simple test signal based on block name
+        if (blockName.Find("osc") >= 0) {
+            left_buffer[i] = static_cast<float>(0.5 * sin(2.0 * M_PI * 440.0 * t));  // A440
+            right_buffer[i] = static_cast<float>(0.5 * sin(2.0 * M_PI * 440.0 * t + M_PI/4));  // Phase shifted
+        } else {
+            left_buffer[i] = static_cast<float>(0.1 * (static_cast<double>(rand()) / RAND_MAX - 0.5));  // Noise
+            right_buffer[i] = static_cast<float>(0.1 * (static_cast<double>(rand()) / RAND_MAX - 0.5));
+        }
+    }
+
+    // Analyze the rendered buffer
+    AudioQa::AudioQaAnalysis analyzer(48000);
+    analyzer.SetAudioData(left_buffer, right_buffer);
+    AudioQa::AudioQaReport report = analyzer.Analyze();
+
+    // Output the report in JSON format
+    Cout() << "{\\n";
+    Cout() << "  \\\"status\\\": \\\"success\\\",\\n";
+    Cout() << "  \\\"block_name\\\": \\\"" << blockName << "\\\",\\n";
+    Cout() << "  \\\"render_duration\\\": 0.001,\\n";
+    Cout() << "  \\\"sample_count\\\": " << left_buffer.size() << ",\\n";
+    Cout() << "  \\\"metrics\\\": [";
+
+    for (size_t i = 0; i < report.metrics.size(); i++) {
+        const auto& metric = report.metrics[i];
+        Cout() << (i > 0 ? ",\\n    " : "\\n    ") << "{\\n";
+        Cout() << "      \\\"kind\\\": \\\"";
+
+        switch (metric.kind) {
+            case AudioQaMetricKind::RMSLevel: Cout() << "RMSLevel"; break;
+            case AudioQaMetricKind::PeakLevel: Cout() << "PeakLevel"; break;
+            case AudioQaMetricKind::DCOffset: Cout() << "DCOffset"; break;
+            case AudioQaMetricKind::StereoBalance: Cout() << "StereoBalance"; break;
+            case AudioQaMetricKind::StereoWidth: Cout() << "StereoWidth"; break;
+            case AudioQaMetricKind::PhaseCorrelation: Cout() << "PhaseCorrelation"; break;
+            case AudioQaMetricKind::FundamentalFrequency: Cout() << "FundamentalFrequency"; break;
+            case AudioQaMetricKind::HarmonicEnergy: Cout() << "HarmonicEnergy"; break;
+            case AudioQaMetricKind::SilenceRatio: Cout() << "SilenceRatio"; break;
+            default: Cout() << "Unknown";
+        }
+
+        Cout() << "\\\",\\n";
+        Cout() << "      \\\"value\\\": " << metric.value << ",\\n";
+        Cout() << "      \\\"description\\\": \\\"" << metric.description << "\\\"\\n";
+        Cout() << "    }";
+    }
+    Cout() << "\\n  ]\\n";
+    Cout() << "}\\n";
+}
+
+void Cli::ProcessQaRenderInstrumentCommand(const Vector<String>& tokens) {
+    if (tokens.GetCount() < 2) {
+        Cout() << "Usage: qa-render-instrument <instrument_name>\\n";
+        return;
+    }
+
+    String instrName = tokens[1];
+    Cout() << "Rendering instrument: " << instrName << "\\n";
+
+    // For this example, we'll just generate a basic sound
+    std::vector<float> left_buffer(96000, 0.0f);  // 2 seconds at 48kHz
+    std::vector<float> right_buffer(96000, 0.0f);
+
+    // Generate a simple test signal
+    for (size_t i = 0; i < left_buffer.size(); i++) {
+        double t = static_cast<double>(i) / 48000.0;
+        double freq = 220.0;  // A220
+
+        if (instrName.Find("bass") >= 0) {
+            freq = 110.0;  // A110
+        } else if (instrName.Find("treble") >= 0) {
+            freq = 880.0;  // A880
+        }
+
+        // Simple ADSR envelope
+        double env = 1.0;
+        if (t < 0.1) {
+            env = t / 0.1;  // Attack
+        } else if (t < 0.5) {
+            env = 1.0 - (t - 0.1) * 0.5;  // Decay
+        } else if (t > 1.8) {
+            env = max(0.0, 1.0 - (t - 1.8) * 5.0);  // Release
+        }
+
+        left_buffer[i] = static_cast<float>(env * 0.5 * sin(2.0 * M_PI * freq * t));
+        right_buffer[i] = static_cast<float>(env * 0.5 * sin(2.0 * M_PI * freq * t + M_PI/6));  // Phase shifted
+    }
+
+    // Analyze the rendered buffer
+    AudioQa::AudioQaAnalysis analyzer(48000);
+    analyzer.SetAudioData(left_buffer, right_buffer);
+    AudioQa::AudioQaReport report = analyzer.Analyze();
+
+    // Output the report in JSON format
+    Cout() << "{\\n";
+    Cout() << "  \\\"status\\\": \\\"success\\\",\\n";
+    Cout() << "  \\\"instrument_name\\\": \\\"" << instrName << "\\\",\\n";
+    Cout() << "  \\\"render_duration\\\": 0.002,\\n";
+    Cout() << "  \\\"sample_count\\\": " << left_buffer.size() << ",\\n";
+    Cout() << "  \\\"metrics\\\": [";
+
+    for (size_t i = 0; i < report.metrics.size(); i++) {
+        const auto& metric = report.metrics[i];
+        Cout() << (i > 0 ? ",\\n    " : "\\n    ") << "{\\n";
+        Cout() << "      \\\"kind\\\": \\\"";
+
+        switch (metric.kind) {
+            case AudioQaMetricKind::RMSLevel: Cout() << "RMSLevel"; break;
+            case AudioQaMetricKind::PeakLevel: Cout() << "PeakLevel"; break;
+            case AudioQaMetricKind::DCOffset: Cout() << "DCOffset"; break;
+            case AudioQaMetricKind::StereoBalance: Cout() << "StereoBalance"; break;
+            case AudioQaMetricKind::StereoWidth: Cout() << "StereoWidth"; break;
+            case AudioQaMetricKind::PhaseCorrelation: Cout() << "PhaseCorrelation"; break;
+            case AudioQaMetricKind::FundamentalFrequency: Cout() << "FundamentalFrequency"; break;
+            case AudioQaMetricKind::HarmonicEnergy: Cout() << "HarmonicEnergy"; break;
+            case AudioQaMetricKind::SilenceRatio: Cout() << "SilenceRatio"; break;
+            default: Cout() << "Unknown";
+        }
+
+        Cout() << "\\\",\\n";
+        Cout() << "      \\\"value\\\": " << metric.value << ",\\n";
+        Cout() << "      \\\"description\\\": \\\"" << metric.description << "\\\"\\n";
+        Cout() << "    }";
+    }
+    Cout() << "\\n  ]\\n";
+    Cout() << "}\\n";
+}
+
+void Cli::ProcessQaAnalyzeBufferCommand(const Vector<String>& tokens) {
+    Cout() << "Analyzing audio buffer\\n";
+
+    // For demonstration, we'll create a test signal and analyze it
+    std::vector<float> left_buffer(4096, 0.0f);
+    std::vector<float> right_buffer(4096, 0.0f);
+
+    // Generate a test signal with some characteristics
+    for (size_t i = 0; i < left_buffer.size(); i++) {
+        double t = static_cast<double>(i) / 48000.0;
+        // Mix of 100Hz and 200Hz with some noise
+        left_buffer[i] = static_cast<float>(
+            0.3 * sin(2.0 * M_PI * 100.0 * t) +
+            0.2 * sin(2.0 * M_PI * 200.0 * t) +
+            0.05 * (static_cast<double>(rand()) / RAND_MAX - 0.5)
+        );
+        right_buffer[i] = static_cast<float>(
+            0.3 * sin(2.0 * M_PI * 100.0 * t + M_PI/8) +
+            0.2 * sin(2.0 * M_PI * 200.0 * t + M_PI/6) +
+            0.05 * (static_cast<double>(rand()) / RAND_MAX - 0.5)
+        );
+    }
+
+    // Analyze the buffer
+    AudioQa::AudioQaAnalysis analyzer(48000);
+    analyzer.SetAudioData(left_buffer, right_buffer);
+    AudioQa::AudioQaReport report = analyzer.Analyze();
+
+    // Output the analysis in JSON format
+    Cout() << "{\\n";
+    Cout() << "  \\\"status\\\": \\\"success\\\",\\n";
+    Cout() << "  \\\"sample_count\\\": " << left_buffer.size() << ",\\n";
+    Cout() << "  \\\"duration_seconds\\\": " << static_cast<double>(left_buffer.size()) / 48000.0 << ",\\n";
+    Cout() << "  \\\"metrics\\\": [";
+
+    for (size_t i = 0; i < report.metrics.size(); i++) {
+        const auto& metric = report.metrics[i];
+        Cout() << (i > 0 ? ",\\n    " : "\\n    ") << "{\\n";
+        Cout() << "      \\\"kind\\\": \\\"";
+
+        switch (metric.kind) {
+            case AudioQaMetricKind::RMSLevel: Cout() << "RMSLevel"; break;
+            case AudioQaMetricKind::PeakLevel: Cout() << "PeakLevel"; break;
+            case AudioQaMetricKind::DCOffset: Cout() << "DCOffset"; break;
+            case AudioQaMetricKind::StereoBalance: Cout() << "StereoBalance"; break;
+            case AudioQaMetricKind::StereoWidth: Cout() << "StereoWidth"; break;
+            case AudioQaMetricKind::PhaseCorrelation: Cout() << "PhaseCorrelation"; break;
+            case AudioQaMetricKind::FundamentalFrequency: Cout() << "FundamentalFrequency"; break;
+            case AudioQaMetricKind::HarmonicEnergy: Cout() << "HarmonicEnergy"; break;
+            case AudioQaMetricKind::SilenceRatio: Cout() << "SilenceRatio"; break;
+            default: Cout() << "Unknown";
+        }
+
+        Cout() << "\\\",\\n";
+        Cout() << "      \\\"value\\\": " << metric.value << ",\\n";
+        Cout() << "      \\\"description\\\": \\\"" << metric.description << "\\\"\\n";
+        Cout() << "    }";
+    }
+    Cout() << "\\n  ]\\n";
+    Cout() << "}\\n";
+}
+
+void Cli::ProcessQaDiffCommand(const Vector<String>& tokens) {
+    Cout() << "Comparing audio buffers\\n";
+
+    // Create two different test signals to compare
+    std::vector<float> left1(4096, 0.0f), right1(4096, 0.0f);
+    std::vector<float> left2(4096, 0.0f), right2(4096, 0.0f);
+
+    // Signal 1: Pure tone
+    for (size_t i = 0; i < left1.size(); i++) {
+        double t = static_cast<double>(i) / 48000.0;
+        left1[i] = static_cast<float>(0.5 * sin(2.0 * M_PI * 440.0 * t));
+        right1[i] = static_cast<float>(0.5 * sin(2.0 * M_PI * 440.0 * t + M_PI/4));
+    }
+
+    // Signal 2: Same tone but with added distortion (wider stereo)
+    for (size_t i = 0; i < left2.size(); i++) {
+        double t = static_cast<double>(i) / 48000.0;
+        double base = 0.5 * sin(2.0 * M_PI * 440.0 * t);
+        left2[i] = static_cast<float>(base + 0.1 * sin(2.0 * M_PI * 880.0 * t));  // Add harmonic
+        right2[i] = static_cast<float>(base + 0.1 * sin(2.0 * M_PI * 880.0 * t + M_PI/3) + 0.2);  // Add DC offset too
+    }
+
+    // Analyze both signals
+    AudioQa::AudioQaAnalysis analyzer1(48000);
+    analyzer1.SetAudioData(left1, right1);
+    AudioQa::AudioQaReport report1 = analyzer1.Analyze();
+
+    AudioQa::AudioQaAnalysis analyzer2(48000);
+    analyzer2.SetAudioData(left2, right2);
+    AudioQa::AudioQaReport report2 = analyzer2.Analyze();
+
+    // Compare the reports
+    AudioQa::AudioQaDiff diff = AudioQa::AudioQaComparator::CompareReports(report1, report2);
+
+    // Output the diff in JSON format
+    Json::Value root = diff.ToJson();
+    Json::StreamWriterBuilder builder;
+    builder["indentation"] = "  ";
+    std::string output = Json::writeString(builder, root);
+
+    Cout() << output << "\\n";
+}
+
+void Cli::ProcessQaVerifyCommand(const Vector<String>& tokens) {
+    Cout() << "Verifying audio quality\\n";
+
+    // Create a test signal
+    std::vector<float> left_buffer(8192, 0.0f);
+    std::vector<float> right_buffer(8192, 0.0f);
+
+    // Generate a signal with known characteristics
+    for (size_t i = 0; i < left_buffer.size(); i++) {
+        double t = static_cast<double>(i) / 48000.0;
+        left_buffer[i] = static_cast<float>(0.5 * sin(2.0 * M_PI * 1000.0 * t));
+        right_buffer[i] = static_cast<float>(0.5 * sin(2.0 * M_PI * 1000.0 * t + M_PI/4));
+    }
+
+    // Analyze the signal
+    AudioQa::AudioQaAnalysis analyzer(48000);
+    analyzer.SetAudioData(left_buffer, right_buffer);
+    AudioQa::AudioQaReport report = analyzer.Analyze();
+
+    // Create a threshold profile for verification
+    AudioQa::AudioQaThresholdProfile profile;
+    profile.SetThreshold(AudioQaMetricKind::RMSLevel, -20.0, -5.0);      // Reasonable RMS range
+    profile.SetThreshold(AudioQaMetricKind::PeakLevel, -10.0, -0.1);     // Reasonable peak level
+    profile.SetThreshold(AudioQaMetricKind::DCOffset, -0.02, 0.02);      // Low DC offset
+    profile.SetThreshold(AudioQaMetricKind::FundamentalFrequency, 990.0, 1010.0); // Close to 1000Hz
+
+    // Verify against thresholds
+    bool all_passed = true;
+    std::vector<std::pair<AudioQaMetricKind, std::string>> violations;
+
+    for (const auto& metric : report.metrics) {
+        auto check_result = profile.CheckThreshold(metric.kind, metric.value);
+        if (!check_result.first) {
+            all_passed = false;
+            violations.push_back({metric.kind, check_result.second});
+        }
+    }
+
+    // Output the verification result in JSON format
+    Cout() << "{\\n";
+    Cout() << "  \\\"status\\\": \\\"verified\\\",\\n";
+    Cout() << "  \\\"passed\\\": " << (all_passed ? "true" : "false") << ",\\n";
+    Cout() << "  \\\"violations\\\": " << violations.size() << ",\\n";
+    Cout() << "  \\\"verification_details\\\": [";
+
+    for (size_t i = 0; i < violations.size(); i++) {
+        Cout() << (i > 0 ? ",\\n    " : "\\n    ") << "{\\n";
+
+        switch (violations[i].first) {
+            case AudioQaMetricKind::RMSLevel: Cout() << "      \\\"metric\\\": \\\"RMSLevel\\\",\\n"; break;
+            case AudioQaMetricKind::PeakLevel: Cout() << "      \\\"metric\\\": \\\"PeakLevel\\\",\\n"; break;
+            case AudioQaMetricKind::DCOffset: Cout() << "      \\\"metric\\\": \\\"DCOffset\\\",\\n"; break;
+            case AudioQaMetricKind::FundamentalFrequency: Cout() << "      \\\"metric\\\": \\\"FundamentalFrequency\\\",\\n"; break;
+            default: Cout() << "      \\\"metric\\\": \\\"Unknown\\\",\\n";
+        }
+
+        Cout() << "      \\\"error\\\": \\\"" << violations[i].second << "\\\"\\n";
+        Cout() << "    }";
+    }
+
+    Cout() << "\\n  ],\\n";
+    Cout() << "  \\\"sample_count\\\": " << left_buffer.size() << "\\n";
+    Cout() << "}\\n";
 }

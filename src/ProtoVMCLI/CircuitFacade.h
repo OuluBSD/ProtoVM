@@ -28,6 +28,9 @@
 #include "AnalogModel.h"         // For analog model structures
 #include "InstrumentGraph.h"     // For instrument graph structures
 #include "PluginSkeletonExport.h" // For plugin skeleton export
+#include "AudioQa.h"             // For Audio QA structures
+#include "AudioQaAnalysis.h"    // For Audio QA analysis
+#include "AudioQaDiff.h"        // For Audio QA diff operations
 #include <string>
 #include <vector>
 #include <optional>
@@ -558,6 +561,35 @@ public:
         const std::string& branch_name,
         const InstrumentGraph& instrument,
         const PluginProjectExportOptions& opts
+    );
+
+    // Audio QA analysis methods
+    Result<AudioQaReport> RenderAndAnalyzeBlockInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const std::string& block_id,
+        double sample_rate_hz = 48000.0,
+        double duration_sec = 1.0
+    );
+
+    Result<AudioQaReport> RenderAndAnalyzeInstrumentInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const InstrumentGraph& instrument,
+        double sample_rate_hz = 48000.0,
+        double duration_sec = 1.0
+    );
+
+    Result<AudioQaDiff> DiffAudioQaBetweenBranches(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_before,
+        const std::string& branch_after,
+        const std::string& block_id,
+        double sample_rate_hz = 48000.0,
+        double duration_sec = 1.0
     );
 
 private:

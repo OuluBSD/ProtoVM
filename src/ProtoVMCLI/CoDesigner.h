@@ -432,6 +432,136 @@ struct DesignerAnalogRenderOscResponse {
     DesignerAnalogRenderOscResponse() = default;
 };
 
+// Request/response structures for hybrid instrument commands
+struct DesignerBuildHybridInstrumentRequest {
+    std::string designer_session_id;
+    std::string instrument_id;
+    std::string analog_block_id;
+    std::string digital_block_id;
+    int voice_count;
+    double sample_rate_hz;
+    double duration_sec;
+    double base_freq_hz;
+    double detune_spread_cents;
+    double pan_lfo_hz;
+    bool use_analog_primary;
+};
+
+struct DesignerRenderHybridInstrumentRequest {
+    std::string designer_session_id;
+    std::string instrument_id;
+    std::string analog_block_id;
+    std::string digital_block_id;
+    int voice_count;
+    double sample_rate_hz;
+    double duration_sec;
+    double base_freq_hz;
+    double detune_spread_cents;
+    double pan_lfo_hz;
+    bool use_analog_primary;
+};
+
+struct DesignerHybridInstrumentResponse {
+    CoDesignerSessionState designer_session;
+    InstrumentGraph instrument;
+    std::vector<float> left_preview;  // First 1000 samples for preview
+    std::vector<float> right_preview;
+    double left_rms;
+    double right_rms;
+    int sample_rate_hz;
+    int voice_count;
+    double duration_sec;
+};
+
+// Request/response structures for instrument export commands
+struct DesignerInstrumentExportCppRequest {
+    std::string designer_session_id;
+    std::string instrument_id;
+    std::string analog_block_id;
+    std::string digital_block_id;
+    int voice_count;
+    double sample_rate_hz;
+    double duration_sec;
+    double base_freq_hz;
+    double detune_spread_cents;
+    double pan_lfo_hz;
+    bool use_analog_primary;
+    // Export options
+    std::string program_name;
+    std::string namespace_name;
+    std::string wav_filename;
+    bool include_wav_writer;
+    bool emit_comment_banner;
+};
+
+struct DesignerInstrumentExportCppResponse {
+    CoDesignerSessionState designer_session;
+    std::string instrument_id;
+    std::string program_name;
+    std::string cpp_source;
+};
+
+// Request/response structures for plugin skeleton export commands
+struct DesignerInstrumentExportPluginSkeletonRequest {
+    std::string designer_session_id;
+    std::string instrument_id;
+    std::string analog_block_id;
+    std::string digital_block_id;
+    int voice_count;
+    double sample_rate_hz;
+    double duration_sec;
+    double base_freq_hz;
+    double detune_spread_cents;
+    double pan_lfo_hz;
+    bool use_analog_primary;
+    // Plugin skeleton options
+    std::string plugin_target;            // Target plugin format (vst3, lv2, clap, ladspa)
+    std::string plugin_name;              // Plugin name
+    std::string plugin_id;                // Plugin ID
+    std::string vendor;                   // Plugin vendor name
+};
+
+struct DesignerInstrumentExportPluginSkeletonResponse {
+    CoDesignerSessionState designer_session;
+    std::string instrument_id;
+    std::string plugin_target;
+    std::string plugin_name;
+    std::string plugin_id;
+    std::string skeleton_source;
+};
+
+// Request/response structures for plugin project export commands
+struct DesignerInstrumentExportPluginProjectRequest {
+    std::string designer_session_id;
+    std::string instrument_id;
+    std::string analog_block_id;
+    std::string digital_block_id;
+    int voice_count;
+    double sample_rate_hz;
+    double duration_sec;
+    double base_freq_hz;
+    double detune_spread_cents;
+    double pan_lfo_hz;
+    bool use_analog_primary;
+    // Plugin project export options
+    std::string plugin_target;            // Target plugin format (vst3, lv2, clap, ladspa)
+    std::string plugin_name;              // Plugin name
+    std::string plugin_id;                // Plugin ID
+    std::string vendor;                   // Plugin vendor name
+    std::string version;                  // Plugin version (e.g., "1.0.0")
+    std::string output_dir;               // Output directory for project
+};
+
+struct DesignerInstrumentExportPluginProjectResponse {
+    CoDesignerSessionState designer_session;
+    std::string instrument_id;
+    std::string plugin_target;
+    std::string plugin_name;
+    std::string plugin_id;
+    std::string output_dir;
+    std::string status;
+};
+
 class CoDesignerManager {
 public:
     explicit CoDesignerManager(std::shared_ptr<CircuitFacade> circuit_facade)
@@ -465,6 +595,19 @@ public:
     // Analog model methods
     Result<DesignerAnalogModelInspectResponse> InspectAnalogModel(const DesignerAnalogModelInspectRequest& request);
     Result<DesignerAnalogRenderOscResponse> RenderAnalogOsc(const DesignerAnalogRenderOscRequest& request);
+
+    // Hybrid instrument methods
+    Result<DesignerHybridInstrumentResponse> BuildHybridInstrument(const DesignerBuildHybridInstrumentRequest& request);
+    Result<DesignerHybridInstrumentResponse> RenderHybridInstrument(const DesignerRenderHybridInstrumentRequest& request);
+
+    // Instrument export methods
+    Result<DesignerInstrumentExportCppResponse> ExportInstrumentAsCpp(const DesignerInstrumentExportCppRequest& request);
+
+    // Plugin skeleton export methods
+    Result<DesignerInstrumentExportPluginSkeletonResponse> ExportInstrumentAsPluginSkeleton(const DesignerInstrumentExportPluginSkeletonRequest& request);
+
+    // Plugin project export methods
+    Result<DesignerInstrumentExportPluginProjectResponse> ExportInstrumentAsPluginProject(const DesignerInstrumentExportPluginProjectRequest& request);
 
 private:
     // Helper method to generate unique designer session IDs

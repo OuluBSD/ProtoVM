@@ -38,6 +38,12 @@ set(CLI_SOURCES
     src/ProtoVMCLI/DspGraph.cpp
     src/ProtoVMCLI/DspRuntime.cpp
     src/ProtoVMCLI/AudioDsl.cpp
+    src/ProtoVMCLI/InstrumentGraph.cpp
+    src/ProtoVMCLI/InstrumentBuilder.cpp
+    src/ProtoVMCLI/InstrumentToDsp.cpp
+    src/ProtoVMCLI/InstrumentRuntime.cpp
+    src/ProtoVMCLI/CoDesigner.cpp
+    src/ProtoVMCLI/SessionServer.cpp
 )
 
 add_executable(proto-vm-cli ${CLI_SOURCES})

@@ -9,6 +9,7 @@
 #include "AudioDsl.h"
 #include "DspGraph.h"
 #include "AnalogModel.h"
+#include "InstrumentGraph.h"
 #include <iostream>
 #include <sstream>
 
@@ -2128,6 +2129,75 @@ Upp::ValueMap JsonIO::AudioDslGraphToValueMap(const AudioDslGraph& graph) {
             result.Add(AnalogParamToValueMap(param));
         }
         return result;
+    }
+
+    Upp::ValueMap JsonIO::NoteDescToValueMap(const NoteDesc& note) {
+        Upp::ValueMap result;
+        result.Add("base_freq_hz", note.base_freq_hz);
+        result.Add("velocity", note.velocity);
+        result.Add("duration_sec", note.duration_sec);
+        return result;
+    }
+
+    Upp::ValueMap JsonIO::VoiceConfigToValueMap(const VoiceConfig& voice) {
+        Upp::ValueMap result;
+        result.Add("id", Upp::String(voice.id));
+        result.Add("detune_cents", voice.detune_cents);
+        result.Add("use_analog_source", voice.use_analog_source);
+        return result;
+    }
+
+    Upp::ValueMap JsonIO::InstrumentVoiceTemplateToValueMap(const InstrumentVoiceTemplate& template_) {
+        Upp::ValueMap result;
+        result.Add("id", Upp::String(template_.id));
+        result.Add("analog_block_id", Upp::String(template_.analog_block_id));
+        result.Add("digital_block_id", Upp::String(template_.digital_block_id));
+        result.Add("has_pan_lfo", template_.has_pan_lfo);
+        result.Add("pan_lfo_hz", template_.pan_lfo_hz);
+        result.Add("has_filter", template_.has_filter);
+        return result;
+    }
+
+    Upp::ValueMap JsonIO::InstrumentGraphToValueMap(const InstrumentGraph& instrument) {
+        Upp::ValueMap result;
+        result.Add("instrument_id", Upp::String(instrument.instrument_id));
+        result.Add("sample_rate_hz", instrument.sample_rate_hz);
+        result.Add("voice_count", instrument.voice_count);
+        result.Add("voice_template", InstrumentVoiceTemplateToValueMap(instrument.voice_template));
+        result.Add("note", NoteDescToValueMap(instrument.note));
+        result.Add("use_analog_primary", instrument.use_analog_primary);
+
+        // Add voices array
+        Upp::ValueArray voices_array;
+        for (const auto& voice : instrument.voices) {
+            voices_array.Add(VoiceConfigToValueMap(voice));
+        }
+        result.Add("voices", voices_array);
+
+        return result;
+    }
+
+    Upp::ValueArray JsonIO::VoiceConfigsToValueArray(const std::vector<VoiceConfig>& voices) {
+        Upp::ValueArray result;
+        for (const auto& voice : voices) {
+            result.Add(VoiceConfigToValueMap(voice));
+        }
+        return result;
+    }
+
+    Upp::Value JsonIO::PluginTargetKindToJson(PluginTargetKind kind) {
+        switch (kind) {
+            case PluginTargetKind::Vst3:
+                return Upp::String("Vst3");
+            case PluginTargetKind::Lv2:
+                return Upp::String("Lv2");
+            case PluginTargetKind::Clap:
+                return Upp::String("Clap");
+            case PluginTargetKind::Ladspa:
+                return Upp::String("Ladspa");
+            default:
+                return Upp::String("Unknown");
+        }
     }
 
 } // namespace ProtoVMCLI

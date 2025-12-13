@@ -393,6 +393,17 @@ public:
 
     static Upp::ValueArray AnalogStateVarsToValueArray(const std::vector<AnalogStateVar>& states);
     static Upp::ValueArray AnalogParamsToValueArray(const std::vector<AnalogParam>& params);
+
+    // InstrumentGraph serialization methods
+    static Upp::ValueMap NoteDescToValueMap(const NoteDesc& note);
+    static Upp::ValueMap VoiceConfigToValueMap(const VoiceConfig& voice);
+    static Upp::ValueMap InstrumentVoiceTemplateToValueMap(const InstrumentVoiceTemplate& template_);
+    static Upp::ValueMap InstrumentGraphToValueMap(const InstrumentGraph& instrument);
+
+    static Upp::ValueArray VoiceConfigsToValueArray(const std::vector<VoiceConfig>& voices);
+
+    // PluginTargetKind serialization methods
+    static Upp::Value PluginTargetKindToJson(PluginTargetKind kind);
 };
 
 // Template implementation needs to be in header

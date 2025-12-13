@@ -140,6 +140,8 @@ private:
     Result<DaemonResponse> HandleDesignerCodegen(const DaemonRequest& req);
     Result<DaemonResponse> HandleDesignerCodegenBlockC(const DaemonRequest& req);
     Result<DaemonResponse> HandleDesignerCodegenOscDemo(const DaemonRequest& req);
+    Result<DaemonResponse> HandleDesignerBuildHybridInstrument(const DaemonRequest& req);
+    Result<DaemonResponse> HandleDesignerRenderHybridInstrument(const DaemonRequest& req);
 
     // Utility methods
     Result<DaemonResponse> CreateSuccessResponse(const DaemonRequest& req, const Upp::ValueMap& data = Upp::ValueMap());

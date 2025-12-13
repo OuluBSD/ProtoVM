@@ -165,6 +165,13 @@ public:
     Upp::String RunAnalogModelInspect(const CommandOptions& opts);
     Upp::String RunAnalogRenderOsc(const CommandOptions& opts);
 
+    // Hybrid instrument commands
+    Upp::String RunInstrumentBuildHybrid(const CommandOptions& opts);
+    Upp::String RunInstrumentRenderHybrid(const CommandOptions& opts);
+    Upp::String RunInstrumentExportCpp(const CommandOptions& opts);
+    Upp::String RunInstrumentExportPluginSkeleton(const CommandOptions& opts);
+    Upp::String RunInstrumentExportPluginProject(const CommandOptions& opts);
+
 private:
     std::unique_ptr<ISessionStore> session_store_;
 

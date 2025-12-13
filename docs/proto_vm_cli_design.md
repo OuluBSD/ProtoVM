@@ -4340,3 +4340,300 @@ proto-vm-cli analog-render-osc --workspace <path> --session-id <id> --block-id <
   }
 }
 ```
+
+
+#### 25.3.8 \`instrument-build-hybrid\`
+
+Build a hybrid instrument combining analog and digital components with multiple voices.
+
+**CLI Usage:**
+\`\`\`
+proto-vm-cli instrument-build-hybrid --workspace <path> --session-id <id> --branch <name> --instrument-id <string> --analog-block-id <string> --digital-block-id <string> --voice-count <int> --sample-rate <double> --duration-sec <double> --base-freq-hz <double> --detune-spread-cents <double> --pan-lfo-hz <double> [--use-analog-primary]
+\`\`\`
+
+**Daemon Usage:**
+\`\`\`json
+{
+  "id": "req-9",
+  "command": "instrument-build-hybrid",
+  "workspace": "/path/to/ws",
+  "session_id": 1,
+  "user_id": "user",
+  "payload": {
+    "branch": "main",
+    "instrument_id": "HYBRID_OSC_1",
+    "analog_block_id": "ANALOG_OSC_BLOCK",
+    "digital_block_id": "DIGITAL_OSC_BLOCK",
+    "voice_count": 4,
+    "sample_rate": 48000.0,
+    "duration_sec": 3.0,
+    "base_freq_hz": 440.0,
+    "detune_spread_cents": 10.0,
+    "pan_lfo_hz": 0.25,
+    "use_analog_primary": true
+  }
+}
+\`\`\`
+
+**Response:**
+\`\`\`json
+{
+  "ok": true,
+  "command": "instrument-build-hybrid",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "instrument": {
+      "instrument_id": "HYBRID_OSC_1",
+      "sample_rate_hz": 48000.0,
+      "voice_count": 4,
+      "voice_template": {
+        "id": "voice_template_HYBRID_OSC_1",
+        "analog_block_id": "ANALOG_OSC_BLOCK",
+        "digital_block_id": "DIGITAL_OSC_BLOCK",
+        "has_pan_lfo": true,
+        "pan_lfo_hz": 0.25,
+        "has_filter": false
+      },
+      "voices": [
+        {"id": "voice0", "detune_cents": -5.0, "use_analog_source": true},
+        {"id": "voice1", "detune_cents": -1.67, "use_analog_source": true},
+        {"id": "voice2", "detune_cents": 1.67, "use_analog_source": true},
+        {"id": "voice3", "detune_cents": 5.0, "use_analog_source": true}
+      ],
+      "note": {
+        "base_freq_hz": 440.0,
+        "velocity": 1.0,
+        "duration_sec": 3.0
+      },
+      "use_analog_primary": true
+    }
+  }
+}
+\`\`\`
+
+#### 25.3.9 \`instrument-render-hybrid\`
+
+Build and render a hybrid instrument with multiple voices to stereo audio.
+
+**CLI Usage:**
+\`\`\`
+proto-vm-cli instrument-render-hybrid --workspace <path> --session-id <id> --branch <name> --instrument-id <string> --analog-block-id <string> --digital-block-id <string> --voice-count <int> --sample-rate <double> --duration-sec <double> --base-freq-hz <double> --detune-spread-cents <double> --pan-lfo-hz <double> [--use-analog-primary]
+\`\`\`
+
+**Daemon Usage:**
+\`\`\`json
+{
+  "id": "req-10",
+  "command": "instrument-render-hybrid",
+  "workspace": "/path/to/ws",
+  "session_id": 1,
+  "user_id": "user",
+  "payload": {
+    "branch": "main",
+    "instrument_id": "HYBRID_OSC_1",
+    "analog_block_id": "ANALOG_OSC_BLOCK",
+    "digital_block_id": "DIGITAL_OSC_BLOCK",
+    "voice_count": 4,
+    "sample_rate": 48000.0,
+    "duration_sec": 3.0,
+    "base_freq_hz": 440.0,
+    "detune_spread_cents": 10.0,
+    "pan_lfo_hz": 0.25,
+    "use_analog_primary": true
+  }
+}
+\`\`\`
+
+**Response:**
+\`\`\`json
+{
+  "ok": true,
+  "command": "instrument-render-hybrid",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "instrument_id": "HYBRID_OSC_1",
+    "sample_rate_hz": 48000.0,
+    "duration_sec": 3.0,
+    "voice_count": 4,
+    "left_rms": 0.6,
+    "right_rms": 0.6,
+    "left_preview": [0.1, 0.15, 0.2, ...],
+    "right_preview": [0.1, 0.15, 0.2, ...]
+  }
+}
+\`\`\`
+
+#### 25.3.10 \`instrument-export-cpp\`
+
+Export a hybrid instrument as a standalone C++ program.
+
+**CLI Usage:**
+\`\`\`
+proto-vm-cli instrument-export-cpp --workspace <path> --session-id <id> --branch <name> --instrument-id <string> --analog-block-id <string> --digital-block-id <string> --voice-count <int> --sample-rate <double> --duration-sec <double> --base-freq-hz <double> --detune-spread-cents <double> --pan-lfo-hz <double> --program-name <string> --namespace <string> --wav-filename <string> [--no-wav-writer] [--use-analog-primary]
+\`\`\`
+
+**Daemon Usage:**
+\`\`\`json
+{
+  "id": "req-11",
+  "command": "instrument-export-cpp",
+  "workspace": "/path/to/ws",
+  "session_id": 1,
+  "user_id": "user",
+  "payload": {
+    "branch": "main",
+    "instrument_id": "HYBRID_OSC_1",
+    "analog_block_id": "ANALOG_OSC_BLOCK",
+    "digital_block_id": "DIGITAL_OSC_BLOCK",
+    "voice_count": 4,
+    "sample_rate": 48000.0,
+    "duration_sec": 3.0,
+    "base_freq_hz": 440.0,
+    "detune_spread_cents": 10.0,
+    "pan_lfo_hz": 0.25,
+    "program_name": "hybrid_instrument_demo",
+    "namespace_name": "Audio",
+    "wav_filename": "output.wav",
+    "no_wav_writer": false,
+    "use_analog_primary": true
+  }
+}
+\`\`\`
+
+**Response:**
+\`\`\`json
+{
+  "ok": true,
+  "command": "instrument-export-cpp",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "instrument_id": "HYBRID_OSC_1",
+    "program_name": "hybrid_instrument_demo",
+    "cpp_source": "#include <cmath>\n#include <vector>\n// ... full C++ source code ..."
+  }
+}
+\`\`\`
+
+#### 25.3.11 `instrument-export-plugin-skeleton`
+
+Export a hybrid instrument as a plugin skeleton for VST3, LV2, CLAP, or LADSPA formats.
+
+**CLI Usage:**
+```
+proto-vm-cli instrument-export-plugin-skeleton --workspace <path> --session-id <id> --branch <name> --plugin-target {vst3|lv2|clap|ladspa} --plugin-name <string> --plugin-id <string> --vendor <string> --instrument-id <string> --analog-block-id <string> --digital-block-id <string> --voice-count <int> --sample-rate <double> --duration-sec <double> --base-freq-hz <double> --detune-spread-cents <double> --pan-lfo-hz <double> [--use-analog-primary]
+```
+
+**Daemon Usage:**
+```json
+{
+  "id": "req-12",
+  "command": "instrument-export-plugin-skeleton",
+  "workspace": "/path/to/ws",
+  "session_id": 1,
+  "user_id": "user",
+  "payload": {
+    "branch": "main",
+    "plugin_target": "vst3",
+    "plugin_name": "ProtoVMHybridOsc",
+    "plugin_id": "protovm.hybrid.osc",
+    "vendor": "ProtoVM",
+    "instrument_id": "HYBRID_OSC_1",
+    "analog_block_id": "ANALOG_OSC_BLOCK",
+    "digital_block_id": "DIGITAL_OSC_BLOCK",
+    "voice_count": 4,
+    "sample_rate": 48000.0,
+    "duration_sec": 3.0,
+    "base_freq_hz": 440.0,
+    "detune_spread_cents": 10.0,
+    "pan_lfo_hz": 0.25,
+    "use_analog_primary": true
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "command": "instrument-export-plugin-skeleton",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "instrument_id": "HYBRID_OSC_1",
+    "plugin_target": "vst3",
+    "plugin_name": "ProtoVMHybridOsc",
+    "plugin_id": "protovm.hybrid.osc",
+    "skeleton_source": "/* plugin wrapper source */"
+  }
+}
+```
+
+#### 25.3.12 `instrument-export-plugin-project`
+
+Export a hybrid instrument as a complete, disk-ready project for VST3, LV2, CLAP, or LADSPA formats. This command generates a full project directory structure with build files, metadata, and wrapper code that integrates with the ProtoVM C ABI engine.
+
+**CLI Usage:**
+```
+proto-vm-cli instrument-export-plugin-project --workspace <path> --session-id <id> --branch <name> --plugin-target {vst3|lv2|clap|ladspa} --plugin-name <string> --plugin-id <string> --vendor <string> --version <string> --output-dir <path> --instrument-id <string> --analog-block-id <string> --digital-block-id <string> --voice-count <int> --sample-rate <double> --duration-sec <double> --base-freq-hz <double> --detune-spread-cents <double> --pan-lfo-hz <double> [--use-analog-primary]
+```
+
+**Daemon Usage:**
+```json
+{
+  "id": "req-13",
+  "command": "instrument-export-plugin-project",
+  "workspace": "/path/to/ws",
+  "session_id": 1,
+  "user_id": "user",
+  "payload": {
+    "branch": "main",
+    "plugin_target": "lv2",
+    "plugin_name": "ProtoVMLv2HybridOsc",
+    "plugin_id": "http://example.org/protovm/hybrid/osc",
+    "vendor": "ProtoVM",
+    "version": "1.0.0",
+    "output_dir": "/tmp/protovm_lv2_project",
+    "instrument_id": "HYBRID_OSC_1",
+    "analog_block_id": "ANALOG_OSC_BLOCK",
+    "digital_block_id": "DIGITAL_OSC_BLOCK",
+    "voice_count": 4,
+    "sample_rate": 48000.0,
+    "duration_sec": 3.0,
+    "base_freq_hz": 440.0,
+    "detune_spread_cents": 10.0,
+    "pan_lfo_hz": 0.25,
+    "use_analog_primary": true
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "command": "instrument-export-plugin-project",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "session_id": 1,
+    "branch": "main",
+    "instrument_id": "HYBRID_OSC_1",
+    "plugin_target": "lv2",
+    "plugin_name": "ProtoVMLv2HybridOsc",
+    "plugin_id": "http://example.org/protovm/hybrid/osc",
+    "output_dir": "/tmp/protovm_lv2_project",
+    "status": "ok"
+  }
+}
+```

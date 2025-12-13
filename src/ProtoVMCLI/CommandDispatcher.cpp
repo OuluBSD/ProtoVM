@@ -23,6 +23,10 @@
 #include "CodegenIr.h"
 #include "CodegenIrInference.h"
 #include "CodeEmitter.h"
+#include "InstrumentGraph.h"
+#include "InstrumentBuilder.h"
+#include "InstrumentRuntime.h"
+#include "PluginSkeletonExport.h"
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
@@ -7459,6 +7463,724 @@ Upp::String CommandDispatcher::RunDesignerCodegenBlockAudioDemo(const CommandOpt
         return JsonIO::ErrorResponse("designer-codegen-block-audio-demo",
                                    "Failed to run designer audio demo codegen: " + std::string(e.what()),
                                    "DESIGNER_CODEGEN_AUDIO_DEMO_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunInstrumentBuildHybrid(const CommandOptions& opts) {
+    try {
+        // Extract required parameters
+        std::string workspace_path = opts.workspace;
+        std::string session_id_str = opts.session_id.has_value() ? std::to_string(opts.session_id.value()) : "";
+        std::string branch_name = opts.branch.value_or("main");
+        std::string instrument_id = opts.instrument_id.value_or("HYBRID_DEFAULT");
+
+        std::string analog_block_id = opts.analog_block_id.value_or("");
+        std::string digital_block_id = opts.digital_block_id.value_or("");
+
+        bool use_analog_primary = opts.use_analog_primary;
+
+        int voice_count = opts.voice_count.has_value() ? std::stoi(opts.voice_count.value()) : 1;
+        double sample_rate_hz = opts.sample_rate.has_value() ? std::stod(opts.sample_rate.value()) : 48000.0;
+        double duration_sec = opts.duration_sec.has_value() ? std::stod(opts.duration_sec.value()) : 3.0;
+        double base_freq_hz = opts.base_freq_hz.has_value() ? std::stod(opts.base_freq_hz.value()) : 440.0;
+        double detune_spread_cents = opts.detune_spread_cents.has_value() ? std::stod(opts.detune_spread_cents.value()) : 10.0;
+        double pan_lfo_hz = opts.pan_lfo_hz.has_value() ? std::stod(opts.pan_lfo_hz.value()) : 0.25;
+
+        // Validate required parameters
+        if (session_id_str.empty()) {
+            return JsonIO::ErrorResponse("instrument-build-hybrid", "Session ID is required");
+        }
+
+        // Parse session ID
+        int64_t session_id;
+        try {
+            session_id = std::stoll(session_id_str);
+        } catch (const std::exception& e) {
+            return JsonIO::ErrorResponse("instrument-build-hybrid", "Invalid session ID format");
+        }
+
+        // Load session metadata
+        auto session_result = session_store_->GetSession(session_id);
+        if (!session_result.ok) {
+            return JsonIO::ErrorResponse("instrument-build-hybrid", session_result.error_message);
+        }
+
+        SessionMetadata session = session_result.data;
+        std::string session_dir = workspace_path + "/session_" + std::to_string(session_id);
+
+        // Create instrument voice template
+        InstrumentVoiceTemplate voice_template;
+        voice_template.id = Upp::String().Cat() << "voice_template_" << instrument_id;
+        voice_template.analog_block_id = Upp::String(analog_block_id.c_str());
+        voice_template.digital_block_id = Upp::String(digital_block_id.c_str());
+        voice_template.pan_lfo_hz = pan_lfo_hz;
+
+        // Create note description
+        NoteDesc note;
+        note.base_freq_hz = base_freq_hz;
+        note.velocity = 1.0;  // Default velocity
+        note.duration_sec = duration_sec;
+
+        // Create CircuitFacade and build hybrid instrument
+        CircuitFacade facade(session_store_);
+        auto instrument_result = facade.BuildHybridInstrumentInBranch(
+            session,
+            session_dir,
+            branch_name,
+            voice_template,
+            sample_rate_hz,
+            voice_count,
+            note,
+            detune_spread_cents
+        );
+
+        if (!instrument_result.ok) {
+            return JsonIO::ErrorResponse("instrument-build-hybrid",
+                                       instrument_result.error_message,
+                                       JsonIO::ErrorCodeToString(instrument_result.error_code));
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("instrument", JsonIO::InstrumentGraphToValueMap(instrument_result.data));
+
+        return JsonIO::SuccessResponse("instrument-build-hybrid", response_data);
+
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("instrument-build-hybrid",
+                                   "Failed to build hybrid instrument: " + std::string(e.what()),
+                                   "INSTRUMENT_BUILD_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunInstrumentRenderHybrid(const CommandOptions& opts) {
+    try {
+        // Extract required parameters
+        std::string workspace_path = opts.workspace;
+        std::string session_id_str = opts.session_id.has_value() ? std::to_string(opts.session_id.value()) : "";
+        std::string branch_name = opts.branch.value_or("main");
+
+        std::string instrument_json_file = ""; // Not implemented in direct command path
+
+        // Additional parameters for inline building
+        std::string instrument_id = opts.instrument_id.value_or("HYBRID_DEFAULT");
+        std::string analog_block_id = opts.analog_block_id.value_or("");
+        std::string digital_block_id = opts.digital_block_id.value_or("");
+        bool use_analog_primary = opts.use_analog_primary;
+        int voice_count = opts.voice_count.has_value() ? std::stoi(opts.voice_count.value()) : 1;
+        double sample_rate_hz = opts.sample_rate.has_value() ? std::stod(opts.sample_rate.value()) : 48000.0;
+        double duration_sec = opts.duration_sec.has_value() ? std::stod(opts.duration_sec.value()) : 3.0;
+        double base_freq_hz = opts.base_freq_hz.has_value() ? std::stod(opts.base_freq_hz.value()) : 440.0;
+        double detune_spread_cents = opts.detune_spread_cents.has_value() ? std::stod(opts.detune_spread_cents.value()) : 10.0;
+        double pan_lfo_hz = opts.pan_lfo_hz.has_value() ? std::stod(opts.pan_lfo_hz.value()) : 0.25;
+
+        // Validate required parameters
+        if (session_id_str.empty()) {
+            return JsonIO::ErrorResponse("instrument-render-hybrid", "Session ID is required");
+        }
+
+        // Parse session ID
+        int64_t session_id;
+        try {
+            session_id = std::stoll(session_id_str);
+        } catch (const std::exception& e) {
+            return JsonIO::ErrorResponse("instrument-render-hybrid", "Invalid session ID format");
+        }
+
+        // Load session metadata
+        auto session_result = session_store_->GetSession(session_id);
+        if (!session_result.ok) {
+            return JsonIO::ErrorResponse("instrument-render-hybrid", session_result.error_message);
+        }
+
+        SessionMetadata session = session_result.data;
+        std::string session_dir = workspace_path + "/session_" + std::to_string(session_id);
+
+        InstrumentGraph instrument;
+
+        // Either parse from JSON file or build from parameters
+        if (!instrument_json_file.empty()) {
+            // Load instrument from JSON file
+            std::ifstream file(instrument_json_file);
+            if (!file.is_open()) {
+                return JsonIO::ErrorResponse("instrument-render-hybrid", "Cannot open instrument JSON file");
+            }
+
+            std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+            file.close();
+
+            Upp::ValueMap instrument_map = JsonIO::Deserialize(Upp::String(content.c_str()));
+            // Parse instrument from JSON would require additional parsing functions
+            // For now, we'll build from parameters
+            return JsonIO::ErrorResponse("instrument-render-hybrid",
+                                       "JSON file loading not implemented yet, use inline parameters");
+        } else {
+            // Build instrument from inline parameters
+            InstrumentVoiceTemplate voice_template;
+            voice_template.id = Upp::String().Cat() << "voice_template_" << instrument_id;
+            voice_template.analog_block_id = Upp::String(analog_block_id.c_str());
+            voice_template.digital_block_id = Upp::String(digital_block_id.c_str());
+            voice_template.pan_lfo_hz = pan_lfo_hz;
+            voice_template.has_pan_lfo = true;
+
+            NoteDesc note;
+            note.base_freq_hz = base_freq_hz;
+            note.velocity = 1.0;
+            note.duration_sec = duration_sec;
+
+            CircuitFacade facade(session_store_);
+            auto build_result = facade.BuildHybridInstrumentInBranch(
+                session,
+                session_dir,
+                branch_name,
+                voice_template,
+                sample_rate_hz,
+                voice_count,
+                note,
+                detune_spread_cents
+            );
+
+            if (!build_result.ok) {
+                return JsonIO::ErrorResponse("instrument-render-hybrid",
+                                           build_result.error_message,
+                                           JsonIO::ErrorCodeToString(build_result.error_code));
+            }
+
+            instrument = build_result.data;
+        }
+
+        // Render the instrument
+        std::vector<float> out_left, out_right;
+
+        CircuitFacade facade(session_store_);
+        auto render_result = facade.RenderHybridInstrumentInBranch(
+            session,
+            session_dir,
+            branch_name,
+            instrument,
+            out_left,
+            out_right
+        );
+
+        if (!render_result.ok) {
+            return JsonIO::ErrorResponse("instrument-render-hybrid",
+                                       render_result.error_message,
+                                       JsonIO::ErrorCodeToString(render_result.error_code));
+        }
+
+        // Calculate simple statistics
+        double left_rms = 0.0, right_rms = 0.0;
+        for (size_t i = 0; i < out_left.size(); i++) {
+            left_rms += out_left[i] * out_left[i];
+        }
+        for (size_t i = 0; i < out_right.size(); i++) {
+            right_rms += out_right[i] * out_right[i];
+        }
+
+        if (!out_left.empty()) left_rms = std::sqrt(left_rms / out_left.size());
+        if (!out_right.empty()) right_rms = std::sqrt(right_rms / out_right.size());
+
+        // Create preview arrays (just first 100 samples for preview)
+        Upp::ValueArray left_preview, right_preview;
+        size_t preview_size = std::min(static_cast<size_t>(100), out_left.size());
+        for (size_t i = 0; i < preview_size; i++) {
+            left_preview.Add(out_left[i]);
+            right_preview.Add(out_right[i]);
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("instrument_id", Upp::String(instrument.instrument_id.c_str()));
+        response_data.Add("sample_rate_hz", instrument.sample_rate_hz);
+        response_data.Add("duration_sec", instrument.note.duration_sec);
+        response_data.Add("voice_count", instrument.voice_count);
+        response_data.Add("left_rms", left_rms);
+        response_data.Add("right_rms", right_rms);
+        response_data.Add("left_preview", left_preview);
+        response_data.Add("right_preview", right_preview);
+
+        return JsonIO::SuccessResponse("instrument-render-hybrid", response_data);
+
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("instrument-render-hybrid",
+                                   "Failed to render hybrid instrument: " + std::string(e.what()),
+                                   "INSTRUMENT_RENDER_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunInstrumentExportCpp(const CommandOptions& opts) {
+    try {
+        // Extract required parameters
+        std::string workspace_path = opts.workspace;
+        std::string session_id_str = opts.session_id.has_value() ? std::to_string(opts.session_id.value()) : "";
+        std::string branch_name = opts.branch.value_or("main");
+
+        // Export options
+        std::string program_name = opts.program_name.value_or("hybrid_instrument_demo");
+        std::string namespace_name = opts.namespace_name.value_or("");
+        std::string output_wav_filename = opts.wav_filename.value_or("output.wav");
+        bool include_wav_writer = !opts.no_wav_writer;
+        bool emit_comment_banner = true; // Always emit banner for CLI export
+
+        // Additional parameters for building instrument inline (if needed)
+        std::string instrument_json_file = opts.instrument_from_json.value_or("");
+        std::string instrument_id = opts.instrument_id.value_or("HYBRID_DEFAULT");
+        std::string analog_block_id = opts.analog_block_id.value_or("");
+        std::string digital_block_id = opts.digital_block_id.value_or("");
+        bool use_analog_primary = opts.use_analog_primary;
+        int voice_count = opts.voice_count.has_value() ? std::stoi(opts.voice_count.value()) : 1;
+        double sample_rate_hz = opts.sample_rate.has_value() ? std::stod(opts.sample_rate.value()) : 48000.0;
+        double duration_sec = opts.duration_sec.has_value() ? std::stod(opts.duration_sec.value()) : 3.0;
+        double base_freq_hz = opts.base_freq_hz.has_value() ? std::stod(opts.base_freq_hz.value()) : 440.0;
+        double detune_spread_cents = opts.detune_spread_cents.has_value() ? std::stod(opts.detune_spread_cents.value()) : 10.0;
+        double pan_lfo_hz = opts.pan_lfo_hz.has_value() ? std::stod(opts.pan_lfo_hz.value()) : 0.25;
+
+        // Validate required parameters
+        if (session_id_str.empty()) {
+            return JsonIO::ErrorResponse("instrument-export-cpp", "Session ID is required");
+        }
+
+        // Parse session ID
+        int64_t session_id;
+        try {
+            session_id = std::stoll(session_id_str);
+        } catch (const std::exception& e) {
+            return JsonIO::ErrorResponse("instrument-export-cpp", "Invalid session ID format");
+        }
+
+        // Load session metadata
+        auto session_result = session_store_->GetSession(session_id);
+        if (!session_result.ok) {
+            return JsonIO::ErrorResponse("instrument-export-cpp", session_result.error_message);
+        }
+
+        SessionMetadata session = session_result.data;
+        std::string session_dir = workspace_path + "/session_" + std::to_string(session_id);
+
+        InstrumentGraph instrument;
+
+        // Either load from JSON file or build from parameters
+        if (!instrument_json_file.empty()) {
+            // Load instrument from JSON file
+            std::ifstream file(instrument_json_file);
+            if (!file.is_open()) {
+                return JsonIO::ErrorResponse("instrument-export-cpp", "Cannot open instrument JSON file");
+            }
+
+            std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+            file.close();
+
+            Upp::ValueMap instrument_map = JsonIO::Deserialize(Upp::String(content.c_str()));
+            // For now, we'll build from parameters, but should add JSON deserialization later
+            return JsonIO::ErrorResponse("instrument-export-cpp",
+                                       "JSON file loading not implemented yet, use inline parameters");
+        } else {
+            // Build instrument from inline parameters
+            InstrumentVoiceTemplate voice_template;
+            voice_template.id = Upp::String().Cat() << "voice_template_" << instrument_id;
+            voice_template.analog_block_id = Upp::String(analog_block_id.c_str());
+            voice_template.digital_block_id = Upp::String(digital_block_id.c_str());
+            voice_template.pan_lfo_hz = pan_lfo_hz;
+            voice_template.has_pan_lfo = true;
+
+            NoteDesc note;
+            note.base_freq_hz = base_freq_hz;
+            note.velocity = 1.0;
+            note.duration_sec = duration_sec;
+
+            CircuitFacade facade(session_store_);
+            auto build_result = facade.BuildHybridInstrumentInBranch(
+                session,
+                session_dir,
+                branch_name,
+                voice_template,
+                sample_rate_hz,
+                voice_count,
+                note,
+                detune_spread_cents
+            );
+
+            if (!build_result.ok) {
+                return JsonIO::ErrorResponse("instrument-export-cpp",
+                                           build_result.error_message,
+                                           JsonIO::ErrorCodeToString(build_result.error_code));
+            }
+
+            instrument = build_result.data;
+        }
+
+        // Create export options
+        InstrumentExportOptions export_options;
+        export_options.program_name = program_name;
+        export_options.namespace_name = namespace_name;
+        export_options.include_wav_writer = include_wav_writer;
+        export_options.output_wav_filename = output_wav_filename;
+        export_options.emit_comment_banner = emit_comment_banner;
+
+        // Export the instrument as standalone C++
+        CircuitFacade facade(session_store_);
+        auto export_result = facade.ExportInstrumentAsStandaloneCppInBranch(
+            session,
+            session_dir,
+            branch_name,
+            instrument,
+            export_options
+        );
+
+        if (!export_result.ok) {
+            return JsonIO::ErrorResponse("instrument-export-cpp",
+                                       export_result.error_message,
+                                       JsonIO::ErrorCodeToString(export_result.error_code));
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("instrument_id", Upp::String(instrument.instrument_id.c_str()));
+        response_data.Add("program_name", Upp::String(export_options.program_name.c_str()));
+        response_data.Add("cpp_source", Upp::String(export_result.data.c_str()));
+
+        return JsonIO::SuccessResponse("instrument-export-cpp", response_data);
+
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("instrument-export-cpp",
+                                   "Failed to export instrument as C++: " + std::string(e.what()),
+                                   "INSTRUMENT_EXPORT_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunInstrumentExportPluginSkeleton(const CommandOptions& opts) {
+    try {
+        // Extract required parameters
+        std::string workspace_path = opts.workspace;
+        std::string session_id_str = opts.session_id.has_value() ? std::to_string(opts.session_id.value()) : "";
+        std::string branch_name = opts.branch.value_or("main");
+
+        // Plugin skeleton options
+        std::string plugin_target_str = opts.plugin_target.value_or("vst3");
+        std::string plugin_name = opts.plugin_name.value_or("ProtoVMInstrument");
+        std::string plugin_id = opts.plugin_id.value_or("protovm.instrument.default");
+        std::string vendor = opts.vendor.value_or("ProtoVM");
+
+        // Additional parameters for building instrument inline (if needed)
+        std::string instrument_json_file = opts.instrument_from_json.value_or("");
+        std::string instrument_id = opts.instrument_id.value_or("HYBRID_DEFAULT");
+        std::string analog_block_id = opts.analog_block_id.value_or("");
+        std::string digital_block_id = opts.digital_block_id.value_or("");
+        bool use_analog_primary = opts.use_analog_primary;
+        int voice_count = opts.voice_count.has_value() ? std::stoi(opts.voice_count.value()) : 1;
+        double sample_rate_hz = opts.sample_rate.has_value() ? std::stod(opts.sample_rate.value()) : 48000.0;
+        double duration_sec = opts.duration_sec.has_value() ? std::stod(opts.duration_sec.value()) : 3.0;
+        double base_freq_hz = opts.base_freq_hz.has_value() ? std::stod(opts.base_freq_hz.value()) : 440.0;
+        double detune_spread_cents = opts.detune_spread_cents.has_value() ? std::stod(opts.detune_spread_cents.value()) : 10.0;
+        double pan_lfo_hz = opts.pan_lfo_hz.has_value() ? std::stod(opts.pan_lfo_hz.value()) : 0.25;
+
+        // Validate required parameters
+        if (session_id_str.empty()) {
+            return JsonIO::ErrorResponse("instrument-export-plugin-skeleton", "Session ID is required");
+        }
+
+        // Parse session ID
+        int64_t session_id;
+        try {
+            session_id = std::stoll(session_id_str);
+        } catch (const std::exception& e) {
+            return JsonIO::ErrorResponse("instrument-export-plugin-skeleton", "Invalid session ID format");
+        }
+
+        // Parse plugin target
+        PluginTargetKind target_kind;
+        if (plugin_target_str == "vst3") {
+            target_kind = PluginTargetKind::Vst3;
+        } else if (plugin_target_str == "lv2") {
+            target_kind = PluginTargetKind::Lv2;
+        } else if (plugin_target_str == "clap") {
+            target_kind = PluginTargetKind::Clap;
+        } else if (plugin_target_str == "ladspa") {
+            target_kind = PluginTargetKind::Ladspa;
+        } else {
+            return JsonIO::ErrorResponse("instrument-export-plugin-skeleton",
+                                       "Invalid plugin target. Must be one of: vst3, lv2, clap, ladspa");
+        }
+
+        // Load session metadata
+        auto session_result = session_store_->GetSession(session_id);
+        if (!session_result.ok) {
+            return JsonIO::ErrorResponse("instrument-export-plugin-skeleton", session_result.error_message);
+        }
+
+        SessionMetadata session = session_result.data;
+        std::string session_dir = workspace_path + "/session_" + std::to_string(session_id);
+
+        InstrumentGraph instrument;
+
+        // Either load from JSON file or build from parameters
+        if (!instrument_json_file.empty()) {
+            // Load instrument from JSON file
+            std::ifstream file(instrument_json_file);
+            if (!file.is_open()) {
+                return JsonIO::ErrorResponse("instrument-export-plugin-skeleton", "Cannot open instrument JSON file");
+            }
+
+            std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+            file.close();
+
+            Upp::ValueMap instrument_map = JsonIO::Deserialize(Upp::String(content.c_str()));
+            // For now, we'll build from parameters, but should add JSON deserialization later
+            return JsonIO::ErrorResponse("instrument-export-plugin-skeleton",
+                                       "JSON file loading not implemented yet, use inline parameters");
+        } else {
+            // Build instrument from inline parameters
+            InstrumentVoiceTemplate voice_template;
+            voice_template.id = Upp::String().Cat() << "voice_template_" << instrument_id;
+            voice_template.analog_block_id = Upp::String(analog_block_id.c_str());
+            voice_template.digital_block_id = Upp::String(digital_block_id.c_str());
+            voice_template.pan_lfo_hz = pan_lfo_hz;
+            voice_template.has_pan_lfo = true;
+
+            NoteDesc note;
+            note.base_freq_hz = base_freq_hz;
+            note.velocity = 1.0;
+            note.duration_sec = duration_sec;
+
+            CircuitFacade facade(session_store_);
+            auto build_result = facade.BuildHybridInstrumentInBranch(
+                session,
+                session_dir,
+                branch_name,
+                voice_template,
+                sample_rate_hz,
+                voice_count,
+                note,
+                detune_spread_cents
+            );
+
+            if (!build_result.ok) {
+                return JsonIO::ErrorResponse("instrument-export-plugin-skeleton",
+                                           build_result.error_message,
+                                           JsonIO::ErrorCodeToString(build_result.error_code));
+            }
+
+            instrument = build_result.data;
+        }
+
+        // Create plugin skeleton options
+        PluginSkeletonOptions skeleton_options;
+        skeleton_options.target = target_kind;
+        skeleton_options.plugin_name = Upp::String(plugin_name.c_str());
+        skeleton_options.plugin_id = Upp::String(plugin_id.c_str());
+        skeleton_options.vendor = Upp::String(vendor.c_str());
+        skeleton_options.num_inputs = 0;  // Instrument plugins typically have no audio input
+        skeleton_options.num_outputs = 2; // Stereo output
+        skeleton_options.emit_comment_banner = true;  // Include comment banner for clarity
+
+        // Export the plugin skeleton
+        CircuitFacade facade(session_store_);
+        auto export_result = facade.ExportPluginSkeletonForInstrumentInBranch(
+            session,
+            session_dir,
+            branch_name,
+            instrument,
+            skeleton_options
+        );
+
+        if (!export_result.ok) {
+            return JsonIO::ErrorResponse("instrument-export-plugin-skeleton",
+                                       export_result.error_message,
+                                       JsonIO::ErrorCodeToString(export_result.error_code));
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("instrument_id", Upp::String(instrument.instrument_id.c_str()));
+        response_data.Add("plugin_target", Upp::String(plugin_target_str.c_str()));
+        response_data.Add("plugin_name", Upp::String(plugin_name.c_str()));
+        response_data.Add("plugin_id", Upp::String(plugin_id.c_str()));
+        response_data.Add("skeleton_source", Upp::String(export_result.data.c_str()));
+
+        return JsonIO::SuccessResponse("instrument-export-plugin-skeleton", response_data);
+
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("instrument-export-plugin-skeleton",
+                                   "Failed to export plugin skeleton: " + std::string(e.what()),
+                                   "PLUGIN_SKELETON_EXPORT_ERROR");
+    }
+}
+
+Upp::String CommandDispatcher::RunInstrumentExportPluginProject(const CommandOptions& opts) {
+    try {
+        // Extract required parameters
+        std::string workspace_path = opts.workspace;
+        std::string session_id_str = opts.session_id.has_value() ? std::to_string(opts.session_id.value()) : "";
+        std::string branch_name = opts.branch.value_or("main");
+
+        // Plugin project export options
+        std::string plugin_target_str = opts.plugin_target.value_or("vst3");
+        std::string plugin_name = opts.plugin_name.value_or("ProtoVMInstrument");
+        std::string plugin_id = opts.plugin_id.value_or("protovm.instrument.default");
+        std::string vendor = opts.vendor.value_or("ProtoVM");
+        std::string version = opts.version.value_or("1.0.0");
+        std::string output_dir = opts.output_dir.value_or("");
+
+        // Additional parameters for building instrument inline (if needed)
+        std::string instrument_json_file = opts.instrument_from_json.value_or("");
+        std::string instrument_id = opts.instrument_id.value_or("HYBRID_DEFAULT");
+        std::string analog_block_id = opts.analog_block_id.value_or("");
+        std::string digital_block_id = opts.digital_block_id.value_or("");
+        bool use_analog_primary = opts.use_analog_primary;
+        int voice_count = opts.voice_count.has_value() ? std::stoi(opts.voice_count.value()) : 1;
+        double sample_rate_hz = opts.sample_rate.has_value() ? std::stod(opts.sample_rate.value()) : 48000.0;
+        double duration_sec = opts.duration_sec.has_value() ? std::stod(opts.duration_sec.value()) : 3.0;
+        double base_freq_hz = opts.base_freq_hz.has_value() ? std::stod(opts.base_freq_hz.value()) : 440.0;
+        double detune_spread_cents = opts.detune_spread_cents.has_value() ? std::stod(opts.detune_spread_cents.value()) : 10.0;
+        double pan_lfo_hz = opts.pan_lfo_hz.has_value() ? std::stod(opts.pan_lfo_hz.value()) : 0.25;
+
+        // Validate required parameters
+        if (session_id_str.empty()) {
+            return JsonIO::ErrorResponse("instrument-export-plugin-project", "Session ID is required");
+        }
+
+        if (output_dir.empty()) {
+            return JsonIO::ErrorResponse("instrument-export-plugin-project", "Output directory is required");
+        }
+
+        // Parse session ID
+        int64_t session_id;
+        try {
+            session_id = std::stoll(session_id_str);
+        } catch (const std::exception& e) {
+            return JsonIO::ErrorResponse("instrument-export-plugin-project", "Invalid session ID format");
+        }
+
+        // Parse plugin target
+        PluginTargetKind target_kind;
+        if (plugin_target_str == "vst3") {
+            target_kind = PluginTargetKind::Vst3;
+        } else if (plugin_target_str == "lv2") {
+            target_kind = PluginTargetKind::Lv2;
+        } else if (plugin_target_str == "clap") {
+            target_kind = PluginTargetKind::Clap;
+        } else if (plugin_target_str == "ladspa") {
+            target_kind = PluginTargetKind::Ladspa;
+        } else {
+            return JsonIO::ErrorResponse("instrument-export-plugin-project",
+                                       "Invalid plugin target. Must be one of: vst3, lv2, clap, ladspa");
+        }
+
+        // Load session metadata
+        auto session_result = session_store_->GetSession(session_id);
+        if (!session_result.ok) {
+            return JsonIO::ErrorResponse("instrument-export-plugin-project", session_result.error_message);
+        }
+
+        SessionMetadata session = session_result.data;
+        std::string session_dir = workspace_path + "/session_" + std::to_string(session_id);
+
+        InstrumentGraph instrument;
+
+        // Either load from JSON file or build from parameters
+        if (!instrument_json_file.empty()) {
+            // Load instrument from JSON file
+            std::ifstream file(instrument_json_file);
+            if (!file.is_open()) {
+                return JsonIO::ErrorResponse("instrument-export-plugin-project", "Cannot open instrument JSON file");
+            }
+
+            std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+            file.close();
+
+            Upp::ValueMap instrument_map = JsonIO::Deserialize(Upp::String(content.c_str()));
+            // For now, we'll build from parameters, but should add JSON deserialization later
+            return JsonIO::ErrorResponse("instrument-export-plugin-project",
+                                       "JSON file loading not implemented yet, use inline parameters");
+        } else {
+            // Build instrument from inline parameters
+            InstrumentVoiceTemplate voice_template;
+            voice_template.id = Upp::String().Cat() << "voice_template_" << instrument_id;
+            voice_template.analog_block_id = Upp::String(analog_block_id.c_str());
+            voice_template.digital_block_id = Upp::String(digital_block_id.c_str());
+            voice_template.pan_lfo_hz = pan_lfo_hz;
+            voice_template.has_pan_lfo = true;
+
+            NoteDesc note;
+            note.base_freq_hz = base_freq_hz;
+            note.velocity = 1.0;
+            note.duration_sec = duration_sec;
+
+            CircuitFacade facade(session_store_);
+            auto build_result = facade.BuildHybridInstrumentInBranch(
+                session,
+                session_dir,
+                branch_name,
+                voice_template,
+                sample_rate_hz,
+                voice_count,
+                note,
+                detune_spread_cents
+            );
+
+            if (!build_result.ok) {
+                return JsonIO::ErrorResponse("instrument-export-plugin-project",
+                                           build_result.error_message,
+                                           JsonIO::ErrorCodeToString(build_result.error_code));
+            }
+
+            instrument = build_result.data;
+        }
+
+        // Create plugin project export options
+        PluginProjectExportOptions project_options;
+        project_options.target = target_kind;
+        project_options.plugin_name = Upp::String(plugin_name.c_str());
+        project_options.plugin_id = Upp::String(plugin_id.c_str());
+        project_options.vendor = Upp::String(vendor.c_str());
+        project_options.version = Upp::String(version.c_str());
+        project_options.output_dir = Upp::String(output_dir.c_str());
+        project_options.num_inputs = 0;  // Instrument plugins typically have no audio input
+        project_options.num_outputs = 2; // Stereo output
+        project_options.default_sample_rate = static_cast<int>(sample_rate_hz);
+        project_options.default_voice_count = voice_count;
+
+        // Export the plugin project
+        CircuitFacade facade(session_store_);
+        auto export_result = facade.ExportPluginProjectForInstrumentInBranch(
+            session,
+            session_dir,
+            branch_name,
+            instrument,
+            project_options
+        );
+
+        if (!export_result.ok) {
+            return JsonIO::ErrorResponse("instrument-export-plugin-project",
+                                       export_result.error_message,
+                                       JsonIO::ErrorCodeToString(export_result.error_code));
+        }
+
+        // Build response
+        Upp::ValueMap response_data;
+        response_data.Add("session_id", session_id);
+        response_data.Add("branch", Upp::String(branch_name.c_str()));
+        response_data.Add("instrument_id", Upp::String(instrument.instrument_id.c_str()));
+        response_data.Add("plugin_target", Upp::String(plugin_target_str.c_str()));
+        response_data.Add("plugin_name", Upp::String(plugin_name.c_str()));
+        response_data.Add("plugin_id", Upp::String(plugin_id.c_str()));
+        response_data.Add("output_dir", Upp::String(output_dir.c_str()));
+        response_data.Add("status", Upp::String("ok"));
+
+        return JsonIO::SuccessResponse("instrument-export-plugin-project", response_data);
+
+    } catch (const std::exception& e) {
+        return JsonIO::ErrorResponse("instrument-export-plugin-project",
+                                   "Failed to export plugin project: " + std::string(e.what()),
+                                   "PLUGIN_PROJECT_EXPORT_ERROR");
     }
 }
 

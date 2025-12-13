@@ -26,6 +26,8 @@
 #include "DspGraph.h"            // For DSP graph structures
 #include "DspRuntime.h"          // For DSP runtime
 #include "AnalogModel.h"         // For analog model structures
+#include "InstrumentGraph.h"     // For instrument graph structures
+#include "PluginSkeletonExport.h" // For plugin skeleton export
 #include <string>
 #include <vector>
 #include <optional>
@@ -508,6 +510,54 @@ public:
         const AudioDslGraph& audio_graph,
         std::vector<float>& out_left,
         std::vector<float>& out_right
+    );
+
+    // Hybrid instrument methods
+    Result<InstrumentGraph> BuildHybridInstrumentInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const InstrumentVoiceTemplate& voice_template,
+        double sample_rate_hz,
+        int voice_count,
+        const NoteDesc& note,
+        double detune_spread_cents
+    );
+
+    Result<void> RenderHybridInstrumentInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const InstrumentGraph& instrument,
+        std::vector<float>& out_left,
+        std::vector<float>& out_right
+    );
+
+    // Instrument export methods
+    Result<std::string> ExportInstrumentAsStandaloneCppInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const InstrumentGraph& instrument,
+        const InstrumentExportOptions& options
+    );
+
+    // Plugin skeleton export methods
+    Result<String> ExportPluginSkeletonForInstrumentInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const InstrumentGraph& instrument,
+        const PluginSkeletonOptions& opts
+    );
+
+    // Plugin project export methods
+    Result<void> ExportPluginProjectForInstrumentInBranch(
+        const SessionMetadata& session,
+        const std::string& session_dir,
+        const std::string& branch_name,
+        const InstrumentGraph& instrument,
+        const PluginProjectExportOptions& opts
     );
 
 private:

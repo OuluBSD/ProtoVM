@@ -244,6 +244,19 @@ if(BUILD_PROTOVM_CLI)
         src/ProtoVMCLI/PipelineAnalysis.cpp
         src/ProtoVMCLI/RetimingModel.cpp
         src/ProtoVMCLI/RetimingAnalysis.cpp
+        src/ProtoVMCLI/AnalogModel.cpp
+        src/ProtoVMCLI/AnalogBlockExtractor.cpp
+        src/ProtoVMCLI/AnalogSolver.cpp
+        src/ProtoVMCLI/DspGraph.cpp
+        src/ProtoVMCLI/DspRuntime.cpp
+        src/ProtoVMCLI/AudioDsl.cpp
+        src/ProtoVMCLI/InstrumentGraph.cpp
+        src/ProtoVMCLI/InstrumentBuilder.cpp
+        src/ProtoVMCLI/InstrumentToDsp.cpp
+        src/ProtoVMCLI/InstrumentRuntime.cpp
+        src/ProtoVMCLI/AudioEngineCAbi.cpp
+        src/ProtoVMCLI/InstrumentEngineFactory.cpp
+        src/ProtoVMCLI/PluginSkeletonExport.cpp
     )
 
     add_executable(proto-vm-cli ${CLI_SOURCES})
@@ -281,6 +294,19 @@ if(BUILD_PROTOVM_CLI)
         src/ProtoVMCLI/PipelineAnalysis.cpp
         src/ProtoVMCLI/RetimingModel.cpp
         src/ProtoVMCLI/RetimingAnalysis.cpp
+        src/ProtoVMCLI/AnalogModel.cpp
+        src/ProtoVMCLI/AnalogBlockExtractor.cpp
+        src/ProtoVMCLI/AnalogSolver.cpp
+        src/ProtoVMCLI/DspGraph.cpp
+        src/ProtoVMCLI/DspRuntime.cpp
+        src/ProtoVMCLI/AudioDsl.cpp
+        src/ProtoVMCLI/InstrumentGraph.cpp
+        src/ProtoVMCLI/InstrumentBuilder.cpp
+        src/ProtoVMCLI/InstrumentToDsp.cpp
+        src/ProtoVMCLI/InstrumentRuntime.cpp
+        src/ProtoVMCLI/AudioEngineCAbi.cpp
+        src/ProtoVMCLI/InstrumentEngineFactory.cpp
+        src/ProtoVMCLI/PluginSkeletonExport.cpp
     )
 
     add_executable(proto-vm-daemon ${DAEMON_SOURCES})

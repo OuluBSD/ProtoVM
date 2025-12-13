@@ -1511,6 +1511,130 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
 
             return Result<void>::MakeOk();
         }
+        else if (req.command == "instrument-build-hybrid") {
+            // Create a CommandOptions object from the DaemonRequest
+            CommandOptions opts;
+            opts.workspace = req.workspace;
+            opts.session_id = req.session_id;
+            opts.user_id = req.user_id;
+
+            // Extract branch from payload if provided
+            if (req.payload.Get("branch", Upp::Value()).IsString()) {
+                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract other parameters
+            if (req.payload.Get("instrument_id", Upp::Value()).IsString()) {
+                opts.instrument_id = req.payload.Get("instrument_id", Upp::Value()).ToString().ToStd();
+            }
+            if (req.payload.Get("analog_block_id", Upp::Value()).IsString()) {
+                opts.analog_block_id = req.payload.Get("analog_block_id", Upp::Value()).ToString().ToStd();
+            }
+            if (req.payload.Get("digital_block_id", Upp::Value()).IsString()) {
+                opts.digital_block_id = req.payload.Get("digital_block_id", Upp::Value()).ToString().ToStd();
+            }
+            if (req.payload.Get("voice_count", Upp::Value()).IsInt()) {
+                opts.voice_count = std::to_string(req.payload.Get("voice_count", Upp::Value(1)).ToInt());
+            }
+            if (req.payload.Get("sample_rate", Upp::Value()).IsDouble()) {
+                opts.sample_rate = std::to_string(req.payload.Get("sample_rate", Upp::Value(48000.0)).ToDouble());
+            }
+            if (req.payload.Get("duration_sec", Upp::Value()).IsDouble()) {
+                opts.duration_sec = std::to_string(req.payload.Get("duration_sec", Upp::Value(3.0)).ToDouble());
+            }
+            if (req.payload.Get("base_freq_hz", Upp::Value()).IsDouble()) {
+                opts.base_freq_hz = std::to_string(req.payload.Get("base_freq_hz", Upp::Value(440.0)).ToDouble());
+            }
+            if (req.payload.Get("detune_spread_cents", Upp::Value()).IsDouble()) {
+                opts.detune_spread_cents = std::to_string(req.payload.Get("detune_spread_cents", Upp::Value(10.0)).ToDouble());
+            }
+            if (req.payload.Get("pan_lfo_hz", Upp::Value()).IsDouble()) {
+                opts.pan_lfo_hz = std::to_string(req.payload.Get("pan_lfo_hz", Upp::Value(0.25)).ToDouble());
+            }
+
+            // Check for use-analog-primary flag
+            if (req.payload.Get("use_analog_primary", Upp::Value()).IsBool() &&
+                req.payload.Get("use_analog_primary", Upp::Value(false)).ToBool()) {
+                opts.use_analog_primary = true;
+            }
+
+            // Use the CommandDispatcher to handle the instrument-build-hybrid command
+            CommandDispatcher dispatcher(std::make_unique<JsonFilesystemSessionStore>(req.workspace));
+            Upp::String response = dispatcher.RunInstrumentBuildHybrid(opts);
+
+            // Parse the response and convert to DaemonResponse
+            Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
+            out_resp.id = req.id;
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.command = req.command;
+            out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
+            out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
+            out_resp.data = parsed_response.Get("data", Upp::ValueMap());
+
+            return Result<void>::MakeOk();
+        }
+        else if (req.command == "instrument-render-hybrid") {
+            // Create a CommandOptions object from the DaemonRequest
+            CommandOptions opts;
+            opts.workspace = req.workspace;
+            opts.session_id = req.session_id;
+            opts.user_id = req.user_id;
+
+            // Extract branch from payload if provided
+            if (req.payload.Get("branch", Upp::Value()).IsString()) {
+                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            }
+
+            // Extract other parameters
+            if (req.payload.Get("instrument_id", Upp::Value()).IsString()) {
+                opts.instrument_id = req.payload.Get("instrument_id", Upp::Value()).ToString().ToStd();
+            }
+            if (req.payload.Get("analog_block_id", Upp::Value()).IsString()) {
+                opts.analog_block_id = req.payload.Get("analog_block_id", Upp::Value()).ToString().ToStd();
+            }
+            if (req.payload.Get("digital_block_id", Upp::Value()).IsString()) {
+                opts.digital_block_id = req.payload.Get("digital_block_id", Upp::Value()).ToString().ToStd();
+            }
+            if (req.payload.Get("voice_count", Upp::Value()).IsInt()) {
+                opts.voice_count = std::to_string(req.payload.Get("voice_count", Upp::Value(1)).ToInt());
+            }
+            if (req.payload.Get("sample_rate", Upp::Value()).IsDouble()) {
+                opts.sample_rate = std::to_string(req.payload.Get("sample_rate", Upp::Value(48000.0)).ToDouble());
+            }
+            if (req.payload.Get("duration_sec", Upp::Value()).IsDouble()) {
+                opts.duration_sec = std::to_string(req.payload.Get("duration_sec", Upp::Value(3.0)).ToDouble());
+            }
+            if (req.payload.Get("base_freq_hz", Upp::Value()).IsDouble()) {
+                opts.base_freq_hz = std::to_string(req.payload.Get("base_freq_hz", Upp::Value(440.0)).ToDouble());
+            }
+            if (req.payload.Get("detune_spread_cents", Upp::Value()).IsDouble()) {
+                opts.detune_spread_cents = std::to_string(req.payload.Get("detune_spread_cents", Upp::Value(10.0)).ToDouble());
+            }
+            if (req.payload.Get("pan_lfo_hz", Upp::Value()).IsDouble()) {
+                opts.pan_lfo_hz = std::to_string(req.payload.Get("pan_lfo_hz", Upp::Value(0.25)).ToDouble());
+            }
+
+            // Check for use-analog-primary flag
+            if (req.payload.Get("use_analog_primary", Upp::Value()).IsBool() &&
+                req.payload.Get("use_analog_primary", Upp::Value(false)).ToBool()) {
+                opts.use_analog_primary = true;
+            }
+
+            // Use the CommandDispatcher to handle the instrument-render-hybrid command
+            CommandDispatcher dispatcher(std::make_unique<JsonFilesystemSessionStore>(req.workspace));
+            Upp::String response = dispatcher.RunInstrumentRenderHybrid(opts);
+
+            // Parse the response and convert to DaemonResponse
+            Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
+            out_resp.id = req.id;
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.command = req.command;
+            out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
+            out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
+            out_resp.data = parsed_response.Get("data", Upp::ValueMap());
+
+            return Result<void>::MakeOk();
+        }
         else if (req.command == "designer-create-session") {
             return HandleDesignerCreateSession(req);
         }
@@ -1543,6 +1667,15 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
         }
         else if (req.command == "designer-codegen-osc-demo") {
             return HandleDesignerCodegenOscDemo(req);
+        }
+        else if (req.command == "designer-build-hybrid-instrument") {
+            return HandleDesignerBuildHybridInstrument(req);
+        }
+        else if (req.command == "designer-render-hybrid-instrument") {
+            return HandleDesignerRenderHybridInstrument(req);
+        }
+        else if (req.command == "designer-instrument-export-plugin-project") {
+            return HandleDesignerInstrumentExportPluginProject(req);
         }
         else if (req.command == "designer-run-playbook") {
             return HandleDesignerRunPlaybook(req);
@@ -2918,6 +3051,234 @@ Result<DaemonResponse> SessionServer::HandleDesignerCodegenOscDemo(const DaemonR
     data_map.Add("result", result_map);
 
     return CreateSuccessResponse(req, data_map);
+}
+
+Result<DaemonResponse> SessionServer::HandleDesignerBuildHybridInstrument(const DaemonRequest& req) {
+    // Extract parameters
+    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
+    std::string instrument_id = req.payload.Get("instrument_id", Upp::String("HYBRID_DEFAULT")).ToStd();
+    std::string analog_block_id = req.payload.Get("analog_block_id", Upp::String("")).ToStd();
+    std::string digital_block_id = req.payload.Get("digital_block_id", Upp::String("")).ToStd();
+    int voice_count = req.payload.Get("voice_count", Upp::Value(1)).ToInt();
+    double sample_rate = req.payload.Get("sample_rate", Upp::Value(48000.0)).ToDouble();
+    double duration_sec = req.payload.Get("duration_sec", Upp::Value(3.0)).ToDouble();
+    double base_freq_hz = req.payload.Get("base_freq_hz", Upp::Value(440.0)).ToDouble();
+    double detune_spread_cents = req.payload.Get("detune_spread_cents", Upp::Value(10.0)).ToDouble();
+    double pan_lfo_hz = req.payload.Get("pan_lfo_hz", Upp::Value(0.25)).ToDouble();
+    bool use_analog_primary = req.payload.Get("use_analog_primary", Upp::Value(false)).ToBool();
+
+    // Validate required parameters
+    if (designer_session_id.empty()) {
+        return CreateErrorResponse(req, "designer_session_id is required", "INVALID_PARAMETER");
+    }
+
+    // Create request object
+    DesignerBuildHybridInstrumentRequest build_request;
+    build_request.designer_session_id = designer_session_id;
+    build_request.instrument_id = instrument_id;
+    build_request.analog_block_id = analog_block_id;
+    build_request.digital_block_id = digital_block_id;
+    build_request.voice_count = voice_count;
+    build_request.sample_rate_hz = sample_rate;
+    build_request.duration_sec = duration_sec;
+    build_request.base_freq_hz = base_freq_hz;
+    build_request.detune_spread_cents = detune_spread_cents;
+    build_request.pan_lfo_hz = pan_lfo_hz;
+    build_request.use_analog_primary = use_analog_primary;
+
+    // Call the CoDesigner manager
+    auto result = co_designer_manager_->BuildHybridInstrument(build_request);
+
+    if (!result.ok) {
+        return CreateErrorResponse(req, result.error_message, JsonIO::ErrorCodeToString(result.error_code));
+    }
+
+    // Create response data
+    Upp::ValueMap data_map;
+    data_map.Add("designer_session", JsonIO::CoDesignerSessionStateToValueMap(result.data.designer_session));
+    data_map.Add("instrument", JsonIO::InstrumentGraphToValueMap(result.data.instrument));
+
+    Upp::ValueMap render_stats;
+    render_stats.Add("left_rms", result.data.left_rms);
+    render_stats.Add("right_rms", result.data.right_rms);
+    render_stats.Add("voice_count", result.data.voice_count);
+    render_stats.Add("duration_sec", result.data.duration_sec);
+    data_map.Add("render_stats", render_stats);
+
+    // Add preview data
+    Upp::ValueArray left_preview;
+    Upp::ValueArray right_preview;
+    for (float sample : result.data.left_preview) {
+        left_preview.Add(sample);
+    }
+    for (float sample : result.data.right_preview) {
+        right_preview.Add(sample);
+    }
+    data_map.Add("left_preview", left_preview);
+    data_map.Add("right_preview", right_preview);
+
+    return CreateSuccessResponse(req, data_map);
+}
+
+Result<DaemonResponse> SessionServer::HandleDesignerRenderHybridInstrument(const DaemonRequest& req) {
+    // Extract parameters
+    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
+    std::string instrument_id = req.payload.Get("instrument_id", Upp::String("HYBRID_DEFAULT")).ToStd();
+    std::string analog_block_id = req.payload.Get("analog_block_id", Upp::String("")).ToStd();
+    std::string digital_block_id = req.payload.Get("digital_block_id", Upp::String("")).ToStd();
+    int voice_count = req.payload.Get("voice_count", Upp::Value(1)).ToInt();
+    double sample_rate = req.payload.Get("sample_rate", Upp::Value(48000.0)).ToDouble();
+    double duration_sec = req.payload.Get("duration_sec", Upp::Value(3.0)).ToDouble();
+    double base_freq_hz = req.payload.Get("base_freq_hz", Upp::Value(440.0)).ToDouble();
+    double detune_spread_cents = req.payload.Get("detune_spread_cents", Upp::Value(10.0)).ToDouble();
+    double pan_lfo_hz = req.payload.Get("pan_lfo_hz", Upp::Value(0.25)).ToDouble();
+    bool use_analog_primary = req.payload.Get("use_analog_primary", Upp::Value(false)).ToBool();
+
+    // Validate required parameters
+    if (designer_session_id.empty()) {
+        return CreateErrorResponse(req, "designer_session_id is required", "INVALID_PARAMETER");
+    }
+
+    // Create request object
+    DesignerRenderHybridInstrumentRequest render_request;
+    render_request.designer_session_id = designer_session_id;
+    render_request.instrument_id = instrument_id;
+    render_request.analog_block_id = analog_block_id;
+    render_request.digital_block_id = digital_block_id;
+    render_request.voice_count = voice_count;
+    render_request.sample_rate_hz = sample_rate;
+    render_request.duration_sec = duration_sec;
+    render_request.base_freq_hz = base_freq_hz;
+    render_request.detune_spread_cents = detune_spread_cents;
+    render_request.pan_lfo_hz = pan_lfo_hz;
+    render_request.use_analog_primary = use_analog_primary;
+
+    // Call the CoDesigner manager
+    auto result = co_designer_manager_->RenderHybridInstrument(render_request);
+
+    if (!result.ok) {
+        return CreateErrorResponse(req, result.error_message, JsonIO::ErrorCodeToString(result.error_code));
+    }
+
+    // Create response data
+    Upp::ValueMap data_map;
+    data_map.Add("designer_session", JsonIO::CoDesignerSessionStateToValueMap(result.data.designer_session));
+    data_map.Add("instrument", JsonIO::InstrumentGraphToValueMap(result.data.instrument));
+
+    Upp::ValueMap render_stats;
+    render_stats.Add("left_rms", result.data.left_rms);
+    render_stats.Add("right_rms", result.data.right_rms);
+    render_stats.Add("voice_count", result.data.voice_count);
+    render_stats.Add("duration_sec", result.data.duration_sec);
+    data_map.Add("render_stats", render_stats);
+
+    // Add preview data
+    Upp::ValueArray left_preview;
+    Upp::ValueArray right_preview;
+    for (float sample : result.data.left_preview) {
+        left_preview.Add(sample);
+    }
+    for (float sample : result.data.right_preview) {
+        right_preview.Add(sample);
+    }
+    data_map.Add("left_preview", left_preview);
+    data_map.Add("right_preview", right_preview);
+
+    return CreateSuccessResponse(req, data_map);
+}
+
+Result<DaemonResponse> SessionServer::HandleDesignerInstrumentExportPluginProject(const DaemonRequest& req) {
+    try {
+        // Deserialize request payload to DesignerInstrumentExportPluginProjectRequest
+        DesignerInstrumentExportPluginProjectRequest request;
+
+        // Extract designer_session_id
+        if (req.payload.Find("designer_session_id") >= 0) {
+            request.designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        }
+
+        // Extract instrument parameters
+        if (req.payload.Find("instrument_id") >= 0) {
+            request.instrument_id = req.payload.Get("instrument_id", Upp::String("")).ToStd();
+        }
+        if (req.payload.Find("analog_block_id") >= 0) {
+            request.analog_block_id = req.payload.Get("analog_block_id", Upp::String("")).ToStd();
+        }
+        if (req.payload.Find("digital_block_id") >= 0) {
+            request.digital_block_id = req.payload.Get("digital_block_id", Upp::String("")).ToStd();
+        }
+        if (req.payload.Find("use_analog_primary") >= 0) {
+            request.use_analog_primary = req.payload.Get("use_analog_primary", false);
+        }
+        if (req.payload.Find("voice_count") >= 0) {
+            request.voice_count = req.payload.Get("voice_count", 1);
+        }
+        if (req.payload.Find("sample_rate_hz") >= 0) {
+            request.sample_rate_hz = req.payload.Get("sample_rate_hz", 48000.0);
+        }
+        if (req.payload.Find("duration_sec") >= 0) {
+            request.duration_sec = req.payload.Get("duration_sec", 3.0);
+        }
+        if (req.payload.Find("base_freq_hz") >= 0) {
+            request.base_freq_hz = req.payload.Get("base_freq_hz", 440.0);
+        }
+        if (req.payload.Find("detune_spread_cents") >= 0) {
+            request.detune_spread_cents = req.payload.Get("detune_spread_cents", 10.0);
+        }
+        if (req.payload.Find("pan_lfo_hz") >= 0) {
+            request.pan_lfo_hz = req.payload.Get("pan_lfo_hz", 0.25);
+        }
+
+        // Extract plugin export parameters
+        if (req.payload.Find("plugin_target") >= 0) {
+            request.plugin_target = req.payload.Get("plugin_target", Upp::String("vst3")).ToStd();
+        }
+        if (req.payload.Find("plugin_name") >= 0) {
+            request.plugin_name = req.payload.Get("plugin_name", Upp::String("ProtoVMInstrument")).ToStd();
+        }
+        if (req.payload.Find("plugin_id") >= 0) {
+            request.plugin_id = req.payload.Get("plugin_id", Upp::String("protovm.instrument.default")).ToStd();
+        }
+        if (req.payload.Find("vendor") >= 0) {
+            request.vendor = req.payload.Get("vendor", Upp::String("ProtoVM")).ToStd();
+        }
+        if (req.payload.Find("version") >= 0) {
+            request.version = req.payload.Get("version", Upp::String("1.0.0")).ToStd();
+        }
+        if (req.payload.Find("output_dir") >= 0) {
+            request.output_dir = req.payload.Get("output_dir", Upp::String("")).ToStd();
+        }
+
+        // Validate required parameters
+        if (request.designer_session_id.empty()) {
+            return CreateErrorResponse(req, "Designer session ID is required", "MISSING_DESIGNER_SESSION_ID");
+        }
+        if (request.output_dir.empty()) {
+            return CreateErrorResponse(req, "Output directory is required", "MISSING_OUTPUT_DIR");
+        }
+
+        // Call the CoDesignerManager to export the plugin project
+        auto result = co_designer_manager_->ExportInstrumentAsPluginProject(request);
+
+        if (!result.ok) {
+            return CreateErrorResponse(req, result.error_message, result.error_code);
+        }
+
+        // Build response data
+        Upp::ValueMap data_map;
+        data_map.Add("designer_session", Upp::String().Cat() << result.data.designer_session.designer_session_id);
+        data_map.Add("instrument_id", Upp::String(result.data.instrument_id.c_str()));
+        data_map.Add("plugin_target", Upp::String(result.data.plugin_target.c_str()));
+        data_map.Add("plugin_name", Upp::String(result.data.plugin_name.c_str()));
+        data_map.Add("plugin_id", Upp::String(result.data.plugin_id.c_str()));
+        data_map.Add("output_dir", Upp::String(result.data.output_dir.c_str()));
+        data_map.Add("status", Upp::String(result.data.status.c_str()));
+
+        return CreateSuccessResponse(req, data_map);
+
+    } catch (const std::exception& e) {
+        return CreateErrorResponse(req, std::string("Exception in HandleDesignerInstrumentExportPluginProject: ") + e.what());
+    }
 }
 
 } // namespace ProtoVMCLI

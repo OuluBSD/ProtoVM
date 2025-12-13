@@ -107,6 +107,59 @@ int main(int argc, char** argv) {
     if (args.Find("plan-id") >= 0) {
         opts.plan_id = args.Get("plan-id", Upp::String("")).ToStd();
     }
+    // Instrument parameters
+    if (args.Find("instrument-id") >= 0) {
+        opts.instrument_id = args.Get("instrument-id", Upp::String("")).ToStd();
+    }
+    if (args.Find("instrument-from-json") >= 0) {
+        opts.instrument_from_json = args.Get("instrument-from-json", Upp::String("")).ToStd();
+    }
+    if (args.Find("analog-block-id") >= 0) {
+        opts.analog_block_id = args.Get("analog-block-id", Upp::String("")).ToStd();
+    }
+    if (args.Find("digital-block-id") >= 0) {
+        opts.digital_block_id = args.Get("digital-block-id", Upp::String("")).ToStd();
+    }
+    if (args.Find("use-analog-primary") >= 0) {
+        opts.use_analog_primary = true;
+    }
+    if (args.Find("voice-count") >= 0) {
+        opts.voice_count = args.Get("voice-count", Upp::String("")).ToStd();
+    }
+    if (args.Find("sample-rate") >= 0) {
+        opts.sample_rate = args.Get("sample-rate", Upp::String("")).ToStd();
+    }
+    if (args.Find("duration-sec") >= 0) {
+        opts.duration_sec = args.Get("duration-sec", Upp::String("")).ToStd();
+    }
+    if (args.Find("base-freq-hz") >= 0) {
+        opts.base_freq_hz = args.Get("base-freq-hz", Upp::String("")).ToStd();
+    }
+    if (args.Find("detune-spread-cents") >= 0) {
+        opts.detune_spread_cents = args.Get("detune-spread-cents", Upp::String("")).ToStd();
+    }
+    if (args.Find("pan-lfo-hz") >= 0) {
+        opts.pan_lfo_hz = args.Get("pan-lfo-hz", Upp::String("")).ToStd();
+    }
+    // Plugin export parameters
+    if (args.Find("plugin-target") >= 0) {
+        opts.plugin_target = args.Get("plugin-target", Upp::String("")).ToStd();
+    }
+    if (args.Find("plugin-name") >= 0) {
+        opts.plugin_name = args.Get("plugin-name", Upp::String("")).ToStd();
+    }
+    if (args.Find("plugin-id") >= 0) {
+        opts.plugin_id = args.Get("plugin-id", Upp::String("")).ToStd();
+    }
+    if (args.Find("vendor") >= 0) {
+        opts.vendor = args.Get("vendor", Upp::String("")).ToStd();
+    }
+    if (args.Find("version") >= 0) {
+        opts.version = args.Get("version", Upp::String("")).ToStd();
+    }
+    if (args.Find("output-dir") >= 0) {
+        opts.output_dir = args.Get("output-dir", Upp::String("")).ToStd();
+    }
 
     // Create session store
     auto session_store = ProtoVMCLI::CreateFilesystemSessionStore(opts.workspace);
@@ -233,6 +286,21 @@ int main(int argc, char** argv) {
     }
     else if (command == "pipeline-subsystem") {
         result = dispatcher.RunPipelineSubsystem(opts);
+    }
+    else if (command == "instrument-build-hybrid") {
+        result = dispatcher.RunInstrumentBuildHybrid(opts);
+    }
+    else if (command == "instrument-render-hybrid") {
+        result = dispatcher.RunInstrumentRenderHybrid(opts);
+    }
+    else if (command == "instrument-export-cpp") {
+        result = dispatcher.RunInstrumentExportCpp(opts);
+    }
+    else if (command == "instrument-export-plugin-skeleton") {
+        result = dispatcher.RunInstrumentExportPluginSkeleton(opts);
+    }
+    else if (command == "instrument-export-plugin-project") {
+        result = dispatcher.RunInstrumentExportPluginProject(opts);
     }
     else if (command == "debug") {
         // Extract subcommand for debug

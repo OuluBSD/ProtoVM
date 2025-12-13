@@ -13,7 +13,8 @@ enum class DspNodeKind {
     PanLfo,           // low-frequency oscillator for panning
     StereoPanner,     // maps mono + pan to stereo L/R
     OutputSink,       // writes stereo samples to buffers
-    AnalogBlockSource // NEW: driven by AnalogSolver
+    AnalogBlockSource, // NEW: driven by AnalogSolver
+    Mixer             // NEW: mixes multiple inputs
 };
 
 enum class DspPortDirection {

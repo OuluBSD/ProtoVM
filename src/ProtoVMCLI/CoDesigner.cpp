@@ -5,6 +5,8 @@
 #include "CodegenIr.h"
 #include "CodegenIrInference.h"
 #include "CodeEmitter.h"
+#include "InstrumentExport.h"
+#include "PluginSkeletonExport.h"
 #include <sstream>
 #include <iomanip>
 #include <chrono>
@@ -1263,5 +1265,524 @@ Result<DesignerDspRenderOscResponse> CoDesignerManager::RenderDspOsc(const Desig
             );
         }
     }
+
+Result<DesignerHybridInstrumentResponse> CoDesignerManager::BuildHybridInstrument(const DesignerBuildHybridInstrumentRequest& request) {
+    try {
+        // Get the designer session
+        auto session_result = GetSession(request.designer_session_id);
+        if (!session_result.ok) {
+            return Result<DesignerHybridInstrumentResponse>::MakeError(
+                session_result.error_code,
+                "Failed to get designer session: " + session_result.error_message
+            );
+        }
+
+        CoDesignerSessionState& session = session_result.data;
+
+        // Create the instrument voice template
+        InstrumentVoiceTemplate voice_template;
+        voice_template.id = Upp::String().Cat() << "voice_template_" << request.instrument_id.c_str();
+        voice_template.analog_block_id = Upp::String(request.analog_block_id.c_str());
+        voice_template.digital_block_id = Upp::String(request.digital_block_id.c_str());
+        voice_template.pan_lfo_hz = request.pan_lfo_hz;
+
+        // Create the note descriptor
+        NoteDesc note;
+        note.base_freq_hz = request.base_freq_hz;
+        note.velocity = 1.0;  // Default velocity
+        note.duration_sec = request.duration_sec;
+
+        // Create an empty session metadata for the circuit facade
+        SessionMetadata session_metadata;
+        session_metadata.session_id = session.proto_session_id;
+
+        // Use the circuit facade to build the hybrid instrument
+        std::string session_dir = "workspace/session_" + std::to_string(session.proto_session_id);
+        auto instrument_result = circuit_facade_->BuildHybridInstrumentInBranch(
+            session_metadata,
+            session_dir,
+            session.branch,
+            voice_template,
+            request.sample_rate_hz,
+            request.voice_count,
+            note,
+            request.detune_spread_cents
+        );
+
+        if (!instrument_result.ok) {
+            return Result<DesignerHybridInstrumentResponse>::MakeError(
+                instrument_result.error_code,
+                "Failed to build hybrid instrument: " + instrument_result.error_message
+            );
+        }
+
+        // Create the response
+        DesignerHybridInstrumentResponse response;
+        response.designer_session = session;
+        response.instrument = instrument_result.data;
+        response.sample_rate_hz = request.sample_rate_hz;
+        response.voice_count = request.voice_count;
+        response.duration_sec = request.duration_sec;
+
+        // Update the designer session
+        UpdateSession(session);
+
+        return Result<DesignerHybridInstrumentResponse>::MakeOk(response);
+    } catch (const std::exception& e) {
+        return Result<DesignerHybridInstrumentResponse>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in BuildHybridInstrument: ") + e.what()
+        );
+    }
+}
+
+Result<DesignerHybridInstrumentResponse> CoDesignerManager::RenderHybridInstrument(const DesignerRenderHybridInstrumentRequest& request) {
+    try {
+        // Get the designer session
+        auto session_result = GetSession(request.designer_session_id);
+        if (!session_result.ok) {
+            return Result<DesignerHybridInstrumentResponse>::MakeError(
+                session_result.error_code,
+                "Failed to get designer session: " + session_result.error_message
+            );
+        }
+
+        CoDesignerSessionState& session = session_result.data;
+
+        // Create the instrument voice template
+        InstrumentVoiceTemplate voice_template;
+        voice_template.id = Upp::String().Cat() << "voice_template_" << request.instrument_id.c_str();
+        voice_template.analog_block_id = Upp::String(request.analog_block_id.c_str());
+        voice_template.digital_block_id = Upp::String(request.digital_block_id.c_str());
+        voice_template.pan_lfo_hz = request.pan_lfo_hz;
+
+        // Create the note descriptor
+        NoteDesc note;
+        note.base_freq_hz = request.base_freq_hz;
+        note.velocity = 1.0;  // Default velocity
+        note.duration_sec = request.duration_sec;
+
+        // Create an empty session metadata for the circuit facade
+        SessionMetadata session_metadata;
+        session_metadata.session_id = session.proto_session_id;
+
+        // Use the circuit facade to build the hybrid instrument
+        std::string session_dir = "workspace/session_" + std::to_string(session.proto_session_id);
+        auto instrument_result = circuit_facade_->BuildHybridInstrumentInBranch(
+            session_metadata,
+            session_dir,
+            session.branch,
+            voice_template,
+            request.sample_rate_hz,
+            request.voice_count,
+            note,
+            request.detune_spread_cents
+        );
+
+        if (!instrument_result.ok) {
+            return Result<DesignerHybridInstrumentResponse>::MakeError(
+                instrument_result.error_code,
+                "Failed to build hybrid instrument for rendering: " + instrument_result.error_message
+            );
+        }
+
+        // Render the instrument
+        std::vector<float> out_left, out_right;
+        auto render_result = circuit_facade_->RenderHybridInstrumentInBranch(
+            session_metadata,
+            session_dir,
+            session.branch,
+            instrument_result.data,
+            out_left,
+            out_right
+        );
+
+        if (!render_result.ok) {
+            return Result<DesignerHybridInstrumentResponse>::MakeError(
+                render_result.error_code,
+                "Failed to render hybrid instrument: " + render_result.error_message
+            );
+        }
+
+        // Calculate simple statistics
+        double left_rms = 0.0, right_rms = 0.0;
+        for (size_t i = 0; i < out_left.size(); i++) {
+            left_rms += out_left[i] * out_left[i];
+        }
+        for (size_t i = 0; i < out_right.size(); i++) {
+            right_rms += out_right[i] * out_right[i];
+        }
+
+        if (!out_left.empty()) left_rms = std::sqrt(left_rms / out_left.size());
+        if (!out_right.empty()) right_rms = std::sqrt(right_rms / out_right.size());
+
+        // Create preview arrays (just first 1000 samples for preview)
+        size_t preview_size = std::min(static_cast<size_t>(1000), out_left.size());
+        std::vector<float> left_preview(preview_size);
+        std::vector<float> right_preview(preview_size);
+        for (size_t i = 0; i < preview_size; i++) {
+            left_preview[i] = out_left[i];
+            right_preview[i] = out_right[i];
+        }
+
+        // Create the response
+        DesignerHybridInstrumentResponse response;
+        response.designer_session = session;
+        response.instrument = instrument_result.data;
+        response.left_preview = left_preview;
+        response.right_preview = right_preview;
+        response.left_rms = left_rms;
+        response.right_rms = right_rms;
+        response.sample_rate_hz = request.sample_rate_hz;
+        response.voice_count = request.voice_count;
+        response.duration_sec = request.duration_sec;
+
+        // Update the designer session
+        UpdateSession(session);
+
+        return Result<DesignerHybridInstrumentResponse>::MakeOk(response);
+    } catch (const std::exception& e) {
+        return Result<DesignerHybridInstrumentResponse>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in RenderHybridInstrument: ") + e.what()
+        );
+    }
+}
+
+Result<DesignerInstrumentExportCppResponse> CoDesignerManager::ExportInstrumentAsCpp(const DesignerInstrumentExportCppRequest& request) {
+    try {
+        // Get the designer session
+        auto session_result = GetSession(request.designer_session_id);
+        if (!session_result.ok) {
+            return Result<DesignerInstrumentExportCppResponse>::MakeError(
+                session_result.error_code,
+                "Failed to get designer session: " + session_result.error_message
+            );
+        }
+
+        CoDesignerSessionState session = session_result.data;
+
+        // Build the instrument
+        InstrumentVoiceTemplate voice_template;
+        voice_template.id = Upp::String().Cat() << "voice_template_" << request.instrument_id;
+        voice_template.analog_block_id = Upp::String(request.analog_block_id.c_str());
+        voice_template.digital_block_id = Upp::String(request.digital_block_id.c_str());
+        voice_template.pan_lfo_hz = request.pan_lfo_hz;
+        voice_template.has_pan_lfo = true;
+
+        NoteDesc note;
+        note.base_freq_hz = request.base_freq_hz;
+        note.velocity = 1.0;
+        note.duration_sec = request.duration_sec;
+
+        // Get session and session_dir from the facade
+        // For this we need to get the session metadata from the store
+        auto session_metadata_result = circuit_facade_->GetSessionStore()->GetSession(session.proto_session_id);
+        if (!session_metadata_result.ok) {
+            return Result<DesignerInstrumentExportCppResponse>::MakeError(
+                session_metadata_result.error_code,
+                "Failed to get session metadata: " + session_metadata_result.error_message
+            );
+        }
+
+        SessionMetadata session_metadata = session_metadata_result.data;
+        std::string session_dir = "/tmp/session_" + std::to_string(session.proto_session_id);  // This is a placeholder
+
+        auto instrument_result = circuit_facade_->BuildHybridInstrumentInBranch(
+            session_metadata,
+            session_dir,
+            session.branch,
+            voice_template,
+            request.sample_rate_hz,
+            request.voice_count,
+            note,
+            request.detune_spread_cents
+        );
+
+        if (!instrument_result.ok) {
+            return Result<DesignerInstrumentExportCppResponse>::MakeError(
+                instrument_result.error_code,
+                "Failed to build instrument: " + instrument_result.error_message
+            );
+        }
+
+        // Create export options
+        InstrumentExportOptions export_options;
+        export_options.program_name = request.program_name;
+        export_options.namespace_name = request.namespace_name;
+        export_options.include_wav_writer = request.include_wav_writer;
+        export_options.output_wav_filename = request.wav_filename;
+        export_options.emit_comment_banner = request.emit_comment_banner;
+
+        // Export the instrument as C++
+        auto export_result = circuit_facade_->ExportInstrumentAsStandaloneCppInBranch(
+            session_metadata,
+            session_dir,
+            session.branch,
+            instrument_result.data,
+            export_options
+        );
+
+        if (!export_result.ok) {
+            return Result<DesignerInstrumentExportCppResponse>::MakeError(
+                export_result.error_code,
+                "Failed to export instrument as C++: " + export_result.error_message
+            );
+        }
+
+        // Create the response
+        DesignerInstrumentExportCppResponse response;
+        response.designer_session = session;
+        response.instrument_id = request.instrument_id;
+        response.program_name = request.program_name;
+        response.cpp_source = export_result.data;
+
+        // Update the designer session - not necessary since we don't modify the session state
+        // UpdateSession(session);
+
+        return Result<DesignerInstrumentExportCppResponse>::MakeOk(response);
+
+    } catch (const std::exception& e) {
+        return Result<DesignerInstrumentExportCppResponse>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in ExportInstrumentAsCpp: ") + e.what()
+        );
+    }
+}
+
+Result<DesignerInstrumentExportPluginSkeletonResponse> CoDesignerManager::ExportInstrumentAsPluginSkeleton(const DesignerInstrumentExportPluginSkeletonRequest& request) {
+    try {
+        // Get the designer session
+        auto session_result = GetSession(request.designer_session_id);
+        if (!session_result.ok) {
+            return Result<DesignerInstrumentExportPluginSkeletonResponse>::MakeError(
+                session_result.error_code,
+                "Failed to get designer session: " + session_result.error_message
+            );
+        }
+
+        CoDesignerSessionState session = session_result.data;
+
+        // Build the instrument
+        InstrumentVoiceTemplate voice_template;
+        voice_template.id = Upp::String().Cat() << "voice_template_" << request.instrument_id;
+        voice_template.analog_block_id = Upp::String(request.analog_block_id.c_str());
+        voice_template.digital_block_id = Upp::String(request.digital_block_id.c_str());
+        voice_template.pan_lfo_hz = request.pan_lfo_hz;
+        voice_template.has_pan_lfo = true;
+
+        NoteDesc note;
+        note.base_freq_hz = request.base_freq_hz;
+        note.velocity = 1.0;
+        note.duration_sec = request.duration_sec;
+
+        // Get session and session_dir from the facade
+        // For this we need to get the session metadata from the store
+        auto session_metadata_result = circuit_facade_->GetSessionStore()->GetSession(session.proto_session_id);
+        if (!session_metadata_result.ok) {
+            return Result<DesignerInstrumentExportPluginSkeletonResponse>::MakeError(
+                session_metadata_result.error_code,
+                "Failed to get session metadata: " + session_metadata_result.error_message
+            );
+        }
+
+        SessionMetadata session_metadata = session_metadata_result.data;
+        std::string session_dir = "/tmp/session_" + std::to_string(session.proto_session_id);  // This is a placeholder
+
+        auto instrument_result = circuit_facade_->BuildHybridInstrumentInBranch(
+            session_metadata,
+            session_dir,
+            session.branch,
+            voice_template,
+            request.sample_rate_hz,
+            request.voice_count,
+            note,
+            request.detune_spread_cents
+        );
+
+        if (!instrument_result.ok) {
+            return Result<DesignerInstrumentExportPluginSkeletonResponse>::MakeError(
+                instrument_result.error_code,
+                "Failed to build instrument: " + instrument_result.error_message
+            );
+        }
+
+        // Parse the plugin target
+        PluginTargetKind target_kind;
+        if (request.plugin_target == "vst3") {
+            target_kind = PluginTargetKind::Vst3;
+        } else if (request.plugin_target == "lv2") {
+            target_kind = PluginTargetKind::Lv2;
+        } else if (request.plugin_target == "clap") {
+            target_kind = PluginTargetKind::Clap;
+        } else if (request.plugin_target == "ladspa") {
+            target_kind = PluginTargetKind::Ladspa;
+        } else {
+            return Result<DesignerInstrumentExportPluginSkeletonResponse>::MakeError(
+                ErrorCode::CommandParseError,
+                "Invalid plugin target. Must be one of: vst3, lv2, clap, ladspa"
+            );
+        }
+
+        // Create plugin skeleton options
+        PluginSkeletonOptions skeleton_options;
+        skeleton_options.target = target_kind;
+        skeleton_options.plugin_name = Upp::String(request.plugin_name.c_str());
+        skeleton_options.plugin_id = Upp::String(request.plugin_id.c_str());
+        skeleton_options.vendor = Upp::String(request.vendor.c_str());
+        skeleton_options.num_inputs = 0;  // Instrument plugins typically have no audio input
+        skeleton_options.num_outputs = 2; // Stereo output
+        skeleton_options.emit_comment_banner = true;  // Include comment banner for clarity
+
+        // Export the plugin skeleton
+        auto export_result = circuit_facade_->ExportPluginSkeletonForInstrumentInBranch(
+            session_metadata,
+            session_dir,
+            session.branch,
+            instrument_result.data,
+            skeleton_options
+        );
+
+        if (!export_result.ok) {
+            return Result<DesignerInstrumentExportPluginSkeletonResponse>::MakeError(
+                export_result.error_code,
+                "Failed to export plugin skeleton: " + export_result.error_message
+            );
+        }
+
+        // Create the response
+        DesignerInstrumentExportPluginSkeletonResponse response;
+        response.designer_session = session;
+        response.instrument_id = request.instrument_id;
+        response.plugin_target = request.plugin_target;
+        response.plugin_name = request.plugin_name;
+        response.plugin_id = request.plugin_id;
+        response.skeleton_source = export_result.data;
+
+        // Update the designer session - not necessary since we don't modify the session state
+        // UpdateSession(session);
+
+        return Result<DesignerInstrumentExportPluginSkeletonResponse>::MakeOk(response);
+
+    } catch (const std::exception& e) {
+        return Result<DesignerInstrumentExportPluginSkeletonResponse>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in ExportInstrumentAsPluginSkeleton: ") + e.what()
+        );
+    }
+}
+
+Result<DesignerInstrumentExportPluginProjectResponse> CoDesignerManager::ExportInstrumentAsPluginProject(const DesignerInstrumentExportPluginProjectRequest& request) {
+    try {
+        // Get the designer session from the manager
+        auto session_result = GetSession(request.designer_session_id);
+        if (!session_result.ok) {
+            return Result<DesignerInstrumentExportPluginProjectResponse>::MakeError(
+                session_result.error_code,
+                session_result.error_message
+            );
+        }
+
+        CoDesignerSessionState session = session_result.data;
+
+        // Build the instrument from the request parameters
+        InstrumentVoiceTemplate voice_template;
+        voice_template.id = Upp::String().Cat() << "voice_template_" << request.instrument_id;
+        voice_template.analog_block_id = Upp::String(request.analog_block_id.c_str());
+        voice_template.digital_block_id = Upp::String(request.digital_block_id.c_str());
+        voice_template.pan_lfo_hz = request.pan_lfo_hz;
+        voice_template.has_pan_lfo = true;
+
+        NoteDesc note;
+        note.base_freq_hz = request.base_freq_hz;
+        note.velocity = 1.0;
+        note.duration_sec = request.duration_sec;
+
+        // Create the instrument
+        auto instrument_result = circuit_facade_->BuildHybridInstrumentInBranch(
+            ProtoVMCLI::SessionMetadata{}, // Will be filled in by the facade
+            "", // Session dir will be inferred by the facade
+            session.branch,
+            voice_template,
+            request.sample_rate_hz,
+            request.voice_count,
+            note,
+            request.detune_spread_cents
+        );
+
+        if (!instrument_result.ok) {
+            return Result<DesignerInstrumentExportPluginProjectResponse>::MakeError(
+                instrument_result.error_code,
+                instrument_result.error_message
+            );
+        }
+
+        InstrumentGraph instrument = instrument_result.data;
+
+        // Parse plugin target
+        PluginTargetKind target_kind;
+        if (request.plugin_target == "vst3") {
+            target_kind = PluginTargetKind::Vst3;
+        } else if (request.plugin_target == "lv2") {
+            target_kind = PluginTargetKind::Lv2;
+        } else if (request.plugin_target == "clap") {
+            target_kind = PluginTargetKind::Clap;
+        } else if (request.plugin_target == "ladspa") {
+            target_kind = PluginTargetKind::Ladspa;
+        } else {
+            return Result<DesignerInstrumentExportPluginProjectResponse>::MakeError(
+                ErrorCode::CommandParseError,
+                "Invalid plugin target. Must be one of: vst3, lv2, clap, ladspa"
+            );
+        }
+
+        // Create plugin project export options
+        PluginProjectExportOptions project_options;
+        project_options.target = target_kind;
+        project_options.plugin_name = Upp::String(request.plugin_name.c_str());
+        project_options.plugin_id = Upp::String(request.plugin_id.c_str());
+        project_options.vendor = Upp::String(request.vendor.c_str());
+        project_options.version = Upp::String(request.version.c_str());
+        project_options.output_dir = Upp::String(request.output_dir.c_str());
+        project_options.num_inputs = 0;  // Instrument plugins typically have no audio input
+        project_options.num_outputs = 2; // Stereo output
+        project_options.default_sample_rate = static_cast<int>(request.sample_rate_hz);
+        project_options.default_voice_count = request.voice_count;
+
+        // Export the plugin project
+        auto export_result = circuit_facade_->ExportPluginProjectForInstrumentInBranch(
+            ProtoVMCLI::SessionMetadata{}, // Will be filled in by the facade
+            "", // Session dir will be inferred by the facade
+            session.branch,
+            instrument,
+            project_options
+        );
+
+        if (!export_result.ok) {
+            return Result<DesignerInstrumentExportPluginProjectResponse>::MakeError(
+                export_result.error_code,
+                export_result.error_message
+            );
+        }
+
+        // Prepare the response
+        DesignerInstrumentExportPluginProjectResponse response;
+        response.designer_session = session;
+        response.instrument_id = request.instrument_id;
+        response.plugin_target = request.plugin_target;
+        response.plugin_name = request.plugin_name;
+        response.plugin_id = request.plugin_id;
+        response.output_dir = request.output_dir;
+        response.status = "ok";
+
+        return Result<DesignerInstrumentExportPluginProjectResponse>::MakeOk(response);
+
+    } catch (const std::exception& e) {
+        return Result<DesignerInstrumentExportPluginProjectResponse>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in ExportInstrumentAsPluginProject: ") + e.what()
+        );
+    }
+}
 
 } // namespace ProtoVMCLI

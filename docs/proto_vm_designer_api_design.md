@@ -616,3 +616,275 @@ Render analog oscillator output to stereo audio with panning.
   }
 }
 ```
+
+## 13. Hybrid Instrument Commands
+
+### 13.1 `designer-instrument-build-hybrid`
+
+Build a hybrid instrument combining analog and digital components with multiple voices.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-instrument-build-hybrid",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "instrument_id": "HYBRID_OSC_1",
+    "analog_block_id": "ANALOG_OSC_BLOCK",
+    "digital_block_id": "DIGITAL_OSC_BLOCK",
+    "voice_count": 4,
+    "sample_rate": 48000.0,
+    "duration_sec": 3.0,
+    "base_freq_hz": 440.0,
+    "detune_spread_cents": 10.0,
+    "pan_lfo_hz": 0.25,
+    "use_analog_primary": true
+  }
+}
+```
+
+**Response**:
+```json
+{
+  "ok": true,
+  "command": "designer-instrument-build-hybrid",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "designer_session": { ... },
+    "instrument": {
+      "instrument_id": "HYBRID_OSC_1",
+      "sample_rate_hz": 48000.0,
+      "voice_count": 4,
+      "voice_template": {
+        "id": "voice_template_HYBRID_OSC_1",
+        "analog_block_id": "ANALOG_OSC_BLOCK",
+        "digital_block_id": "DIGITAL_OSC_BLOCK",
+        "has_pan_lfo": true,
+        "pan_lfo_hz": 0.25,
+        "has_filter": false
+      },
+      "voices": [
+        {"id": "voice0", "detune_cents": -5.0, "use_analog_source": true},
+        {"id": "voice1", "detune_cents": -1.67, "use_analog_source": true},
+        {"id": "voice2", "detune_cents": 1.67, "use_analog_source": true},
+        {"id": "voice3", "detune_cents": 5.0, "use_analog_source": true}
+      ],
+      "note": {
+        "base_freq_hz": 440.0,
+        "velocity": 1.0,
+        "duration_sec": 3.0
+      },
+      "use_analog_primary": true
+    },
+    "render_stats": {
+      "left_rms": 0.6,
+      "right_rms": 0.6
+    },
+    "left_preview": [0.1, 0.15, 0.2, ...],
+    "right_preview": [0.1, 0.15, 0.2, ...]
+  }
+}
+```
+
+### 13.2 `designer-instrument-render-hybrid`
+
+Build and render a hybrid instrument with multiple voices to stereo audio.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-instrument-render-hybrid",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "instrument_id": "HYBRID_OSC_1",
+    "analog_block_id": "ANALOG_OSC_BLOCK",
+    "digital_block_id": "DIGITAL_OSC_BLOCK",
+    "voice_count": 4,
+    "sample_rate": 48000.0,
+    "duration_sec": 3.0,
+    "base_freq_hz": 440.0,
+    "detune_spread_cents": 10.0,
+    "pan_lfo_hz": 0.25,
+    "use_analog_primary": true
+  }
+}
+```
+
+**Response**:
+```json
+{
+  "ok": true,
+  "command": "designer-instrument-render-hybrid",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "designer_session": { ... },
+    "instrument": { ... },
+    "render_stats": {
+      "left_rms": 0.6,
+      "right_rms": 0.6
+    },
+    "left_preview": [0.1, 0.15, 0.2, ...],
+    "right_preview": [0.1, 0.15, 0.2, ...]
+  }
+}
+```
+
+
+## 13.3 Instrument Export Command
+
+### 13.3 `designer-instrument-export-cpp`
+
+Export a hybrid instrument as a standalone C++ program.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-instrument-export-cpp",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "instrument_id": "HYBRID_OSC_1",
+    "analog_block_id": "ANALOG_OSC_BLOCK",
+    "digital_block_id": "DIGITAL_OSC_BLOCK",
+    "voice_count": 4,
+    "sample_rate": 48000.0,
+    "duration_sec": 3.0,
+    "base_freq_hz": 440.0,
+    "detune_spread_cents": 10.0,
+    "pan_lfo_hz": 0.25,
+    "use_analog_primary": true,
+    "program_name": "hybrid_instrument_demo",
+    "namespace_name": "Audio",
+    "wav_filename": "output.wav",
+    "include_wav_writer": true
+  }
+}
+```
+
+**Response**:
+```json
+{
+  "ok": true,
+  "command": "designer-instrument-export-cpp",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "designer_session": { ... },
+    "instrument_id": "HYBRID_OSC_1",
+    "program_name": "hybrid_instrument_demo",
+    "cpp_source": "#include <cmath>\n#include <vector>\n// ... full C++ source code ..."
+  }
+}
+```
+
+
+### 13.4 `designer-instrument-export-plugin-skeleton`
+
+Export a hybrid instrument as a plugin skeleton for VST3, LV2, CLAP, or LADSPA formats.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-instrument-export-plugin-skeleton",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "instrument_id": "HYBRID_OSC_1",
+    "analog_block_id": "ANALOG_OSC_BLOCK",
+    "digital_block_id": "DIGITAL_OSC_BLOCK",
+    "voice_count": 4,
+    "sample_rate": 48000.0,
+    "duration_sec": 3.0,
+    "base_freq_hz": 440.0,
+    "detune_spread_cents": 10.0,
+    "pan_lfo_hz": 0.25,
+    "use_analog_primary": true,
+    "plugin_target": "vst3",
+    "plugin_name": "ProtoVMHybridOsc",
+    "plugin_id": "protovm.hybrid.osc",
+    "vendor": "ProtoVM"
+  }
+}
+```
+
+**Response**:
+```json
+{
+  "ok": true,
+  "command": "designer-instrument-export-plugin-skeleton",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "designer_session": { ... },
+    "instrument_id": "HYBRID_OSC_1",
+    "plugin_target": "vst3",
+    "plugin_name": "ProtoVMHybridOsc",
+    "plugin_id": "protovm.hybrid.osc",
+    "skeleton_source": "/* plugin wrapper source */"
+  }
+}
+```
+
+### 13.5 `designer-instrument-export-plugin-project`
+
+Export a hybrid instrument as a complete, disk-ready project for VST3, LV2, CLAP, or LADSPA formats. This command generates a full project directory structure with build files, metadata, and wrapper code that integrates with the ProtoVM C ABI engine.
+
+**Request Parameters**:
+```json
+{
+  "command": "designer-instrument-export-plugin-project",
+  "workspace": "/path/to/workspace",
+  "session_id": 1,
+  "user_id": "assistant-123",
+  "payload": {
+    "designer_session_id": "cds-1234",
+    "instrument_id": "HYBRID_OSC_1",
+    "analog_block_id": "ANALOG_OSC_BLOCK",
+    "digital_block_id": "DIGITAL_OSC_BLOCK",
+    "voice_count": 4,
+    "sample_rate_hz": 48000.0,
+    "duration_sec": 3.0,
+    "base_freq_hz": 440.0,
+    "detune_spread_cents": 10.0,
+    "pan_lfo_hz": 0.25,
+    "use_analog_primary": true,
+    "plugin_target": "lv2",
+    "plugin_name": "ProtoVMLv2HybridOsc",
+    "plugin_id": "http://example.org/protovm/hybrid/osc",
+    "vendor": "ProtoVM",
+    "version": "1.0.0",
+    "output_dir": "/tmp/protovm_lv2_project"
+  }
+}
+```
+
+**Response**:
+```json
+{
+  "ok": true,
+  "command": "designer-instrument-export-plugin-project",
+  "error_code": null,
+  "error": null,
+  "data": {
+    "designer_session": { ... },
+    "instrument_id": "HYBRID_OSC_1",
+    "plugin_target": "lv2",
+    "plugin_name": "ProtoVMLv2HybridOsc",
+    "plugin_id": "http://example.org/protovm/hybrid/osc",
+    "output_dir": "/tmp/protovm_lv2_project",
+    "status": "ok"
+  }
+}
+```

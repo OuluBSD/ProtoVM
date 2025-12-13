@@ -178,6 +178,31 @@ struct CommandOptions {
     std::optional<std::string> step_function_name; // Step function name for oscillator demos
     std::optional<std::string> render_function_name; // Render function name for oscillator demos
 
+    // Hybrid instrument parameters
+    std::optional<std::string> instrument_id;            // Instrument ID for instrument operations
+    std::optional<std::string> analog_block_id;          // Analog block ID for hybrid instruments
+    std::optional<std::string> digital_block_id;         // Digital block ID for hybrid instruments
+    std::optional<std::string> voice_count;              // Number of voices for hybrid instruments
+    std::optional<std::string> sample_rate;              // Sample rate in Hz for hybrid instruments
+    std::optional<std::string> duration_sec;             // Duration in seconds for hybrid instruments
+    std::optional<std::string> base_freq_hz;             // Base frequency in Hz for hybrid instruments
+    std::optional<std::string> detune_spread_cents;      // Detune spread in cents for hybrid instruments
+    std::optional<std::string> pan_lfo_hz;               // Pan LFO rate in Hz for hybrid instruments
+    bool use_analog_primary = false;                     // Whether analog source is primary
+
+    // Instrument export parameters
+    std::optional<std::string> program_name;             // Program name for exported C++ code
+    std::optional<std::string> namespace_name;           // Namespace for exported C++ code
+    std::optional<std::string> wav_filename;             // Output WAV filename for exported C++ code
+    bool no_wav_writer = false;                          // Whether to exclude WAV writer in export
+    std::optional<std::string> instrument_from_json;     // Load instrument from JSON file
+
+    // Plugin skeleton export parameters
+    std::optional<std::string> plugin_target;            // Target plugin format (vst3, lv2, clap, ladspa)
+    std::optional<std::string> plugin_name;              // Plugin name
+    std::optional<std::string> plugin_id;                // Plugin ID
+    std::optional<std::string> vendor;                   // Plugin vendor name
+
     // Add more options as needed
 };
 

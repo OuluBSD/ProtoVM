@@ -16,6 +16,10 @@
 #include "RetimingModel.h"      // For retiming model
 #include "RetimingAnalysis.h"   // For retiming analysis
 #include "AnalogBlockExtractor.h" // For analog block extraction
+#include "InstrumentGraph.h"    // For instrument graph structures
+#include "InstrumentBuilder.h"  // For instrument builder
+#include "InstrumentRuntime.h"  // For instrument runtime
+#include "InstrumentExport.h"   // For instrument export
 #include <fstream>
 #include <sstream>
 #include <filesystem>
@@ -3074,6 +3078,154 @@ Result<void> CircuitFacade::RenderAnalogBlockAsAudioInBranch(
         return Result<void>::MakeError(
             ErrorCode::InternalError,
             std::string("Exception in RenderAnalogBlockAsAudioInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<InstrumentGraph> CircuitFacade::BuildHybridInstrumentInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const InstrumentVoiceTemplate& voice_template,
+    double sample_rate_hz,
+    int voice_count,
+    const NoteDesc& note,
+    double detune_spread_cents
+) {
+    try {
+        // Use the InstrumentBuilder to create the instrument
+        auto instrument_result = InstrumentBuilder::BuildHybridInstrument(
+            Upp::String().Cat() << "INST_" << branch_name << "_" << voice_template.id,
+            voice_template,
+            sample_rate_hz,
+            voice_count,
+            note,
+            detune_spread_cents
+        );
+
+        return instrument_result;
+    }
+    catch (const std::exception& e) {
+        return Result<InstrumentGraph>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in BuildHybridInstrumentInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<void> CircuitFacade::RenderHybridInstrumentInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const InstrumentGraph& instrument,
+    std::vector<float>& out_left,
+    std::vector<float>& out_right
+) {
+    try {
+        // Use the InstrumentRuntime to render the instrument
+        auto render_result = InstrumentRuntime::RenderInstrument(
+            instrument,
+            *this,  // Pass the current CircuitFacade instance
+            session,
+            session_dir,
+            branch_name,
+            out_left,
+            out_right
+        );
+
+        return render_result;
+    }
+    catch (const std::exception& e) {
+        return Result<void>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in RenderHybridInstrumentInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<std::string> CircuitFacade::ExportInstrumentAsStandaloneCppInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const InstrumentGraph& instrument,
+    const InstrumentExportOptions& options
+) {
+    try {
+        // Use the InstrumentExport to generate the standalone C++ code
+        auto export_result = ProtoVM::InstrumentExport::EmitStandaloneCppForInstrument(
+            instrument,
+            options
+        );
+
+        if (!export_result.ok) {
+            return Result<std::string>::MakeError(
+                export_result.error_code,
+                "Failed to export instrument as standalone C++: " + export_result.error_message
+            );
+        }
+
+        return export_result;
+    }
+    catch (const std::exception& e) {
+        return Result<std::string>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in ExportInstrumentAsStandaloneCppInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<String> CircuitFacade::ExportPluginSkeletonForInstrumentInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const InstrumentGraph& instrument,
+    const PluginSkeletonOptions& opts
+) {
+    try {
+        // Use the PluginSkeletonExport to generate the plugin skeleton
+        auto export_result = PluginSkeletonExport::EmitPluginSkeletonSource(opts);
+
+        if (!export_result.ok) {
+            return Result<String>::MakeError(
+                export_result.error_code,
+                "Failed to export plugin skeleton: " + export_result.error_message
+            );
+        }
+
+        return export_result;
+    }
+    catch (const std::exception& e) {
+        return Result<String>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in ExportPluginSkeletonForInstrumentInBranch: ") + e.what()
+        );
+    }
+}
+
+Result<void> CircuitFacade::ExportPluginProjectForInstrumentInBranch(
+    const SessionMetadata& session,
+    const std::string& session_dir,
+    const std::string& branch_name,
+    const InstrumentGraph& instrument,
+    const PluginProjectExportOptions& opts
+) {
+    try {
+        // Use the PluginProjectExport to generate the full plugin project
+        auto export_result = PluginProjectExport::ExportPluginProject(instrument, opts);
+
+        if (!export_result.ok) {
+            return Result<void>::MakeError(
+                export_result.error_code,
+                "Failed to export plugin project: " + export_result.error_message
+            );
+        }
+
+        return export_result;
+    }
+    catch (const std::exception& e) {
+        return Result<void>::MakeError(
+            ErrorCode::InternalError,
+            std::string("Exception in ExportPluginProjectForInstrumentInBranch: ") + e.what()
         );
     }
 }

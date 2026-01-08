@@ -15,6 +15,9 @@ if [ "$1" = "gui" ] || [ "$1" = "wx" ]; then
         echo "Error: wxsrc/build.sh not found"
         exit 1
     fi
+elif [ "$1" = "cli" ]; then
+    echo "Building ProtoVM CLI (U++ make)..."
+    ./build_cli.sh "${@:2}"
 elif [ "$1" = "original" ] || [ "$1" = "upp" ]; then
     echo "Building original ProtoVM (U++ version)..."
     ./build.sh "${@:2}"  # Pass remaining arguments to the original build script
@@ -22,6 +25,7 @@ else
     echo "Usage: $0 [option]"
     echo "Options:"
     echo "  gui, wx     - Build the wxWidgets GUI version"
+    echo "  cli         - Build the CLI executable via U++ make (build_cli.sh)"
     echo "  original, upp - Build the original U++ version (default)"
     echo "  all         - Build both versions"
     echo ""

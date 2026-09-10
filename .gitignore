@@ -1,4 +1,6 @@
 build
+.maestro/
+docs/maestro/
 node_modules/**
 __pycache__/**
 

@@ -1,0 +1,19 @@
+description "Logic Analyzer Model Test\377";
+
+uses
+	CtrlLib,
+	Docking,
+	Painter;
+
+file
+	TestModel.cpp,
+	CaptureModel.h,
+	CaptureModel.cpp,
+	CustomTracks.h,
+	CustomTracks.cpp,
+	DemoCapture.h,
+	DemoCapture.cpp;
+
+mainconfig
+	"" = "CONSOLE";
+	"" = "CONSOLE DEBUG";

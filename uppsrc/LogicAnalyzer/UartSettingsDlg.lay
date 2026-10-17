@@ -1,0 +1,46 @@
+LAYOUT(UartSettingsLayout, 450, 520)
+	ITEM(Upp::Label, lName, SetLabel(t_("Name:")).LeftPosZ(10, 60).TopPosZ(10, 20))
+	ITEM(Upp::EditString, name, LeftPosZ(80, 350).TopPosZ(10, 20))
+	
+	ITEM(Upp::Label, lColor, SetLabel(t_("Color:")).LeftPosZ(10, 60).TopPosZ(40, 20))
+	ITEM(Upp::ColorButton, color, LeftPosZ(80, 100).TopPosZ(40, 20))
+	
+	ITEM(Upp::Label, lRx, SetLabel(t_("RX Channel:")).LeftPosZ(10, 100).TopPosZ(70, 20))
+	ITEM(Upp::DropList, rxChannel, LeftPosZ(120, 100).TopPosZ(70, 20))
+	
+	ITEM(Upp::Label, lTx, SetLabel(t_("TX Channel:")).LeftPosZ(10, 100).TopPosZ(100, 20))
+	ITEM(Upp::DropList, txChannel, LeftPosZ(120, 100).TopPosZ(100, 20))
+	
+	ITEM(Upp::Label, lBaud, SetLabel(t_("Baud Rate:")).LeftPosZ(10, 100).TopPosZ(130, 20))
+	ITEM(Upp::EditIntSpin, baudRate, Min(300).Max(4000000).SetInc(100).LeftPosZ(120, 100).TopPosZ(130, 20))
+	
+	ITEM(Upp::Label, lDataBits, SetLabel(t_("Data Bits:")).LeftPosZ(10, 100).TopPosZ(160, 20))
+	ITEM(Upp::DropList, dataBits, LeftPosZ(120, 100).TopPosZ(160, 20))
+	
+	ITEM(Upp::Label, lParity, SetLabel(t_("Parity:")).LeftPosZ(10, 100).TopPosZ(190, 20))
+	ITEM(Upp::DropList, parity, LeftPosZ(120, 100).TopPosZ(190, 20))
+	
+	ITEM(Upp::Label, lCheckParity, SetLabel(t_("Check Parity:")).LeftPosZ(10, 100).TopPosZ(220, 20))
+	ITEM(Upp::DropList, checkParity, LeftPosZ(120, 100).TopPosZ(220, 20))
+	
+	ITEM(Upp::Label, lStopBits, SetLabel(t_("Stop Bits:")).LeftPosZ(10, 100).TopPosZ(250, 20))
+	ITEM(Upp::DropList, stopBits, LeftPosZ(120, 100).TopPosZ(250, 20))
+	
+	ITEM(Upp::Label, lBitOrder, SetLabel(t_("Bit Order:")).LeftPosZ(10, 100).TopPosZ(280, 20))
+	ITEM(Upp::DropList, bitOrder, LeftPosZ(120, 100).TopPosZ(280, 20))
+	
+	ITEM(Upp::Label, lDataFormat, SetLabel(t_("Data Format:")).LeftPosZ(10, 100).TopPosZ(310, 20))
+	ITEM(Upp::DropList, dataFormat, LeftPosZ(120, 100).TopPosZ(310, 20))
+	
+	ITEM(Upp::Option, invertRx, SetLabel(t_("Invert RX")).LeftPosZ(10, 200).TopPosZ(340, 20))
+	ITEM(Upp::Option, invertTx, SetLabel(t_("Invert TX")).LeftPosZ(10, 200).TopPosZ(370, 20))
+	
+	ITEM(Upp::Label, lRequired, SetLabel(t_("Required Channels:")).LeftPosZ(10, 150).TopPosZ(400, 20))
+	ITEM(Upp::EditString, requiredChannels, LeftPosZ(150, 280).TopPosZ(400, 20))
+	
+	ITEM(Upp::Label, lDecoder, SetLabel(t_("Decoder Type:")).LeftPosZ(10, 100).TopPosZ(430, 20))
+	ITEM(Upp::DropList, decoderType, LeftPosZ(120, 100).TopPosZ(430, 20))
+	
+	ITEM(Upp::Button, okBtn, SetLabel(t_("OK")).RightPosZ(10, 80).BottomPosZ(10, 30))
+	ITEM(Upp::Button, cancelBtn, SetLabel(t_("Cancel")).RightPosZ(100, 80).BottomPosZ(10, 30))
+END_LAYOUT

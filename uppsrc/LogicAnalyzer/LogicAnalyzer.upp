@@ -1,0 +1,27 @@
+description "Logic Analyzer for ProtoVM\377";
+
+uses
+	CtrlLib,
+	Docking,
+	Painter;
+
+file
+	AGENTS.md,
+	LogicAnalyzer.h,
+	LogicAnalyzer.cpp,
+	WaveformView.h,
+	WaveformView.cpp,
+	UartSettingsDlg.h,
+	UartSettingsDlg.cpp,
+	CaptureModel.h,
+	CaptureModel.cpp,
+	CustomTracks.h,
+	CustomTracks.cpp,
+	DemoCapture.h,
+	DemoCapture.cpp,
+	LogicAnalyzer.iml,
+	src.tpp;
+
+mainconfig
+	"" = "GUI";
+	"" = "GUI DEBUG";

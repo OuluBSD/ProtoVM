@@ -27,16 +27,31 @@ New U++ package `uppsrc/LogicAnalyzer/` — a headless logic analyzer GUI with:
 | `SelfTest.cpp`, `TestModel.cpp` | Console self-test executables |
 | `AGENTS.md` | Package instructions |
 
-## Build commands (run in /yhteinen/active/sblo/Dev/ProtoVM on 169)
+## Build commands (run from the ProtoVM repo root)
 
 ```bash
 ./build.sh la-test            # Build & run headless self-test (console)
 ./build.sh logic-analyzer     # Build GUI binary
 ```
 
+`build.sh` auto-detects the U++ install (`UPP_DIR` env var, else an existing
+`/yhteinen/active/sblo/Dev/ai-upp` or `$HOME/Dev/ai-upp`) and bootstraps `umk`
+via `stdsrc/build/bootstrap.sh` if it is missing. Do not hardcode host paths.
+
 Expected self-test output: 12 tracks, UART decoder produces blocks, custom decoders produce blocks, `SELF-TEST PASSED`.
 
-GUI binary builds to `build/LogicAnalyzer` (~7.6 MB) but requires a GTK display (fails headless).
+GUI binary builds to `build/LogicAnalyzer` (~7.8 MB) but requires a GTK display (fails headless).
+
+## Package layout (U++ requirement)
+
+Each U++ package must live in its own directory with a matching `<name>.upp`:
+
+- `uppsrc/LogicAnalyzer/LogicAnalyzer.upp` — GUI app (`uses CtrlLib, Docking, Painter`, GUI config)
+- `uppsrc/LogicAnalyzerModelTest/LogicAnalyzerModelTest.upp` — console model test (`uses Core`), sources referenced as `../LogicAnalyzer/...`
+- `uppsrc/LogicAnalyzerTest/LogicAnalyzerTest.upp` — console self-test (`uses Core`), sources referenced as `../LogicAnalyzer/...`
+
+The test packages must not `uses CtrlLib` (the console config cannot include
+CtrlCore).
 
 ## Build.sh changes
 
@@ -61,8 +76,8 @@ Added targets to `build.sh`:
 
 ## Recommended next steps
 
-1. Verify `git pull origin main` on 169 brings `bb2ca77`
-2. Run `./build.sh la-test` to confirm headless self-test passes
+1. `git pull origin main` (origin is at `8808ba9`, which adds this file on top of `bb2ca77`)
+2. Run `./build.sh la-test` to confirm headless self-test passes (prints `SELF-TEST PASSED`)
 3. Implement live capture adapter (`TraceProbe` connecting `Machine`/`Pcb` signals to `CaptureModel`)
 4. Add save/load capture format
 5. Add SPI/I2C/CAN decoders and search/filter

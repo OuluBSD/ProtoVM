@@ -3,16 +3,47 @@
 # Main build script for ProtoVM
 # This script can build the original U++ version, the wxWidgets GUI, or the CLI
 
-UPP_SRC="/yhteinen/active/sblo/Dev/ai-upp/uppsrc"
-UPP_BIN="/yhteinen/active/sblo/Dev/ai-upp/bin"
+# Locate the U++ install. Override with UPP_DIR if needed. Prefer an existing
+# install (Dev is often symlinked and paths differ per host), falling back to
+# $HOME/Dev/ai-upp.
+if [ -z "$UPP_DIR" ]; then
+    for candidate in /yhteinen/active/sblo/Dev/ai-upp "$HOME/Dev/ai-upp"; do
+        if [ -d "$candidate" ]; then
+            UPP_DIR="$candidate"
+            break
+        fi
+    done
+fi
+UPP_DIR="${UPP_DIR:-$HOME/Dev/ai-upp}"
+UPP_SRC="$UPP_DIR/uppsrc"
+UPP_BIN="$UPP_DIR/bin"
 UMK="$UPP_BIN/umk"
 ASSEMBLY="./src,./uppsrc,$UPP_SRC"
 
 echo "ProtoVM Build System"
 echo "==================="
 
+ensure_umk() {
+    if [ -x "$UMK" ]; then
+        return 0
+    fi
+    local bootstrap="$UPP_DIR/stdsrc/build/bootstrap.sh"
+    if [ ! -f "$bootstrap" ]; then
+        echo "Error: umk not found at $UMK and no bootstrap script at $bootstrap" >&2
+        echo "Set UPP_DIR to your U++ install directory." >&2
+        exit 1
+    fi
+    echo "umk not found at $UMK; bootstrapping U++ toolchain..."
+    "$bootstrap" || { echo "Error: U++ bootstrap failed" >&2; exit 1; }
+    if [ ! -x "$UMK" ]; then
+        echo "Error: bootstrap completed but umk still missing at $UMK" >&2
+        exit 1
+    fi
+}
+
 build_upp() {
     local package="$1"
+    ensure_umk
     local clean_flag=""
     shift
     while [ $# -gt 0 ]; do
@@ -21,8 +52,13 @@ build_upp() {
         esac
         shift
     done
-    $UMK "$ASSEMBLY" "$package" ~/.config/u++/theide/CLANG.bm -dsH2 +DEBUG_FULL,USEMALLOC +GUI build/"$package" $clean_flag
+    mkdir -p build
+    $UMK "$ASSEMBLY" "$package" ~/.config/u++/theide/CLANG.bm -dsH2 +DEBUG_FULL,USEMALLOC $UPP_FLAGS build/"$package" $clean_flag
 }
+
+# Main configuration flag passed to umk. GUI applications need +GUI; console
+# targets (e.g. the headless self-test) must not set it.
+UPP_FLAGS="+GUI"
 
 if [ "$1" = "gui" ] || [ "$1" = "wx" ]; then
     echo "Building ProtoVM GUI (wxWidgets version)..."
@@ -43,7 +79,11 @@ elif [ "$1" = "logic-analyzer" ] || [ "$1" = "la" ]; then
 elif [ "$1" = "la-test" ] || [ "$1" = "logic-analyzer-test" ]; then
     echo "Building Logic Analyzer Self-Test (U++ version)..."
     shift
+    UPP_FLAGS=""
     build_upp LogicAnalyzerModelTest "$@"
+    echo ""
+    echo "Running self-test..."
+    ./build/LogicAnalyzerModelTest
 elif [ "$1" = "original" ] || [ "$1" = "upp" ]; then
     echo "Building original ProtoVM (U++ version)..."
     shift

@@ -1,0 +1,13 @@
+description "Logic Analyzer Self-Test";
+
+uses
+	Core;
+
+file
+	../LogicAnalyzer/SelfTest.cpp,
+	../LogicAnalyzer/CaptureModel.h,
+	../LogicAnalyzer/CaptureModel.cpp,
+	../LogicAnalyzer/CustomTracks.h,
+	../LogicAnalyzer/CustomTracks.cpp,
+	../LogicAnalyzer/DemoCapture.h,
+	../LogicAnalyzer/DemoCapture.cpp;

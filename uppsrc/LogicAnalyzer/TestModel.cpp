@@ -1,5 +1,6 @@
 #include "CaptureModel.h"
 #include "DemoCapture.h"
+#include "LiveCaptureTest.h"
 #include <Core/Core.h>
 
 using namespace Upp;
@@ -19,6 +20,13 @@ CONSOLE_APP_MAIN {
 	
 	if(!model.RunSelfTest()) {
 		Cout() << "SELF-TEST FAILED\n";
+		return;
+	}
+	
+	if(!RunLiveCaptureSelfTest()) {
+		Cout() << "LIVE CAPTURE TEST FAILED\n";
+		Cout() << "SELF-TEST FAILED\n";
+		return;
 	}
 	
 	Cout() << "SELF-TEST PASSED\n";

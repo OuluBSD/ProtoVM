@@ -1,6 +1,7 @@
 description "Logic Analyzer Model Test";
 
 uses
+	ProtoVMCore,
 	Core;
 
 file
@@ -10,4 +11,9 @@ file
 	../LogicAnalyzer/CustomTracks.h,
 	../LogicAnalyzer/CustomTracks.cpp,
 	../LogicAnalyzer/DemoCapture.h,
-	../LogicAnalyzer/DemoCapture.cpp;
+	../LogicAnalyzer/DemoCapture.cpp,
+	../LogicAnalyzer/TraceProbe.h,
+	../LogicAnalyzer/MachineCaptureAdapter.h,
+	../LogicAnalyzer/MachineCaptureAdapter.cpp,
+	../LogicAnalyzer/LiveCaptureTest.h,
+	../LogicAnalyzer/LiveCaptureTest.cpp;

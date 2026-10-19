@@ -90,20 +90,19 @@ non-zero transition count (`PROBE-SPIKE PASSED`) while `Machine`'s own tracing r
 ## Known limitations (documented)
 
 1. **GUI untested headless** — requires GTK display
-2. **No live ProtoVM capture** — model uses generated demo data; the probe mechanism is validated (`src/MachineCaptureTest`), but the `TraceProbe`→`CaptureModel` adapter is not wired into `LogicAnalyzer` yet
+2. **Live capture** — `MachineCaptureAdapter` (`uppsrc/LogicAnalyzer/`) bridges a ProtoVMCore `Machine` to `CaptureModel`: it adds passive `TraceProbe` sinks to component pins (before `Init`), ticks the simulation sampling each tick, and emits raw tracks. Validated headlessly by `la-test` (`Live capture: clk.OUT -> N transitions`). GUI hookup (a "capture from ProtoVM" action) is not wired yet; the model still uses demo data at startup.
 3. **No file I/O** — no save/load capture format
 4. **Limited decoders** — UART + 2 custom only; no SPI/I2C/CAN protocol decoders
 5. **No search/filter** — decoded data search and protocol filtering not implemented
 
 ## Recommended next steps
 
-1. `git pull origin main` and run `./build.sh la-test` (prints `SELF-TEST PASSED`)
-2. Wire live capture: make `LogicAnalyzer` `uses ProtoVMCore` and add a `TraceProbe`
-   (sink node recording values) + adapter feeding `CaptureModel`, sampling after each
-   `Machine::Tick()` for settled values
+1. `git pull origin main` and run `./build.sh la-test` (prints `SELF-TEST PASSED` + a live-capture line)
+2. Wire live capture into the GUI: add a menu action that builds/loads a `Machine`, uses `MachineCaptureAdapter`, and replaces the demo capture
 3. Add save/load capture format
 4. Add SPI/I2C/CAN decoders and search/filter
 5. Optionally fix the `ProtoVM` app build (AudioQa/CLI issues above)
+
 
 
 ## Note

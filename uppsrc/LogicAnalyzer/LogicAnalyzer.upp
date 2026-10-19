@@ -1,6 +1,7 @@
 description "Logic Analyzer for ProtoVM\377";
 
 uses
+	ProtoVMCore,
 	CtrlLib,
 	Docking,
 	Painter;
@@ -19,6 +20,9 @@ file
 	CustomTracks.cpp,
 	DemoCapture.h,
 	DemoCapture.cpp,
+	TraceProbe.h,
+	MachineCaptureAdapter.h,
+	MachineCaptureAdapter.cpp,
 	LogicAnalyzer.iml,
 	src.tpp;
 

@@ -59,28 +59,52 @@ Added targets to `build.sh`:
 - `logic-analyzer` / `la` — build GUI app
 - `la-test` / `logic-analyzer-test` — build & run console model test
 
-## Engine audit findings (not yet addressed)
+## Engine audit findings (validated)
 
-- `Machine::signal_traces`/`signal_transitions` are stubs — no usable value history yet
-- `ElectricNodeBase` has no generic value getter — live capture needs a probe sink overriding `PutRaw` or type-specific getters
-- `Pcb::nodes` uses value semantics and relocates entries — probes must be added after netlist construction
-- `CircuitAnalysis` is static diagnostics only, not a live capture source
+- `Machine::signal_traces`/`signal_transitions` are stubs — `LogSignalTransition` (`Machine.cpp:908`) has no callers, `last_value` is only ever set to 0, and `value_history`/`tick_history` are written only by snapshot deserialization (`ProtoVMCLI/MachineSnapshot.cpp:300-315`). `TestSignalTracing.cpp` exercises this and always records 0 transitions.
+- `ElectricNodeBase` has no generic value getter, but one is not needed: every propagated value passes through the destination's `PutRaw`, so a passive **sink probe** observes values by definition.
+- **Correction:** `Pcb::nodes` does *not* use value semantics — U++ `Array<T>` stores `T*` (`Core/Vcont.h:302-324`), so nodes are polymorphic and pointer-stable. The only ordering rule is to wire probes *before* `Machine::Init()` (which builds the `ProcessOp` table).
+- `CircuitAnalysis` is static diagnostics only, not a live capture source.
+
+## Engine build on Linux hosts
+
+The full `ProtoVM` application package currently does **not** compile on this host (and not because of the distro alone):
+- `AudioQa.h:36` declares `AudioQaReport` at global scope, but `Cli.cpp:669` uses `AudioQa::AudioQaReport` (from commit `7648c4b "Phase 29: Audio QA"`).
+- `AudioQa.h:38` uses `uint64_t` without `#include <cstdint>`.
+- jsoncpp's `::Json` clashes with U++'s `Json` (`Core/JSON.h:19`) under `using namespace Upp;`.
+- `ProtoVM.upp` compiles `Cli.cpp` but omits `AudioQa.cpp`/`AudioQaAnalysis.cpp`.
+- External deps: `sci-libs/fftw` and `dev-libs/jsoncpp` (headers land in `/usr/include/jsoncpp`, so `<json/json.h>` needs a symlink or `-I/usr/include/jsoncpp`).
+
+### Headless engine core (`src/ProtoVMCore/`)
+
+A library-only package was added so the simulator can be built and used without the
+app main, CLI, AudioQa, FFTW or jsoncpp. It contains `Common.cpp`, `Component.cpp`,
+`Link.cpp`, `Pcb.cpp`, `Machine.cpp` and a no-op `AnalogStub.cpp` (Machine only calls
+`AnalogSimulation`'s ctor/`RegisterAnalogComponent`/`Tick`). Builds in ~25s.
+
+`src/MachineCaptureTest/` is a console probe test: a source node wired into a passive
+sink probe that records `PutRaw` values. It reports the captured waveform and a
+non-zero transition count (`PROBE-SPIKE PASSED`) while `Machine`'s own tracing remains
+0 — confirming the probe mechanism works and the built-in tracing is dead.
 
 ## Known limitations (documented)
 
 1. **GUI untested headless** — requires GTK display
-2. **No live ProtoVM capture** — model uses generated demo data; no Machine/Pcb probe integration yet
+2. **No live ProtoVM capture** — model uses generated demo data; the probe mechanism is validated (`src/MachineCaptureTest`), but the `TraceProbe`→`CaptureModel` adapter is not wired into `LogicAnalyzer` yet
 3. **No file I/O** — no save/load capture format
 4. **Limited decoders** — UART + 2 custom only; no SPI/I2C/CAN protocol decoders
 5. **No search/filter** — decoded data search and protocol filtering not implemented
 
 ## Recommended next steps
 
-1. `git pull origin main` (origin is at `8808ba9`, which adds this file on top of `bb2ca77`)
-2. Run `./build.sh la-test` to confirm headless self-test passes (prints `SELF-TEST PASSED`)
-3. Implement live capture adapter (`TraceProbe` connecting `Machine`/`Pcb` signals to `CaptureModel`)
-4. Add save/load capture format
-5. Add SPI/I2C/CAN decoders and search/filter
+1. `git pull origin main` and run `./build.sh la-test` (prints `SELF-TEST PASSED`)
+2. Wire live capture: make `LogicAnalyzer` `uses ProtoVMCore` and add a `TraceProbe`
+   (sink node recording values) + adapter feeding `CaptureModel`, sampling after each
+   `Machine::Tick()` for settled values
+3. Add save/load capture format
+4. Add SPI/I2C/CAN decoders and search/filter
+5. Optionally fix the `ProtoVM` app build (AudioQa/CLI issues above)
+
 
 ## Note
 

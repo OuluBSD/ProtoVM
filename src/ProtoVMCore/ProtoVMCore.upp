@@ -1,0 +1,15 @@
+description "ProtoVM headless simulation core";
+
+noblitz;
+
+uses
+	plugin/chips,
+	Core;
+
+file
+	AnalogStub.cpp,
+	../ProtoVM/Common.cpp,
+	../ProtoVM/Component.cpp,
+	../ProtoVM/Link.cpp,
+	../ProtoVM/Pcb.cpp,
+	../ProtoVM/Machine.cpp;

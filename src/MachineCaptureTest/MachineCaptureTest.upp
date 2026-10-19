@@ -1,0 +1,10 @@
+description "Machine capture probe spike";
+
+noblitz;
+
+uses
+	ProtoVMCore,
+	Core;
+
+file
+	Capture.cpp;

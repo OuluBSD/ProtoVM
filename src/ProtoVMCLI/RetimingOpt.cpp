@@ -181,7 +181,7 @@ Result<RetimingOptimizationResult> RetimingOptimizer::EvaluateAndApplyBestPlanIn
     const Vector<RetimingPlan>& plans,
     const RetimingObjective& objective,
     const RetimingApplicationOptions& app_options,
-    SessionStore& session_store,
+    ISessionStore& session_store,
     const SessionMetadata& session,
     const String& session_dir,
     const String& branch_name
@@ -189,10 +189,10 @@ Result<RetimingOptimizationResult> RetimingOptimizer::EvaluateAndApplyBestPlanIn
     // First, evaluate the plans
     auto eval_result = EvaluateRetimingPlans(target_id, plans, objective, nullptr, nullptr, nullptr);
     if (!eval_result.ok) {
-        return Result<RetimingOptimizationResult>::MakeError(eval_result.error);
+        return Result<RetimingOptimizationResult>::MakeError(eval_result.error_code, eval_result.error_message);
     }
 
-    auto result = eval_result.value;
+    auto result = eval_result.data;
 
     // Find the best plan that meets the objective
     RetimingPlan* best_plan = nullptr;
@@ -220,11 +220,24 @@ Result<RetimingOptimizationResult> RetimingOptimizer::EvaluateAndApplyBestPlanIn
     );
 
     if (!apply_result.ok) {
-        return Result<RetimingOptimizationResult>::MakeError(apply_result.error);
+        return Result<RetimingOptimizationResult>::MakeError(apply_result.error_code, apply_result.error_message);
     }
 
     result.applied = true;
-    result.application_result = apply_result.value;
+    // RetimingApplicationResult exposes only a deep copy ctor (no operator=),
+    // so transfer the fields in place on the member of the fresh default
+    // result object instead of constructing a temporary and assigning it.
+    {
+        RetimingApplicationResult& app = result.application_result;
+        app.plan_id = apply_result.data.plan_id;
+        app.target_id = apply_result.data.target_id;
+        app.applied_move_ids <<= apply_result.data.applied_move_ids;
+        app.skipped_move_ids <<= apply_result.data.skipped_move_ids;
+        app.new_circuit_revision = apply_result.data.new_circuit_revision;
+        app.estimated_max_depth_before = apply_result.data.estimated_max_depth_before;
+        app.estimated_max_depth_after = apply_result.data.estimated_max_depth_after;
+        app.all_moves_safe = apply_result.data.all_moves_safe;
+    }
 
     return Result<RetimingOptimizationResult>::MakeOk(result);
 }

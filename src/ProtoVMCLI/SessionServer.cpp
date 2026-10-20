@@ -2,6 +2,7 @@
 #include "JsonIO.h"
 #include "SessionStore.h"
 #include "JsonFilesystemSessionStore.h"
+#include "CommandDispatcher.h"
 #include "CircuitGraph.h"
 #include "CircuitGraphQueries.h"
 #include "FunctionalAnalysis.h"
@@ -17,6 +18,14 @@
 #include <iomanip>
 
 namespace ProtoVMCLI {
+
+// Const-safe payload lookup with default, mirroring Upp::ValueMap::Get(key,
+// def) which is a non-const member and thus unusable on const request
+// payloads.
+static Upp::Value PayloadGet(const DaemonRequest& req, const char* key, Upp::Value def) {
+    int q = req.payload.Find(key);
+    return q >= 0 ? req.payload.GetValue(q) : def;
+}
 
 SessionServer::SessionServer() {
     // Initialize CoDesignerManager with a circuit facade
@@ -101,8 +110,8 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the branch-list command
@@ -112,7 +121,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -128,14 +137,14 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch parameters from payload
-            if (req.payload.Get("branch_name", Upp::Value()).IsString()) {
-                opts.branch_name = req.payload.Get("branch_name", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch_name", Upp::Value()).Is<Upp::String>()) {
+                opts.branch_name = PayloadGet(req, "branch_name", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("from_branch", Upp::Value()).IsString()) {
-                opts.branch_from = req.payload.Get("from_branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "from_branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch_from = PayloadGet(req, "from_branch", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the branch-create command
@@ -145,7 +154,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -161,8 +170,8 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch parameters from payload
-            if (req.payload.Get("branch_name", Upp::Value()).IsString()) {
-                opts.branch_name = req.payload.Get("branch_name", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch_name", Upp::Value()).Is<Upp::String>()) {
+                opts.branch_name = PayloadGet(req, "branch_name", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the branch-switch command
@@ -172,7 +181,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -188,8 +197,8 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch parameters from payload
-            if (req.payload.Get("branch_name", Upp::Value()).IsString()) {
-                opts.branch_name = req.payload.Get("branch_name", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch_name", Upp::Value()).Is<Upp::String>()) {
+                opts.branch_name = PayloadGet(req, "branch_name", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the branch-delete command
@@ -199,7 +208,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -215,13 +224,13 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch parameters from payload
-            if (req.payload.Get("source_branch", Upp::Value()).IsString()) {
-                opts.branch_from = req.payload.Get("source_branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "source_branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch_from = PayloadGet(req, "source_branch", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("target_branch", Upp::Value()).IsString()) {
-                opts.branch_to = req.payload.Get("target_branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "target_branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch_to = PayloadGet(req, "target_branch", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("allow_merge", Upp::Value()).IsBool()) {
+            if (PayloadGet(req, "allow_merge", Upp::Value()).Is<bool>()) {
                 // We might need to handle this differently if needed
             }
 
@@ -232,7 +241,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -248,13 +257,13 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract max_plans from payload if provided
-            if (req.payload.Get("max_plans", Upp::Value()).IsString()) {
-                opts.max_plans = req.payload.Get("max_plans", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "max_plans", Upp::Value()).Is<Upp::String>()) {
+                opts.max_plans = PayloadGet(req, "max_plans", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the refactor-suggest command
@@ -264,7 +273,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -280,18 +289,18 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract block_id from payload
-            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
-                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.block_id = PayloadGet(req, "block_id", Upp::Value()).ToString().ToStd();
             }
 
             // Extract max_plans from payload if provided
-            if (req.payload.Get("max_plans", Upp::Value()).IsString()) {
-                opts.max_plans = req.payload.Get("max_plans", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "max_plans", Upp::Value()).Is<Upp::String>()) {
+                opts.max_plans = PayloadGet(req, "max_plans", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the refactor-suggest-block command
@@ -301,7 +310,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -317,13 +326,13 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract plan_id from payload
-            if (req.payload.Get("plan_id", Upp::Value()).IsString()) {
-                opts.plan_id = req.payload.Get("plan_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "plan_id", Upp::Value()).Is<Upp::String>()) {
+                opts.plan_id = PayloadGet(req, "plan_id", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the refactor-apply command
@@ -333,7 +342,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -349,8 +358,8 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the graph-export command
@@ -360,7 +369,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -376,33 +385,33 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract graph-specific parameters from payload
-            if (req.payload.Get("source", Upp::Value()).IsMap()) {
-                Upp::ValueMap source_map = req.payload.Get("source", Upp::ValueMap());
-                if (source_map.Get("kind", Upp::Value()).IsString()) {
+            if (PayloadGet(req, "source", Upp::Value()).Is<Upp::ValueMap>()) {
+                Upp::ValueMap source_map = PayloadGet(req, "source", Upp::ValueMap());
+                if (source_map.Get("kind", Upp::Value()).Is<Upp::String>()) {
                     opts.graph_source_kind = source_map.Get("kind", Upp::Value()).ToString().ToStd();
                 }
-                if (source_map.Get("id", Upp::Value()).IsString()) {
+                if (source_map.Get("id", Upp::Value()).Is<Upp::String>()) {
                     opts.graph_source_id = source_map.Get("id", Upp::Value()).ToString().ToStd();
                 }
             }
 
-            if (req.payload.Get("target", Upp::Value()).IsMap()) {
-                Upp::ValueMap target_map = req.payload.Get("target", Upp::ValueMap());
-                if (target_map.Get("kind", Upp::Value()).IsString()) {
+            if (PayloadGet(req, "target", Upp::Value()).Is<Upp::ValueMap>()) {
+                Upp::ValueMap target_map = PayloadGet(req, "target", Upp::ValueMap());
+                if (target_map.Get("kind", Upp::Value()).Is<Upp::String>()) {
                     opts.graph_target_kind = target_map.Get("kind", Upp::Value()).ToString().ToStd();
                 }
-                if (target_map.Get("id", Upp::Value()).IsString()) {
+                if (target_map.Get("id", Upp::Value()).Is<Upp::String>()) {
                     opts.graph_target_id = target_map.Get("id", Upp::Value()).ToString().ToStd();
                 }
             }
 
-            if (req.payload.Get("max_depth", Upp::Value()).IsInt()) {
-                opts.graph_max_depth = req.payload.Get("max_depth", Upp::Value(128)).ToInt();
+            if (PayloadGet(req, "max_depth", Upp::Value()).Is<int>()) {
+                opts.graph_max_depth = PayloadGet(req, "max_depth", Upp::Value(128)).To<int>();
             }
 
             // Use the CommandDispatcher to handle the graph-paths command
@@ -412,7 +421,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -428,23 +437,23 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract graph-specific parameters from payload
-            if (req.payload.Get("node", Upp::Value()).IsMap()) {
-                Upp::ValueMap node_map = req.payload.Get("node", Upp::ValueMap());
-                if (node_map.Get("kind", Upp::Value()).IsString()) {
+            if (PayloadGet(req, "node", Upp::Value()).Is<Upp::ValueMap>()) {
+                Upp::ValueMap node_map = PayloadGet(req, "node", Upp::ValueMap());
+                if (node_map.Get("kind", Upp::Value()).Is<Upp::String>()) {
                     opts.graph_node_kind = node_map.Get("kind", Upp::Value()).ToString().ToStd();
                 }
-                if (node_map.Get("id", Upp::Value()).IsString()) {
+                if (node_map.Get("id", Upp::Value()).Is<Upp::String>()) {
                     opts.graph_node_id = node_map.Get("id", Upp::Value()).ToString().ToStd();
                 }
             }
 
-            if (req.payload.Get("max_depth", Upp::Value()).IsInt()) {
-                opts.graph_max_depth = req.payload.Get("max_depth", Upp::Value(128)).ToInt();
+            if (PayloadGet(req, "max_depth", Upp::Value()).Is<int>()) {
+                opts.graph_max_depth = PayloadGet(req, "max_depth", Upp::Value(128)).To<int>();
             }
 
             // Use the CommandDispatcher to handle the graph-fanin command
@@ -454,7 +463,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -470,23 +479,23 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract graph-specific parameters from payload
-            if (req.payload.Get("node", Upp::Value()).IsMap()) {
-                Upp::ValueMap node_map = req.payload.Get("node", Upp::ValueMap());
-                if (node_map.Get("kind", Upp::Value()).IsString()) {
+            if (PayloadGet(req, "node", Upp::Value()).Is<Upp::ValueMap>()) {
+                Upp::ValueMap node_map = PayloadGet(req, "node", Upp::ValueMap());
+                if (node_map.Get("kind", Upp::Value()).Is<Upp::String>()) {
                     opts.graph_node_kind = node_map.Get("kind", Upp::Value()).ToString().ToStd();
                 }
-                if (node_map.Get("id", Upp::Value()).IsString()) {
+                if (node_map.Get("id", Upp::Value()).Is<Upp::String>()) {
                     opts.graph_node_id = node_map.Get("id", Upp::Value()).ToString().ToStd();
                 }
             }
 
-            if (req.payload.Get("max_depth", Upp::Value()).IsInt()) {
-                opts.graph_max_depth = req.payload.Get("max_depth", Upp::Value(128)).ToInt();
+            if (PayloadGet(req, "max_depth", Upp::Value()).Is<int>()) {
+                opts.graph_max_depth = PayloadGet(req, "max_depth", Upp::Value(128)).To<int>();
             }
 
             // Use the CommandDispatcher to handle the graph-fanout command
@@ -496,7 +505,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -512,8 +521,8 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the graph-stats command
@@ -523,7 +532,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -539,8 +548,8 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the timing-summary command
@@ -550,7 +559,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -566,16 +575,16 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract max_paths and max_depth from payload if provided
-            if (req.payload.Get("max_paths", Upp::Value()).Is<int>()) {
-                opts.payload.Add("max_paths", req.payload.Get("max_paths", Upp::Value()));
+            if (PayloadGet(req, "max_paths", Upp::Value()).Is<int>()) {
+                opts.payload.Add("max_paths", PayloadGet(req, "max_paths", Upp::Value()));
             }
-            if (req.payload.Get("max_depth", Upp::Value()).Is<int>()) {
-                opts.payload.Add("max_depth", req.payload.Get("max_depth", Upp::Value()));
+            if (PayloadGet(req, "max_depth", Upp::Value()).Is<int>()) {
+                opts.payload.Add("max_depth", PayloadGet(req, "max_depth", Upp::Value()));
             }
 
             // Use the CommandDispatcher to handle the timing-critical-paths command
@@ -585,7 +594,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -601,8 +610,8 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the timing-loops command
@@ -612,7 +621,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -628,13 +637,13 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract max_results from payload if provided
-            if (req.payload.Get("max_results", Upp::Value()).Is<int>()) {
-                opts.payload.Add("max_results", req.payload.Get("max_results", Upp::Value()));
+            if (PayloadGet(req, "max_results", Upp::Value()).Is<int>()) {
+                opts.payload.Add("max_results", PayloadGet(req, "max_results", Upp::Value()));
             }
 
             // Use the CommandDispatcher to handle the timing-hazards command
@@ -644,7 +653,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -660,19 +669,19 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract node parameters from payload
-            if (req.payload.Get("node_id", Upp::Value()).IsString()) {
-                opts.deps_node_id = req.payload.Get("node_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "node_id", Upp::Value()).Is<Upp::String>()) {
+                opts.deps_node_id = PayloadGet(req, "node_id", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("node_kind", Upp::Value()).IsString()) {
-                opts.deps_node_kind = req.payload.Get("node_kind", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "node_kind", Upp::Value()).Is<Upp::String>()) {
+                opts.deps_node_kind = PayloadGet(req, "node_kind", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("max_depth", Upp::Value()).Is<int>()) {
-                opts.deps_max_depth = req.payload.Get("max_depth", Upp::Value(128)).ToInt();
+            if (PayloadGet(req, "max_depth", Upp::Value()).Is<int>()) {
+                opts.deps_max_depth = PayloadGet(req, "max_depth", Upp::Value(128)).To<int>();
             }
 
             // Use the CommandDispatcher to handle the deps-summary command
@@ -682,7 +691,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -698,19 +707,19 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract node parameters from payload
-            if (req.payload.Get("node_id", Upp::Value()).IsString()) {
-                opts.deps_node_id = req.payload.Get("node_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "node_id", Upp::Value()).Is<Upp::String>()) {
+                opts.deps_node_id = PayloadGet(req, "node_id", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("node_kind", Upp::Value()).IsString()) {
-                opts.deps_node_kind = req.payload.Get("node_kind", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "node_kind", Upp::Value()).Is<Upp::String>()) {
+                opts.deps_node_kind = PayloadGet(req, "node_kind", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("max_depth", Upp::Value()).Is<int>()) {
-                opts.deps_max_depth = req.payload.Get("max_depth", Upp::Value(128)).ToInt();
+            if (PayloadGet(req, "max_depth", Upp::Value()).Is<int>()) {
+                opts.deps_max_depth = PayloadGet(req, "max_depth", Upp::Value(128)).To<int>();
             }
 
             // Use the CommandDispatcher to handle the deps-backward command
@@ -720,7 +729,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -736,19 +745,19 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract node parameters from payload
-            if (req.payload.Get("node_id", Upp::Value()).IsString()) {
-                opts.deps_node_id = req.payload.Get("node_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "node_id", Upp::Value()).Is<Upp::String>()) {
+                opts.deps_node_id = PayloadGet(req, "node_id", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("node_kind", Upp::Value()).IsString()) {
-                opts.deps_node_kind = req.payload.Get("node_kind", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "node_kind", Upp::Value()).Is<Upp::String>()) {
+                opts.deps_node_kind = PayloadGet(req, "node_kind", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("max_depth", Upp::Value()).Is<int>()) {
-                opts.deps_max_depth = req.payload.Get("max_depth", Upp::Value(128)).ToInt();
+            if (PayloadGet(req, "max_depth", Upp::Value()).Is<int>()) {
+                opts.deps_max_depth = PayloadGet(req, "max_depth", Upp::Value(128)).To<int>();
             }
 
             // Use the CommandDispatcher to handle the deps-forward command
@@ -758,7 +767,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -774,19 +783,19 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract node parameters from payload
-            if (req.payload.Get("node_id", Upp::Value()).IsString()) {
-                opts.deps_node_id = req.payload.Get("node_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "node_id", Upp::Value()).Is<Upp::String>()) {
+                opts.deps_node_id = PayloadGet(req, "node_id", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("node_kind", Upp::Value()).IsString()) {
-                opts.deps_node_kind = req.payload.Get("node_kind", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "node_kind", Upp::Value()).Is<Upp::String>()) {
+                opts.deps_node_kind = PayloadGet(req, "node_kind", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("max_depth", Upp::Value()).Is<int>()) {
-                opts.deps_max_depth = req.payload.Get("max_depth", Upp::Value(128)).ToInt();
+            if (PayloadGet(req, "max_depth", Upp::Value()).Is<int>()) {
+                opts.deps_max_depth = PayloadGet(req, "max_depth", Upp::Value(128)).To<int>();
             }
 
             // Use the CommandDispatcher to handle the deps-both command
@@ -796,7 +805,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -812,8 +821,8 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the blocks-list command
@@ -823,7 +832,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -839,8 +848,8 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the blocks-export command
@@ -850,7 +859,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -866,13 +875,13 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract block_id from payload
-            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
-                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.block_id = PayloadGet(req, "block_id", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the block-inspect command
@@ -882,7 +891,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -898,13 +907,13 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract block_id from payload
-            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
-                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.block_id = PayloadGet(req, "block_id", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the behavior-block command
@@ -914,7 +923,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -930,16 +939,16 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract node parameters from payload
-            if (req.payload.Get("node_id", Upp::Value()).IsString()) {
-                opts.node_id = req.payload.Get("node_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "node_id", Upp::Value()).Is<Upp::String>()) {
+                opts.node_id = PayloadGet(req, "node_id", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("node_kind", Upp::Value()).IsString()) {
-                opts.node_kind = req.payload.Get("node_kind", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "node_kind", Upp::Value()).Is<Upp::String>()) {
+                opts.node_kind = PayloadGet(req, "node_kind", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the behavior-node command
@@ -949,7 +958,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -965,13 +974,13 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract block_id from payload
-            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
-                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.block_id = PayloadGet(req, "block_id", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the ir-block command
@@ -981,7 +990,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -997,18 +1006,18 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract block_id from payload
-            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
-                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.block_id = PayloadGet(req, "block_id", Upp::Value()).ToString().ToStd();
             }
 
             // Extract passes from payload
-            if (req.payload.Get("passes", Upp::Value()).IsArray()) {
-                Upp::ValueArray passes_array = req.payload.Get("passes", Upp::ValueArray());
+            if (PayloadGet(req, "passes", Upp::Value()).Is<Upp::ValueArray>()) {
+                Upp::ValueArray passes_array = PayloadGet(req, "passes", Upp::ValueArray());
                 std::string passes_str;
                 for (int i = 0; i < passes_array.GetCount(); ++i) {
                     if (i > 0) passes_str += ",";
@@ -1024,7 +1033,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -1040,18 +1049,18 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract block_id from payload
-            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
-                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.block_id = PayloadGet(req, "block_id", Upp::Value()).ToString().ToStd();
             }
 
             // Extract passes from payload
-            if (req.payload.Get("passes", Upp::Value()).IsArray()) {
-                Upp::ValueArray passes_array = req.payload.Get("passes", Upp::ValueArray());
+            if (PayloadGet(req, "passes", Upp::Value()).Is<Upp::ValueArray>()) {
+                Upp::ValueArray passes_array = PayloadGet(req, "passes", Upp::ValueArray());
                 std::string passes_str;
                 for (int i = 0; i < passes_array.GetCount(); ++i) {
                     if (i > 0) passes_str += ",";
@@ -1067,7 +1076,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -1083,19 +1092,19 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract node parameters from payload
-            if (req.payload.Get("node_id", Upp::Value()).IsString()) {
-                opts.node_id = req.payload.Get("node_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "node_id", Upp::Value()).Is<Upp::String>()) {
+                opts.node_id = PayloadGet(req, "node_id", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("node_kind", Upp::Value()).IsString()) {
-                opts.node_kind = req.payload.Get("node_kind", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "node_kind", Upp::Value()).Is<Upp::String>()) {
+                opts.node_kind = PayloadGet(req, "node_kind", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("max_depth", Upp::Value()).IsInt()) {
-                opts.max_depth = req.payload.Get("max_depth", Upp::Value(4)).ToInt();
+            if (PayloadGet(req, "max_depth", Upp::Value()).Is<int>()) {
+                opts.max_depth = std::to_string(PayloadGet(req, "max_depth", Upp::Value(4)).To<int>());
             }
 
             // Use the CommandDispatcher to handle the ir-node-region command
@@ -1105,7 +1114,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -1121,13 +1130,13 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract block_id from payload
-            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
-                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.block_id = PayloadGet(req, "block_id", Upp::Value()).ToString().ToStd();
             }
 
             // Extract scheduling parameters from payload
@@ -1140,7 +1149,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -1156,19 +1165,19 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract node parameters from payload
-            if (req.payload.Get("node_id", Upp::Value()).IsString()) {
-                opts.node_id = req.payload.Get("node_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "node_id", Upp::Value()).Is<Upp::String>()) {
+                opts.node_id = PayloadGet(req, "node_id", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("node_kind", Upp::Value()).IsString()) {
-                opts.node_kind = req.payload.Get("node_kind", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "node_kind", Upp::Value()).Is<Upp::String>()) {
+                opts.node_kind = PayloadGet(req, "node_kind", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("max_depth", Upp::Value()).IsInt()) {
-                opts.max_depth = req.payload.Get("max_depth", Upp::Value(4)).ToInt();
+            if (PayloadGet(req, "max_depth", Upp::Value()).Is<int>()) {
+                opts.max_depth = std::to_string(PayloadGet(req, "max_depth", Upp::Value(4)).To<int>());
             }
 
             // Extract scheduling parameters from payload
@@ -1181,7 +1190,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -1197,13 +1206,13 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract block_id from payload
-            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
-                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.block_id = PayloadGet(req, "block_id", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the pipeline-block command
@@ -1213,7 +1222,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -1229,18 +1238,18 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract subsystem_id from payload
-            if (req.payload.Get("subsystem_id", Upp::Value()).IsString()) {
-                opts.subsystem_id = req.payload.Get("subsystem_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "subsystem_id", Upp::Value()).Is<Upp::String>()) {
+                opts.subsystem_id = PayloadGet(req, "subsystem_id", Upp::Value()).ToString().ToStd();
             }
 
             // Extract block_ids from payload
-            if (req.payload.Get("block_ids", Upp::Value()).IsArray()) {
-                Upp::ValueArray block_ids_array = req.payload.Get("block_ids").ToValueArray();
+            if (PayloadGet(req, "block_ids", Upp::Value()).Is<Upp::ValueArray>()) {
+                Upp::ValueArray block_ids_array = Upp::ValueArray(PayloadGet(req, "block_ids", Upp::Value()));
                 std::string block_ids_str;
                 for (int i = 0; i < block_ids_array.GetCount(); ++i) {
                     if (i > 0) block_ids_str += ",";
@@ -1256,7 +1265,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -1272,16 +1281,16 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch parameters from payload
-            if (req.payload.Get("branch_before", Upp::Value()).IsString()) {
-                opts.branch_before = req.payload.Get("branch_before", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch_before", Upp::Value()).Is<Upp::String>()) {
+                opts.branch_before = PayloadGet(req, "branch_before", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("branch_after", Upp::Value()).IsString()) {
-                opts.branch_after = req.payload.Get("branch_after", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch_after", Upp::Value()).Is<Upp::String>()) {
+                opts.branch_after = PayloadGet(req, "branch_after", Upp::Value()).ToString().ToStd();
             }
 
             // Extract block_id from payload
-            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
-                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.block_id = PayloadGet(req, "block_id", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the behavior-diff-block command
@@ -1291,7 +1300,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -1307,16 +1316,16 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch parameters from payload
-            if (req.payload.Get("branch_before", Upp::Value()).IsString()) {
-                opts.branch_before = req.payload.Get("branch_before", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch_before", Upp::Value()).Is<Upp::String>()) {
+                opts.branch_before = PayloadGet(req, "branch_before", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("branch_after", Upp::Value()).IsString()) {
-                opts.branch_after = req.payload.Get("branch_after", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch_after", Upp::Value()).Is<Upp::String>()) {
+                opts.branch_after = PayloadGet(req, "branch_after", Upp::Value()).ToString().ToStd();
             }
 
             // Extract block_id from payload
-            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
-                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.block_id = PayloadGet(req, "block_id", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the ir-diff-block command
@@ -1326,7 +1335,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -1342,22 +1351,22 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch parameters from payload
-            if (req.payload.Get("branch_before", Upp::Value()).IsString()) {
-                opts.branch_before = req.payload.Get("branch_before", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch_before", Upp::Value()).Is<Upp::String>()) {
+                opts.branch_before = PayloadGet(req, "branch_before", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("branch_after", Upp::Value()).IsString()) {
-                opts.branch_after = req.payload.Get("branch_after", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch_after", Upp::Value()).Is<Upp::String>()) {
+                opts.branch_after = PayloadGet(req, "branch_after", Upp::Value()).ToString().ToStd();
             }
 
             // Extract node parameters from payload
-            if (req.payload.Get("node_id", Upp::Value()).IsString()) {
-                opts.node_id = req.payload.Get("node_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "node_id", Upp::Value()).Is<Upp::String>()) {
+                opts.node_id = PayloadGet(req, "node_id", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("node_kind", Upp::Value()).IsString()) {
-                opts.node_kind_hint = req.payload.Get("node_kind", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "node_kind", Upp::Value()).Is<Upp::String>()) {
+                opts.node_kind_hint = PayloadGet(req, "node_kind", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("max_depth", Upp::Value()).IsInt()) {
-                opts.max_depth = std::to_string(req.payload.Get("max_depth", Upp::Value(4)).ToInt());
+            if (PayloadGet(req, "max_depth", Upp::Value()).Is<int>()) {
+                opts.max_depth = std::to_string(PayloadGet(req, "max_depth", Upp::Value(4)).To<int>());
             }
 
             // Use the CommandDispatcher to handle the ir-diff-node-region command
@@ -1367,7 +1376,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -1383,13 +1392,13 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract block_id from payload
-            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
-                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.block_id = PayloadGet(req, "block_id", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the codegen-block-ir command
@@ -1399,7 +1408,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -1415,33 +1424,33 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract block_id from payload
-            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
-                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.block_id = PayloadGet(req, "block_id", Upp::Value()).ToString().ToStd();
             }
 
             // Extract language from payload
-            if (req.payload.Get("lang", Upp::Value()).IsString()) {
-                opts.lang = req.payload.Get("lang", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "lang", Upp::Value()).Is<Upp::String>()) {
+                opts.lang = PayloadGet(req, "lang", Upp::Value()).ToString().ToStd();
             }
 
             // Extract emit-state-struct from payload (boolean as string)
-            if (req.payload.Get("emit_state_struct", Upp::Value()).IsString()) {
-                opts.emit_state_struct = req.payload.Get("emit_state_struct", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "emit_state_struct", Upp::Value()).Is<Upp::String>()) {
+                opts.emit_state_struct = PayloadGet(req, "emit_state_struct", Upp::Value()).ToString().ToStd();
             }
 
             // Extract state-struct-name from payload
-            if (req.payload.Get("state_struct_name", Upp::Value()).IsString()) {
-                opts.state_struct_name = req.payload.Get("state_struct_name", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "state_struct_name", Upp::Value()).Is<Upp::String>()) {
+                opts.state_struct_name = PayloadGet(req, "state_struct_name", Upp::Value()).ToString().ToStd();
             }
 
             // Extract function-name from payload
-            if (req.payload.Get("function_name", Upp::Value()).IsString()) {
-                opts.function_name = req.payload.Get("function_name", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "function_name", Upp::Value()).Is<Upp::String>()) {
+                opts.function_name = PayloadGet(req, "function_name", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the codegen-block-c command
@@ -1451,7 +1460,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -1467,33 +1476,33 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract block_id from payload
-            if (req.payload.Get("block_id", Upp::Value()).IsString()) {
-                opts.block_id = req.payload.Get("block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.block_id = PayloadGet(req, "block_id", Upp::Value()).ToString().ToStd();
             }
 
             // Extract language from payload
-            if (req.payload.Get("lang", Upp::Value()).IsString()) {
-                opts.lang = req.payload.Get("lang", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "lang", Upp::Value()).Is<Upp::String>()) {
+                opts.lang = PayloadGet(req, "lang", Upp::Value()).ToString().ToStd();
             }
 
             // Extract state-struct-name from payload
-            if (req.payload.Get("state_struct_name", Upp::Value()).IsString()) {
-                opts.state_struct_name = req.payload.Get("state_struct_name", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "state_struct_name", Upp::Value()).Is<Upp::String>()) {
+                opts.state_struct_name = PayloadGet(req, "state_struct_name", Upp::Value()).ToString().ToStd();
             }
 
             // Extract step-function-name from payload
-            if (req.payload.Get("step_function_name", Upp::Value()).IsString()) {
-                opts.step_function_name = req.payload.Get("step_function_name", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "step_function_name", Upp::Value()).Is<Upp::String>()) {
+                opts.step_function_name = PayloadGet(req, "step_function_name", Upp::Value()).ToString().ToStd();
             }
 
             // Extract render-function-name from payload
-            if (req.payload.Get("render_function_name", Upp::Value()).IsString()) {
-                opts.render_function_name = req.payload.Get("render_function_name", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "render_function_name", Upp::Value()).Is<Upp::String>()) {
+                opts.render_function_name = PayloadGet(req, "render_function_name", Upp::Value()).ToString().ToStd();
             }
 
             // Use the CommandDispatcher to handle the codegen-block-osc-demo command
@@ -1503,7 +1512,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -1519,42 +1528,42 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract other parameters
-            if (req.payload.Get("instrument_id", Upp::Value()).IsString()) {
-                opts.instrument_id = req.payload.Get("instrument_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "instrument_id", Upp::Value()).Is<Upp::String>()) {
+                opts.instrument_id = PayloadGet(req, "instrument_id", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("analog_block_id", Upp::Value()).IsString()) {
-                opts.analog_block_id = req.payload.Get("analog_block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "analog_block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.analog_block_id = PayloadGet(req, "analog_block_id", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("digital_block_id", Upp::Value()).IsString()) {
-                opts.digital_block_id = req.payload.Get("digital_block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "digital_block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.digital_block_id = PayloadGet(req, "digital_block_id", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("voice_count", Upp::Value()).IsInt()) {
-                opts.voice_count = std::to_string(req.payload.Get("voice_count", Upp::Value(1)).ToInt());
+            if (PayloadGet(req, "voice_count", Upp::Value()).Is<int>()) {
+                opts.voice_count = std::to_string(PayloadGet(req, "voice_count", Upp::Value(1)).To<int>());
             }
-            if (req.payload.Get("sample_rate", Upp::Value()).IsDouble()) {
-                opts.sample_rate = std::to_string(req.payload.Get("sample_rate", Upp::Value(48000.0)).ToDouble());
+            if (PayloadGet(req, "sample_rate", Upp::Value()).Is<double>()) {
+                opts.sample_rate = std::to_string(PayloadGet(req, "sample_rate", Upp::Value(48000.0)).To<double>());
             }
-            if (req.payload.Get("duration_sec", Upp::Value()).IsDouble()) {
-                opts.duration_sec = std::to_string(req.payload.Get("duration_sec", Upp::Value(3.0)).ToDouble());
+            if (PayloadGet(req, "duration_sec", Upp::Value()).Is<double>()) {
+                opts.duration_sec = std::to_string(PayloadGet(req, "duration_sec", Upp::Value(3.0)).To<double>());
             }
-            if (req.payload.Get("base_freq_hz", Upp::Value()).IsDouble()) {
-                opts.base_freq_hz = std::to_string(req.payload.Get("base_freq_hz", Upp::Value(440.0)).ToDouble());
+            if (PayloadGet(req, "base_freq_hz", Upp::Value()).Is<double>()) {
+                opts.base_freq_hz = std::to_string(PayloadGet(req, "base_freq_hz", Upp::Value(440.0)).To<double>());
             }
-            if (req.payload.Get("detune_spread_cents", Upp::Value()).IsDouble()) {
-                opts.detune_spread_cents = std::to_string(req.payload.Get("detune_spread_cents", Upp::Value(10.0)).ToDouble());
+            if (PayloadGet(req, "detune_spread_cents", Upp::Value()).Is<double>()) {
+                opts.detune_spread_cents = std::to_string(PayloadGet(req, "detune_spread_cents", Upp::Value(10.0)).To<double>());
             }
-            if (req.payload.Get("pan_lfo_hz", Upp::Value()).IsDouble()) {
-                opts.pan_lfo_hz = std::to_string(req.payload.Get("pan_lfo_hz", Upp::Value(0.25)).ToDouble());
+            if (PayloadGet(req, "pan_lfo_hz", Upp::Value()).Is<double>()) {
+                opts.pan_lfo_hz = std::to_string(PayloadGet(req, "pan_lfo_hz", Upp::Value(0.25)).To<double>());
             }
 
             // Check for use-analog-primary flag
-            if (req.payload.Get("use_analog_primary", Upp::Value()).IsBool() &&
-                req.payload.Get("use_analog_primary", Upp::Value(false)).ToBool()) {
+            if (PayloadGet(req, "use_analog_primary", Upp::Value()).Is<bool>() &&
+                PayloadGet(req, "use_analog_primary", Upp::Value(false)).To<bool>()) {
                 opts.use_analog_primary = true;
             }
 
@@ -1565,7 +1574,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -1581,42 +1590,42 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             opts.user_id = req.user_id;
 
             // Extract branch from payload if provided
-            if (req.payload.Get("branch", Upp::Value()).IsString()) {
-                opts.branch = req.payload.Get("branch", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "branch", Upp::Value()).Is<Upp::String>()) {
+                opts.branch = PayloadGet(req, "branch", Upp::Value()).ToString().ToStd();
             }
 
             // Extract other parameters
-            if (req.payload.Get("instrument_id", Upp::Value()).IsString()) {
-                opts.instrument_id = req.payload.Get("instrument_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "instrument_id", Upp::Value()).Is<Upp::String>()) {
+                opts.instrument_id = PayloadGet(req, "instrument_id", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("analog_block_id", Upp::Value()).IsString()) {
-                opts.analog_block_id = req.payload.Get("analog_block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "analog_block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.analog_block_id = PayloadGet(req, "analog_block_id", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("digital_block_id", Upp::Value()).IsString()) {
-                opts.digital_block_id = req.payload.Get("digital_block_id", Upp::Value()).ToString().ToStd();
+            if (PayloadGet(req, "digital_block_id", Upp::Value()).Is<Upp::String>()) {
+                opts.digital_block_id = PayloadGet(req, "digital_block_id", Upp::Value()).ToString().ToStd();
             }
-            if (req.payload.Get("voice_count", Upp::Value()).IsInt()) {
-                opts.voice_count = std::to_string(req.payload.Get("voice_count", Upp::Value(1)).ToInt());
+            if (PayloadGet(req, "voice_count", Upp::Value()).Is<int>()) {
+                opts.voice_count = std::to_string(PayloadGet(req, "voice_count", Upp::Value(1)).To<int>());
             }
-            if (req.payload.Get("sample_rate", Upp::Value()).IsDouble()) {
-                opts.sample_rate = std::to_string(req.payload.Get("sample_rate", Upp::Value(48000.0)).ToDouble());
+            if (PayloadGet(req, "sample_rate", Upp::Value()).Is<double>()) {
+                opts.sample_rate = std::to_string(PayloadGet(req, "sample_rate", Upp::Value(48000.0)).To<double>());
             }
-            if (req.payload.Get("duration_sec", Upp::Value()).IsDouble()) {
-                opts.duration_sec = std::to_string(req.payload.Get("duration_sec", Upp::Value(3.0)).ToDouble());
+            if (PayloadGet(req, "duration_sec", Upp::Value()).Is<double>()) {
+                opts.duration_sec = std::to_string(PayloadGet(req, "duration_sec", Upp::Value(3.0)).To<double>());
             }
-            if (req.payload.Get("base_freq_hz", Upp::Value()).IsDouble()) {
-                opts.base_freq_hz = std::to_string(req.payload.Get("base_freq_hz", Upp::Value(440.0)).ToDouble());
+            if (PayloadGet(req, "base_freq_hz", Upp::Value()).Is<double>()) {
+                opts.base_freq_hz = std::to_string(PayloadGet(req, "base_freq_hz", Upp::Value(440.0)).To<double>());
             }
-            if (req.payload.Get("detune_spread_cents", Upp::Value()).IsDouble()) {
-                opts.detune_spread_cents = std::to_string(req.payload.Get("detune_spread_cents", Upp::Value(10.0)).ToDouble());
+            if (PayloadGet(req, "detune_spread_cents", Upp::Value()).Is<double>()) {
+                opts.detune_spread_cents = std::to_string(PayloadGet(req, "detune_spread_cents", Upp::Value(10.0)).To<double>());
             }
-            if (req.payload.Get("pan_lfo_hz", Upp::Value()).IsDouble()) {
-                opts.pan_lfo_hz = std::to_string(req.payload.Get("pan_lfo_hz", Upp::Value(0.25)).ToDouble());
+            if (PayloadGet(req, "pan_lfo_hz", Upp::Value()).Is<double>()) {
+                opts.pan_lfo_hz = std::to_string(PayloadGet(req, "pan_lfo_hz", Upp::Value(0.25)).To<double>());
             }
 
             // Check for use-analog-primary flag
-            if (req.payload.Get("use_analog_primary", Upp::Value()).IsBool() &&
-                req.payload.Get("use_analog_primary", Upp::Value(false)).ToBool()) {
+            if (PayloadGet(req, "use_analog_primary", Upp::Value()).Is<bool>() &&
+                PayloadGet(req, "use_analog_primary", Upp::Value(false)).To<bool>()) {
                 opts.use_analog_primary = true;
             }
 
@@ -1627,7 +1636,7 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             // Parse the response and convert to DaemonResponse
             Upp::ValueMap parsed_response = JsonIO::Deserialize(response);
             out_resp.id = req.id;
-            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).ToBool();
+            out_resp.ok = parsed_response.Get("ok", Upp::Value(false)).To<bool>();
             out_resp.command = req.command;
             out_resp.error_code = parsed_response.Get("error_code", Upp::Value()).ToString().ToStd();
             out_resp.error = parsed_response.Get("error", Upp::Value()).ToString().ToStd();
@@ -1636,49 +1645,49 @@ Result<void> SessionServer::HandleRequest(const DaemonRequest& req, DaemonRespon
             return Result<void>::MakeOk();
         }
         else if (req.command == "designer-create-session") {
-            return HandleDesignerCreateSession(req);
+            result = HandleDesignerCreateSession(req);
         }
         else if (req.command == "designer-set-focus") {
-            return HandleDesignerSetFocus(req);
+            result = HandleDesignerSetFocus(req);
         }
         else if (req.command == "designer-get-context") {
-            return HandleDesignerGetContext(req);
+            result = HandleDesignerGetContext(req);
         }
         else if (req.command == "designer-analyze") {
-            return HandleDesignerAnalyze(req);
+            result = HandleDesignerAnalyze(req);
         }
         else if (req.command == "designer-optimize") {
-            return HandleDesignerOptimize(req);
+            result = HandleDesignerOptimize(req);
         }
         else if (req.command == "designer-propose-refactors") {
-            return HandleDesignerProposeRefactors(req);
+            result = HandleDesignerProposeRefactors(req);
         }
         else if (req.command == "designer-apply-refactors") {
-            return HandleDesignerApplyRefactors(req);
+            result = HandleDesignerApplyRefactors(req);
         }
         else if (req.command == "designer-diff") {
-            return HandleDesignerDiff(req);
+            result = HandleDesignerDiff(req);
         }
         else if (req.command == "designer-codegen") {
-            return HandleDesignerCodegen(req);
+            result = HandleDesignerCodegen(req);
         }
         else if (req.command == "designer-codegen-block-c") {
-            return HandleDesignerCodegenBlockC(req);
+            result = HandleDesignerCodegenBlockC(req);
         }
         else if (req.command == "designer-codegen-osc-demo") {
-            return HandleDesignerCodegenOscDemo(req);
+            result = HandleDesignerCodegenOscDemo(req);
         }
         else if (req.command == "designer-build-hybrid-instrument") {
-            return HandleDesignerBuildHybridInstrument(req);
+            result = HandleDesignerBuildHybridInstrument(req);
         }
         else if (req.command == "designer-render-hybrid-instrument") {
-            return HandleDesignerRenderHybridInstrument(req);
+            result = HandleDesignerRenderHybridInstrument(req);
         }
         else if (req.command == "designer-instrument-export-plugin-project") {
-            return HandleDesignerInstrumentExportPluginProject(req);
+            result = HandleDesignerInstrumentExportPluginProject(req);
         }
         else if (req.command == "designer-run-playbook") {
-            return HandleDesignerRunPlaybook(req);
+            result = HandleDesignerRunPlaybook(req);
         }
         else {
             return Result<void>::MakeError(ErrorCode::CommandParseError, "Unknown command: " + req.command);
@@ -1765,7 +1774,7 @@ Result<DaemonResponse> SessionServer::HandleInitWorkspace(const DaemonRequest& r
 
 Result<DaemonResponse> SessionServer::HandleCreateSession(const DaemonRequest& req) {
     // Extract circuit file from payload
-    std::string circuit_file = req.payload.Get("circuit_file", Upp::String("")).ToStd();
+    std::string circuit_file = PayloadGet(req, "circuit_file", Upp::String("")).ToStd();
 
     CommandOptions opts;
     opts.workspace = req.workspace;
@@ -1798,7 +1807,7 @@ Result<DaemonResponse> SessionServer::HandleListSessions(const DaemonRequest& re
 }
 
 Result<DaemonResponse> SessionServer::HandleRunTicks(const DaemonRequest& req) {
-    int ticks = req.payload.Get("ticks", 1);
+    int ticks = PayloadGet(req, "ticks", 1);
     
     CommandOptions opts;
     opts.workspace = req.workspace;
@@ -1842,7 +1851,7 @@ Result<DaemonResponse> SessionServer::HandleGetState(const DaemonRequest& req) {
 }
 
 Result<DaemonResponse> SessionServer::HandleExportNetlist(const DaemonRequest& req) {
-    int pcb_id = req.payload.Get("pcb_id", 0);
+    int pcb_id = PayloadGet(req, "pcb_id", 0);
     
     CommandOptions opts;
     opts.workspace = req.workspace;
@@ -1909,14 +1918,14 @@ Result<DaemonResponse> SessionServer::HandleAnalyzeCircuit(const DaemonRequest& 
 }
 
 Result<DaemonResponse> SessionServer::HandleEditAddComponent(const DaemonRequest& req) {
-    std::string component_type = req.payload.Get("type", Upp::String("")).ToStd();
-    std::string component_name = req.payload.Get("name", Upp::String("")).ToStd();
-    int x = req.payload.Get("x", 0);
-    int y = req.payload.Get("y", 0);
+    std::string component_type = PayloadGet(req, "type", Upp::String("")).ToStd();
+    std::string component_name = PayloadGet(req, "name", Upp::String("")).ToStd();
+    int x = PayloadGet(req, "x", 0);
+    int y = PayloadGet(req, "y", 0);
 
     // Get collaboration parameters
-    int64_t expected_revision = req.payload.Get("expected_revision", -1);
-    bool allow_merge = req.payload.Get("allow_merge", true);
+    int64_t expected_revision = (int64_t)(Upp::int64)PayloadGet(req, "expected_revision", Upp::Value((Upp::int64)(int64_t)-1));
+    bool allow_merge = PayloadGet(req, "allow_merge", true);
 
     CommandOptions opts;
     opts.workspace = req.workspace;
@@ -1936,7 +1945,7 @@ Result<DaemonResponse> SessionServer::HandleEditAddComponent(const DaemonRequest
 
     // If successful, broadcast a session update event
     if (parsed_result.Get("ok", false)) {
-        auto data_map = parsed_result.Get("data", Upp::ValueMap());
+        Upp::ValueMap data_map = parsed_result.Get("data", Upp::ValueMap());
         int session_id = data_map.Get("session_id", req.session_id);
         int circuit_revision = data_map.Get("circuit_revision", 0);
         int sim_revision = data_map.Get("sim_revision", 0);
@@ -1958,11 +1967,11 @@ Result<DaemonResponse> SessionServer::HandleEditAddComponent(const DaemonRequest
 }
 
 Result<DaemonResponse> SessionServer::HandleEditRemoveComponent(const DaemonRequest& req) {
-    std::string component_id = req.payload.Get("component_id", Upp::String("")).ToStd();
+    std::string component_id = PayloadGet(req, "component_id", Upp::String("")).ToStd();
 
     // Get collaboration parameters
-    int64_t expected_revision = req.payload.Get("expected_revision", -1);
-    bool allow_merge = req.payload.Get("allow_merge", true);
+    int64_t expected_revision = (int64_t)(Upp::int64)PayloadGet(req, "expected_revision", Upp::Value((Upp::int64)(int64_t)-1));
+    bool allow_merge = PayloadGet(req, "allow_merge", true);
 
     CommandOptions opts;
     opts.workspace = req.workspace;
@@ -1979,7 +1988,7 @@ Result<DaemonResponse> SessionServer::HandleEditRemoveComponent(const DaemonRequ
 
     // If successful, broadcast a session update event
     if (parsed_result.Get("ok", false)) {
-        auto data_map = parsed_result.Get("data", Upp::ValueMap());
+        Upp::ValueMap data_map = parsed_result.Get("data", Upp::ValueMap());
         int session_id = data_map.Get("session_id", req.session_id);
         int circuit_revision = data_map.Get("circuit_revision", 0);
         int sim_revision = data_map.Get("sim_revision", 0);
@@ -2001,13 +2010,13 @@ Result<DaemonResponse> SessionServer::HandleEditRemoveComponent(const DaemonRequ
 }
 
 Result<DaemonResponse> SessionServer::HandleEditMoveComponent(const DaemonRequest& req) {
-    std::string component_id = req.payload.Get("component_id", Upp::String("")).ToStd();
-    int x = req.payload.Get("x", 0);
-    int y = req.payload.Get("y", 0);
+    std::string component_id = PayloadGet(req, "component_id", Upp::String("")).ToStd();
+    int x = PayloadGet(req, "x", 0);
+    int y = PayloadGet(req, "y", 0);
 
     // Get collaboration parameters
-    int64_t expected_revision = req.payload.Get("expected_revision", -1);
-    bool allow_merge = req.payload.Get("allow_merge", true);
+    int64_t expected_revision = (int64_t)(Upp::int64)PayloadGet(req, "expected_revision", Upp::Value((Upp::int64)(int64_t)-1));
+    bool allow_merge = PayloadGet(req, "allow_merge", true);
 
     CommandOptions opts;
     opts.workspace = req.workspace;
@@ -2026,7 +2035,7 @@ Result<DaemonResponse> SessionServer::HandleEditMoveComponent(const DaemonReques
 
     // If successful, broadcast a session update event
     if (parsed_result.Get("ok", false)) {
-        auto data_map = parsed_result.Get("data", Upp::ValueMap());
+        Upp::ValueMap data_map = parsed_result.Get("data", Upp::ValueMap());
         int session_id = data_map.Get("session_id", req.session_id);
         int circuit_revision = data_map.Get("circuit_revision", 0);
         int sim_revision = data_map.Get("sim_revision", 0);
@@ -2048,13 +2057,13 @@ Result<DaemonResponse> SessionServer::HandleEditMoveComponent(const DaemonReques
 }
 
 Result<DaemonResponse> SessionServer::HandleEditSetComponentProperty(const DaemonRequest& req) {
-    std::string component_id = req.payload.Get("component_id", Upp::String("")).ToStd();
-    std::string property_name = req.payload.Get("property_name", Upp::String("")).ToStd();
-    std::string property_value = req.payload.Get("property_value", Upp::String("")).ToStd();
+    std::string component_id = PayloadGet(req, "component_id", Upp::String("")).ToStd();
+    std::string property_name = PayloadGet(req, "property_name", Upp::String("")).ToStd();
+    std::string property_value = PayloadGet(req, "property_value", Upp::String("")).ToStd();
 
     // Get collaboration parameters
-    int64_t expected_revision = req.payload.Get("expected_revision", -1);
-    bool allow_merge = req.payload.Get("allow_merge", true);
+    int64_t expected_revision = (int64_t)(Upp::int64)PayloadGet(req, "expected_revision", Upp::Value((Upp::int64)(int64_t)-1));
+    bool allow_merge = PayloadGet(req, "allow_merge", true);
 
     CommandOptions opts;
     opts.workspace = req.workspace;
@@ -2073,7 +2082,7 @@ Result<DaemonResponse> SessionServer::HandleEditSetComponentProperty(const Daemo
 
     // If successful, broadcast a session update event
     if (parsed_result.Get("ok", false)) {
-        auto data_map = parsed_result.Get("data", Upp::ValueMap());
+        Upp::ValueMap data_map = parsed_result.Get("data", Upp::ValueMap());
         int session_id = data_map.Get("session_id", req.session_id);
         int circuit_revision = data_map.Get("circuit_revision", 0);
         int sim_revision = data_map.Get("sim_revision", 0);
@@ -2095,14 +2104,14 @@ Result<DaemonResponse> SessionServer::HandleEditSetComponentProperty(const Daemo
 }
 
 Result<DaemonResponse> SessionServer::HandleEditConnect(const DaemonRequest& req) {
-    std::string start_component_id = req.payload.Get("start_component_id", Upp::String("")).ToStd();
-    std::string start_pin_name = req.payload.Get("start_pin_name", Upp::String("")).ToStd();
-    std::string end_component_id = req.payload.Get("end_component_id", Upp::String("")).ToStd();
-    std::string end_pin_name = req.payload.Get("end_pin_name", Upp::String("")).ToStd();
+    std::string start_component_id = PayloadGet(req, "start_component_id", Upp::String("")).ToStd();
+    std::string start_pin_name = PayloadGet(req, "start_pin_name", Upp::String("")).ToStd();
+    std::string end_component_id = PayloadGet(req, "end_component_id", Upp::String("")).ToStd();
+    std::string end_pin_name = PayloadGet(req, "end_pin_name", Upp::String("")).ToStd();
 
     // Get collaboration parameters
-    int64_t expected_revision = req.payload.Get("expected_revision", -1);
-    bool allow_merge = req.payload.Get("allow_merge", true);
+    int64_t expected_revision = (int64_t)(Upp::int64)PayloadGet(req, "expected_revision", Upp::Value((Upp::int64)(int64_t)-1));
+    bool allow_merge = PayloadGet(req, "allow_merge", true);
 
     CommandOptions opts;
     opts.workspace = req.workspace;
@@ -2122,7 +2131,7 @@ Result<DaemonResponse> SessionServer::HandleEditConnect(const DaemonRequest& req
 
     // If successful, broadcast a session update event
     if (parsed_result.Get("ok", false)) {
-        auto data_map = parsed_result.Get("data", Upp::ValueMap());
+        Upp::ValueMap data_map = parsed_result.Get("data", Upp::ValueMap());
         int session_id = data_map.Get("session_id", req.session_id);
         int circuit_revision = data_map.Get("circuit_revision", 0);
         int sim_revision = data_map.Get("sim_revision", 0);
@@ -2144,14 +2153,14 @@ Result<DaemonResponse> SessionServer::HandleEditConnect(const DaemonRequest& req
 }
 
 Result<DaemonResponse> SessionServer::HandleEditDisconnect(const DaemonRequest& req) {
-    std::string start_component_id = req.payload.Get("start_component_id", Upp::String("")).ToStd();
-    std::string start_pin_name = req.payload.Get("start_pin_name", Upp::String("")).ToStd();
-    std::string end_component_id = req.payload.Get("end_component_id", Upp::String("")).ToStd();
-    std::string end_pin_name = req.payload.Get("end_pin_name", Upp::String("")).ToStd();
+    std::string start_component_id = PayloadGet(req, "start_component_id", Upp::String("")).ToStd();
+    std::string start_pin_name = PayloadGet(req, "start_pin_name", Upp::String("")).ToStd();
+    std::string end_component_id = PayloadGet(req, "end_component_id", Upp::String("")).ToStd();
+    std::string end_pin_name = PayloadGet(req, "end_pin_name", Upp::String("")).ToStd();
 
     // Get collaboration parameters
-    int64_t expected_revision = req.payload.Get("expected_revision", -1);
-    bool allow_merge = req.payload.Get("allow_merge", true);
+    int64_t expected_revision = (int64_t)(Upp::int64)PayloadGet(req, "expected_revision", Upp::Value((Upp::int64)(int64_t)-1));
+    bool allow_merge = PayloadGet(req, "allow_merge", true);
 
     CommandOptions opts;
     opts.workspace = req.workspace;
@@ -2171,7 +2180,7 @@ Result<DaemonResponse> SessionServer::HandleEditDisconnect(const DaemonRequest& 
 
     // If successful, broadcast a session update event
     if (parsed_result.Get("ok", false)) {
-        auto data_map = parsed_result.Get("data", Upp::ValueMap());
+        Upp::ValueMap data_map = parsed_result.Get("data", Upp::ValueMap());
         int session_id = data_map.Get("session_id", req.session_id);
         int circuit_revision = data_map.Get("circuit_revision", 0);
         int sim_revision = data_map.Get("sim_revision", 0);
@@ -2209,8 +2218,8 @@ Result<DaemonResponse> SessionServer::HandleEditGetCircuit(const DaemonRequest& 
 }
 
 Result<DaemonResponse> SessionServer::HandleCircuitDiff(const DaemonRequest& req) {
-    int64_t from_revision = req.payload.Get("from_revision", 0);
-    int64_t to_revision = req.payload.Get("to_revision", 0);
+    int64_t from_revision = (int64_t)(Upp::int64)PayloadGet(req, "from_revision", Upp::Value((Upp::int64)(int64_t)0));
+    int64_t to_revision = (int64_t)(Upp::int64)PayloadGet(req, "to_revision", Upp::Value((Upp::int64)(int64_t)0));
 
     CommandOptions opts;
     opts.workspace = req.workspace;
@@ -2222,16 +2231,16 @@ Result<DaemonResponse> SessionServer::HandleCircuitDiff(const DaemonRequest& req
     Upp::ValueMap data_map;
     Upp::ValueArray diff_ops;
     data_map.Add("diff", diff_ops);
-    data_map.Add("from_revision", from_revision);
-    data_map.Add("to_revision", to_revision);
+    data_map.Add("from_revision", Upp::Value((Upp::int64)from_revision));
+    data_map.Add("to_revision", Upp::Value((Upp::int64)to_revision));
 
     return CreateSuccessResponse(req, data_map);
 }
 
 Result<DaemonResponse> SessionServer::HandleCircuitPatch(const DaemonRequest& req) {
     // Get the diff operations from the payload
-    auto diff_array = req.payload.Get("diff", Upp::ValueArray());
-    int64_t expected_revision = req.payload.Get("expected_revision", -1);
+    auto diff_array = PayloadGet(req, "diff", Upp::ValueArray());
+    int64_t expected_revision = (int64_t)(Upp::int64)PayloadGet(req, "expected_revision", Upp::Value((Upp::int64)(int64_t)-1));
 
     CommandOptions opts;
     opts.workspace = req.workspace;
@@ -2242,13 +2251,13 @@ Result<DaemonResponse> SessionServer::HandleCircuitPatch(const DaemonRequest& re
     // but for now we'll just return success
     Upp::ValueMap data_map;
     data_map.Add("applied", true);
-    data_map.Add("new_revision", expected_revision + 1);
+    data_map.Add("new_revision", Upp::Value((Upp::int64)expected_revision + 1));
 
     return CreateSuccessResponse(req, data_map);
 }
 
 Result<DaemonResponse> SessionServer::HandleCircuitReplay(const DaemonRequest& req) {
-    int64_t revision = req.payload.Get("revision", 0);
+    int64_t revision = (int64_t)(Upp::int64)PayloadGet(req, "revision", Upp::Value((Upp::int64)(int64_t)0));
 
     CommandOptions opts;
     opts.workspace = req.workspace;
@@ -2258,7 +2267,7 @@ Result<DaemonResponse> SessionServer::HandleCircuitReplay(const DaemonRequest& r
     // In a real implementation, we would return the circuit state at the specific revision
     // but for now we'll return a minimal response
     Upp::ValueMap data_map;
-    data_map.Add("revision", revision);
+    data_map.Add("revision", Upp::Value((Upp::int64)revision));
     data_map.Add("circuit_state", Upp::String("{}"));  // Empty circuit state for now
 
     return CreateSuccessResponse(req, data_map);
@@ -2330,7 +2339,14 @@ Result<void> SessionServer::ProcessRequests() {
         
         if (result.ok) {
             // Output the response
-            std::cout << JsonIO::ValueMapToJson(result.data) << std::endl;
+            { Upp::ValueMap resp_map;
+            resp_map.Add("id", Upp::String(result.data.id.c_str()));
+            resp_map.Add("ok", result.data.ok);
+            resp_map.Add("command", Upp::String(result.data.command.c_str()));
+            resp_map.Add("error_code", Upp::String(result.data.error_code.c_str()));
+            resp_map.Add("error", Upp::String(result.data.error.c_str()));
+            resp_map.Add("data", result.data.data);
+            std::cout << JsonIO::ValueMapToJson(resp_map).ToStd() << std::endl; }
         } else {
             // Output error response
             DaemonResponse error_resp;
@@ -2341,7 +2357,14 @@ Result<void> SessionServer::ProcessRequests() {
             error_resp.error = result.error_message;
             error_resp.data = Upp::ValueMap();
             
-            std::cout << JsonIO::ValueMapToJson(error_resp) << std::endl;
+            { Upp::ValueMap resp_map;
+            resp_map.Add("id", Upp::String(error_resp.id.c_str()));
+            resp_map.Add("ok", error_resp.ok);
+            resp_map.Add("command", Upp::String(error_resp.command.c_str()));
+            resp_map.Add("error_code", Upp::String(error_resp.error_code.c_str()));
+            resp_map.Add("error", Upp::String(error_resp.error.c_str()));
+            resp_map.Add("data", error_resp.data);
+            std::cout << JsonIO::ValueMapToJson(resp_map).ToStd() << std::endl; }
         }
     }
     
@@ -2376,8 +2399,8 @@ void SessionServer::BroadcastCircuitMerged(int session_id, const std::string& wo
 
 Result<DaemonResponse> SessionServer::HandleDesignerCreateSession(const DaemonRequest& req) {
     // Extract the required parameters from the payload
-    int proto_session_id = req.payload.Get("proto_session_id", -1);
-    std::string branch = req.payload.Get("branch", Upp::String("main")).ToStd();
+    int proto_session_id = PayloadGet(req, "proto_session_id", -1);
+    std::string branch = PayloadGet(req, "branch", Upp::String("main")).ToStd();
 
     // Validate required parameters
     if (proto_session_id < 0) {
@@ -2400,11 +2423,11 @@ Result<DaemonResponse> SessionServer::HandleDesignerCreateSession(const DaemonRe
 
 Result<DaemonResponse> SessionServer::HandleDesignerSetFocus(const DaemonRequest& req) {
     // Extract parameters
-    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
-    std::string block_id = req.payload.Get("block_id", Upp::String("")).ToStd();
-    std::string node_id = req.payload.Get("node_id", Upp::String("")).ToStd();
-    std::string node_kind = req.payload.Get("node_kind", Upp::String("")).ToStd();
-    bool use_optimized_ir = req.payload.Get("use_optimized_ir", false);
+    std::string designer_session_id = PayloadGet(req, "designer_session_id", Upp::String("")).ToStd();
+    std::string block_id = PayloadGet(req, "block_id", Upp::String("")).ToStd();
+    std::string node_id = PayloadGet(req, "node_id", Upp::String("")).ToStd();
+    std::string node_kind = PayloadGet(req, "node_kind", Upp::String("")).ToStd();
+    bool use_optimized_ir = PayloadGet(req, "use_optimized_ir", false);
 
     // Validate required parameter
     if (designer_session_id.empty()) {
@@ -2444,7 +2467,7 @@ Result<DaemonResponse> SessionServer::HandleDesignerSetFocus(const DaemonRequest
 
 Result<DaemonResponse> SessionServer::HandleDesignerGetContext(const DaemonRequest& req) {
     // Extract parameter
-    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
+    std::string designer_session_id = PayloadGet(req, "designer_session_id", Upp::String("")).ToStd();
 
     // Validate required parameter
     if (designer_session_id.empty()) {
@@ -2468,11 +2491,11 @@ Result<DaemonResponse> SessionServer::HandleDesignerGetContext(const DaemonReque
 
 Result<DaemonResponse> SessionServer::HandleDesignerAnalyze(const DaemonRequest& req) {
     // Extract parameters
-    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
-    bool include_behavior = req.payload.Get("include_behavior", true);
-    bool include_ir = req.payload.Get("include_ir", true);
-    bool include_graph_stats = req.payload.Get("include_graph_stats", false);
-    bool include_timing = req.payload.Get("include_timing", false);
+    std::string designer_session_id = PayloadGet(req, "designer_session_id", Upp::String("")).ToStd();
+    bool include_behavior = PayloadGet(req, "include_behavior", true);
+    bool include_ir = PayloadGet(req, "include_ir", true);
+    bool include_graph_stats = PayloadGet(req, "include_graph_stats", false);
+    bool include_timing = PayloadGet(req, "include_timing", false);
 
     // Validate required parameter
     if (designer_session_id.empty()) {
@@ -2548,9 +2571,9 @@ Result<DaemonResponse> SessionServer::HandleDesignerAnalyze(const DaemonRequest&
 
 Result<DaemonResponse> SessionServer::HandleDesignerOptimize(const DaemonRequest& req) {
     // Extract parameters
-    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
-    std::string target = req.payload.Get("target", Upp::String("block")).ToStd();
-    Upp::ValueArray passes_array = req.payload.Get("passes", Upp::ValueArray());
+    std::string designer_session_id = PayloadGet(req, "designer_session_id", Upp::String("")).ToStd();
+    std::string target = PayloadGet(req, "target", Upp::String("block")).ToStd();
+    Upp::ValueArray passes_array = PayloadGet(req, "passes", Upp::ValueArray());
 
     // Validate required parameter
     if (designer_session_id.empty()) {
@@ -2617,7 +2640,7 @@ Result<DaemonResponse> SessionServer::HandleDesignerOptimize(const DaemonRequest
 }
 
 Result<DaemonResponse> SessionServer::HandleDesignerRunPlaybook(const DaemonRequest& req) {
-    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
+    std::string designer_session_id = PayloadGet(req, "designer_session_id", Upp::String("")).ToStd();
 
     if (designer_session_id.empty()) {
         return CreateErrorResponse(req, "designer_session_id is required", "INVALID_PARAMETER");
@@ -2633,7 +2656,7 @@ Result<DaemonResponse> SessionServer::HandleDesignerRunPlaybook(const DaemonRequ
     CoDesignerSessionState session = get_session_result.data;
 
     // Parse the playbook config from the payload
-    Upp::String playbook_kind_str = req.payload.Get("playbook_kind", Upp::String("OptimizeBlockAndReport"));
+    Upp::String playbook_kind_str = PayloadGet(req, "playbook_kind", Upp::String("OptimizeBlockAndReport"));
     std::string playbook_kind_std = playbook_kind_str.ToStd();
 
     PlaybookKind kind = PlaybookKind::OptimizeBlockAndReport; // Default
@@ -2645,24 +2668,24 @@ Result<DaemonResponse> SessionServer::HandleDesignerRunPlaybook(const DaemonRequ
         kind = PlaybookKind::SystemOptimizeAndApplySafeRefactors;
     }
 
-    std::string target = req.payload.Get("target", Upp::String("block")).ToStd();
-    std::string block_id = req.payload.Get("block_id", Upp::String("")).ToStd();
-    std::string baseline_branch = req.payload.Get("baseline_branch", Upp::String("main")).ToStd();
-    bool use_optimized_ir = req.payload.Get("use_optimized_ir", false);
-    bool apply_refactors = req.payload.Get("apply_refactors", false);
+    std::string target = PayloadGet(req, "target", Upp::String("block")).ToStd();
+    std::string block_id = PayloadGet(req, "block_id", Upp::String("")).ToStd();
+    std::string baseline_branch = PayloadGet(req, "baseline_branch", Upp::String("main")).ToStd();
+    bool use_optimized_ir = PayloadGet(req, "use_optimized_ir", false);
+    bool apply_refactors = PayloadGet(req, "apply_refactors", false);
 
     // Parse the block_ids array for system-level playbooks
-    Upp::ValueArray block_ids_array = req.payload.Get("block_ids", Upp::ValueArray());
+    Upp::ValueArray block_ids_array = PayloadGet(req, "block_ids", Upp::ValueArray());
     std::vector<std::string> block_ids;
     for (int i = 0; i < block_ids_array.GetCount(); i++) {
         block_ids.push_back(block_ids_array[i].ToString().ToStd());
     }
 
     // Parse name_prefix for system-level playbooks
-    std::string name_prefix = req.payload.Get("name_prefix", Upp::String("")).ToStd();
+    std::string name_prefix = PayloadGet(req, "name_prefix", Upp::String("")).ToStd();
 
     // Parse the passes array
-    Upp::ValueArray passes_array = req.payload.Get("passes", Upp::ValueArray());
+    Upp::ValueArray passes_array = PayloadGet(req, "passes", Upp::ValueArray());
     std::vector<IrOptPassKind> passes;
     for (int i = 0; i < passes_array.GetCount(); i++) {
         std::string pass_str = passes_array[i].ToString().ToStd();
@@ -2690,8 +2713,9 @@ Result<DaemonResponse> SessionServer::HandleDesignerRunPlaybook(const DaemonRequ
     config.use_optimized_ir = use_optimized_ir;
     config.apply_refactors = apply_refactors;
 
-    // Get the session store for the workspace
-    auto session_store = std::make_shared<JsonFilesystemSessionStore>();
+    // Get the session store for the workspace (the concrete store requires
+    // the workspace root path).
+    auto session_store = std::make_shared<JsonFilesystemSessionStore>(req.workspace);
 
     // Run the playbook
     auto playbook_result = PlaybookEngine::RunPlaybook(config, *co_designer_manager_, *session_store, req.workspace);
@@ -2710,9 +2734,9 @@ Result<DaemonResponse> SessionServer::HandleDesignerRunPlaybook(const DaemonRequ
 
 Result<DaemonResponse> SessionServer::HandleDesignerProposeRefactors(const DaemonRequest& req) {
     // Extract parameters
-    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
-    std::string target = req.payload.Get("target", Upp::String("block")).ToStd();
-    Upp::ValueArray passes_array = req.payload.Get("passes", Upp::ValueArray());
+    std::string designer_session_id = PayloadGet(req, "designer_session_id", Upp::String("")).ToStd();
+    std::string target = PayloadGet(req, "target", Upp::String("block")).ToStd();
+    Upp::ValueArray passes_array = PayloadGet(req, "passes", Upp::ValueArray());
 
     // Validate required parameter
     if (designer_session_id.empty()) {
@@ -2793,10 +2817,10 @@ Result<DaemonResponse> SessionServer::HandleDesignerProposeRefactors(const Daemo
 
 Result<DaemonResponse> SessionServer::HandleDesignerApplyRefactors(const DaemonRequest& req) {
     // Extract parameters
-    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
-    Upp::ValueArray plans_array = req.payload.Get("plans", Upp::ValueArray());
-    std::string user_id = req.payload.Get("user_id", Upp::String("anonymous")).ToStd();
-    bool allow_unverified = req.payload.Get("allow_unverified", false);
+    std::string designer_session_id = PayloadGet(req, "designer_session_id", Upp::String("")).ToStd();
+    Upp::ValueArray plans_array = PayloadGet(req, "plans", Upp::ValueArray());
+    std::string user_id = PayloadGet(req, "user_id", Upp::String("anonymous")).ToStd();
+    bool allow_unverified = PayloadGet(req, "allow_unverified", false);
 
     // Validate required parameter
     if (designer_session_id.empty()) {
@@ -2849,10 +2873,10 @@ Result<DaemonResponse> SessionServer::HandleDesignerApplyRefactors(const DaemonR
 
 Result<DaemonResponse> SessionServer::HandleDesignerDiff(const DaemonRequest& req) {
     // Extract parameters
-    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
-    std::string compare_branch = req.payload.Get("compare_branch", Upp::String("main")).ToStd();
-    bool include_behavior_diff = req.payload.Get("include_behavior_diff", true);
-    bool include_ir_diff = req.payload.Get("include_ir_diff", true);
+    std::string designer_session_id = PayloadGet(req, "designer_session_id", Upp::String("")).ToStd();
+    std::string compare_branch = PayloadGet(req, "compare_branch", Upp::String("main")).ToStd();
+    bool include_behavior_diff = PayloadGet(req, "include_behavior_diff", true);
+    bool include_ir_diff = PayloadGet(req, "include_ir_diff", true);
 
     // Validate required parameter
     if (designer_session_id.empty()) {
@@ -2904,10 +2928,10 @@ Result<DaemonResponse> SessionServer::HandleDesignerDiff(const DaemonRequest& re
 
 Result<DaemonResponse> SessionServer::HandleDesignerCodegen(const DaemonRequest& req) {
     // Extract parameters
-    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
-    std::string target = req.payload.Get("target", Upp::String("block")).ToStd();
-    std::string flavor = req.payload.Get("flavor", Upp::String("PseudoVerilog")).ToStd();
-    bool use_optimized_ir = req.payload.Get("use_optimized_ir", true);
+    std::string designer_session_id = PayloadGet(req, "designer_session_id", Upp::String("")).ToStd();
+    std::string target = PayloadGet(req, "target", Upp::String("block")).ToStd();
+    std::string flavor = PayloadGet(req, "flavor", Upp::String("PseudoVerilog")).ToStd();
+    bool use_optimized_ir = PayloadGet(req, "use_optimized_ir", true);
 
     // Validate required parameter
     if (designer_session_id.empty()) {
@@ -2953,12 +2977,12 @@ Result<DaemonResponse> SessionServer::HandleDesignerCodegen(const DaemonRequest&
 
 Result<DaemonResponse> SessionServer::HandleDesignerCodegenBlockC(const DaemonRequest& req) {
     // Extract parameters
-    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
-    std::string block_id = req.payload.Get("block_id", Upp::String("")).ToStd();
-    std::string lang_str = req.payload.Get("language", Upp::String("C")).ToStd();
-    bool emit_state_struct = req.payload.Get("emit_state_struct", true);
-    std::string state_struct_name = req.payload.Get("state_struct_name", Upp::String("BlockState")).ToStd();
-    std::string function_name = req.payload.Get("function_name", Upp::String("BlockStep")).ToStd();
+    std::string designer_session_id = PayloadGet(req, "designer_session_id", Upp::String("")).ToStd();
+    std::string block_id = PayloadGet(req, "block_id", Upp::String("")).ToStd();
+    std::string lang_str = PayloadGet(req, "language", Upp::String("C")).ToStd();
+    bool emit_state_struct = PayloadGet(req, "emit_state_struct", true);
+    std::string state_struct_name = PayloadGet(req, "state_struct_name", Upp::String("BlockState")).ToStd();
+    std::string function_name = PayloadGet(req, "function_name", Upp::String("BlockStep")).ToStd();
 
     // Validate required parameters
     if (designer_session_id.empty()) {
@@ -3005,12 +3029,12 @@ Result<DaemonResponse> SessionServer::HandleDesignerCodegenBlockC(const DaemonRe
 
 Result<DaemonResponse> SessionServer::HandleDesignerCodegenOscDemo(const DaemonRequest& req) {
     // Extract parameters
-    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
-    std::string block_id = req.payload.Get("block_id", Upp::String("")).ToStd();
-    std::string lang_str = req.payload.Get("language", Upp::String("C")).ToStd();
-    std::string state_struct_name = req.payload.Get("state_struct_name", Upp::String("OscState")).ToStd();
-    std::string step_function_name = req.payload.Get("step_function_name", Upp::String("OscStep")).ToStd();
-    std::string render_function_name = req.payload.Get("render_function_name", Upp::String("OscRender")).ToStd();
+    std::string designer_session_id = PayloadGet(req, "designer_session_id", Upp::String("")).ToStd();
+    std::string block_id = PayloadGet(req, "block_id", Upp::String("")).ToStd();
+    std::string lang_str = PayloadGet(req, "language", Upp::String("C")).ToStd();
+    std::string state_struct_name = PayloadGet(req, "state_struct_name", Upp::String("OscState")).ToStd();
+    std::string step_function_name = PayloadGet(req, "step_function_name", Upp::String("OscStep")).ToStd();
+    std::string render_function_name = PayloadGet(req, "render_function_name", Upp::String("OscRender")).ToStd();
 
     // Validate required parameters
     if (designer_session_id.empty()) {
@@ -3055,17 +3079,17 @@ Result<DaemonResponse> SessionServer::HandleDesignerCodegenOscDemo(const DaemonR
 
 Result<DaemonResponse> SessionServer::HandleDesignerBuildHybridInstrument(const DaemonRequest& req) {
     // Extract parameters
-    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
-    std::string instrument_id = req.payload.Get("instrument_id", Upp::String("HYBRID_DEFAULT")).ToStd();
-    std::string analog_block_id = req.payload.Get("analog_block_id", Upp::String("")).ToStd();
-    std::string digital_block_id = req.payload.Get("digital_block_id", Upp::String("")).ToStd();
-    int voice_count = req.payload.Get("voice_count", Upp::Value(1)).ToInt();
-    double sample_rate = req.payload.Get("sample_rate", Upp::Value(48000.0)).ToDouble();
-    double duration_sec = req.payload.Get("duration_sec", Upp::Value(3.0)).ToDouble();
-    double base_freq_hz = req.payload.Get("base_freq_hz", Upp::Value(440.0)).ToDouble();
-    double detune_spread_cents = req.payload.Get("detune_spread_cents", Upp::Value(10.0)).ToDouble();
-    double pan_lfo_hz = req.payload.Get("pan_lfo_hz", Upp::Value(0.25)).ToDouble();
-    bool use_analog_primary = req.payload.Get("use_analog_primary", Upp::Value(false)).ToBool();
+    std::string designer_session_id = PayloadGet(req, "designer_session_id", Upp::String("")).ToStd();
+    std::string instrument_id = PayloadGet(req, "instrument_id", Upp::String("HYBRID_DEFAULT")).ToStd();
+    std::string analog_block_id = PayloadGet(req, "analog_block_id", Upp::String("")).ToStd();
+    std::string digital_block_id = PayloadGet(req, "digital_block_id", Upp::String("")).ToStd();
+    int voice_count = PayloadGet(req, "voice_count", Upp::Value(1)).To<int>();
+    double sample_rate = PayloadGet(req, "sample_rate", Upp::Value(48000.0)).To<double>();
+    double duration_sec = PayloadGet(req, "duration_sec", Upp::Value(3.0)).To<double>();
+    double base_freq_hz = PayloadGet(req, "base_freq_hz", Upp::Value(440.0)).To<double>();
+    double detune_spread_cents = PayloadGet(req, "detune_spread_cents", Upp::Value(10.0)).To<double>();
+    double pan_lfo_hz = PayloadGet(req, "pan_lfo_hz", Upp::Value(0.25)).To<double>();
+    bool use_analog_primary = PayloadGet(req, "use_analog_primary", Upp::Value(false)).To<bool>();
 
     // Validate required parameters
     if (designer_session_id.empty()) {
@@ -3122,17 +3146,17 @@ Result<DaemonResponse> SessionServer::HandleDesignerBuildHybridInstrument(const 
 
 Result<DaemonResponse> SessionServer::HandleDesignerRenderHybridInstrument(const DaemonRequest& req) {
     // Extract parameters
-    std::string designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
-    std::string instrument_id = req.payload.Get("instrument_id", Upp::String("HYBRID_DEFAULT")).ToStd();
-    std::string analog_block_id = req.payload.Get("analog_block_id", Upp::String("")).ToStd();
-    std::string digital_block_id = req.payload.Get("digital_block_id", Upp::String("")).ToStd();
-    int voice_count = req.payload.Get("voice_count", Upp::Value(1)).ToInt();
-    double sample_rate = req.payload.Get("sample_rate", Upp::Value(48000.0)).ToDouble();
-    double duration_sec = req.payload.Get("duration_sec", Upp::Value(3.0)).ToDouble();
-    double base_freq_hz = req.payload.Get("base_freq_hz", Upp::Value(440.0)).ToDouble();
-    double detune_spread_cents = req.payload.Get("detune_spread_cents", Upp::Value(10.0)).ToDouble();
-    double pan_lfo_hz = req.payload.Get("pan_lfo_hz", Upp::Value(0.25)).ToDouble();
-    bool use_analog_primary = req.payload.Get("use_analog_primary", Upp::Value(false)).ToBool();
+    std::string designer_session_id = PayloadGet(req, "designer_session_id", Upp::String("")).ToStd();
+    std::string instrument_id = PayloadGet(req, "instrument_id", Upp::String("HYBRID_DEFAULT")).ToStd();
+    std::string analog_block_id = PayloadGet(req, "analog_block_id", Upp::String("")).ToStd();
+    std::string digital_block_id = PayloadGet(req, "digital_block_id", Upp::String("")).ToStd();
+    int voice_count = PayloadGet(req, "voice_count", Upp::Value(1)).To<int>();
+    double sample_rate = PayloadGet(req, "sample_rate", Upp::Value(48000.0)).To<double>();
+    double duration_sec = PayloadGet(req, "duration_sec", Upp::Value(3.0)).To<double>();
+    double base_freq_hz = PayloadGet(req, "base_freq_hz", Upp::Value(440.0)).To<double>();
+    double detune_spread_cents = PayloadGet(req, "detune_spread_cents", Upp::Value(10.0)).To<double>();
+    double pan_lfo_hz = PayloadGet(req, "pan_lfo_hz", Upp::Value(0.25)).To<double>();
+    bool use_analog_primary = PayloadGet(req, "use_analog_primary", Upp::Value(false)).To<bool>();
 
     // Validate required parameters
     if (designer_session_id.empty()) {
@@ -3194,59 +3218,59 @@ Result<DaemonResponse> SessionServer::HandleDesignerInstrumentExportPluginProjec
 
         // Extract designer_session_id
         if (req.payload.Find("designer_session_id") >= 0) {
-            request.designer_session_id = req.payload.Get("designer_session_id", Upp::String("")).ToStd();
+            request.designer_session_id = PayloadGet(req, "designer_session_id", Upp::String("")).ToStd();
         }
 
         // Extract instrument parameters
         if (req.payload.Find("instrument_id") >= 0) {
-            request.instrument_id = req.payload.Get("instrument_id", Upp::String("")).ToStd();
+            request.instrument_id = PayloadGet(req, "instrument_id", Upp::String("")).ToStd();
         }
         if (req.payload.Find("analog_block_id") >= 0) {
-            request.analog_block_id = req.payload.Get("analog_block_id", Upp::String("")).ToStd();
+            request.analog_block_id = PayloadGet(req, "analog_block_id", Upp::String("")).ToStd();
         }
         if (req.payload.Find("digital_block_id") >= 0) {
-            request.digital_block_id = req.payload.Get("digital_block_id", Upp::String("")).ToStd();
+            request.digital_block_id = PayloadGet(req, "digital_block_id", Upp::String("")).ToStd();
         }
         if (req.payload.Find("use_analog_primary") >= 0) {
-            request.use_analog_primary = req.payload.Get("use_analog_primary", false);
+            request.use_analog_primary = PayloadGet(req, "use_analog_primary", false);
         }
         if (req.payload.Find("voice_count") >= 0) {
-            request.voice_count = req.payload.Get("voice_count", 1);
+            request.voice_count = PayloadGet(req, "voice_count", 1);
         }
         if (req.payload.Find("sample_rate_hz") >= 0) {
-            request.sample_rate_hz = req.payload.Get("sample_rate_hz", 48000.0);
+            request.sample_rate_hz = PayloadGet(req, "sample_rate_hz", 48000.0);
         }
         if (req.payload.Find("duration_sec") >= 0) {
-            request.duration_sec = req.payload.Get("duration_sec", 3.0);
+            request.duration_sec = PayloadGet(req, "duration_sec", 3.0);
         }
         if (req.payload.Find("base_freq_hz") >= 0) {
-            request.base_freq_hz = req.payload.Get("base_freq_hz", 440.0);
+            request.base_freq_hz = PayloadGet(req, "base_freq_hz", 440.0);
         }
         if (req.payload.Find("detune_spread_cents") >= 0) {
-            request.detune_spread_cents = req.payload.Get("detune_spread_cents", 10.0);
+            request.detune_spread_cents = PayloadGet(req, "detune_spread_cents", 10.0);
         }
         if (req.payload.Find("pan_lfo_hz") >= 0) {
-            request.pan_lfo_hz = req.payload.Get("pan_lfo_hz", 0.25);
+            request.pan_lfo_hz = PayloadGet(req, "pan_lfo_hz", 0.25);
         }
 
         // Extract plugin export parameters
         if (req.payload.Find("plugin_target") >= 0) {
-            request.plugin_target = req.payload.Get("plugin_target", Upp::String("vst3")).ToStd();
+            request.plugin_target = PayloadGet(req, "plugin_target", Upp::String("vst3")).ToStd();
         }
         if (req.payload.Find("plugin_name") >= 0) {
-            request.plugin_name = req.payload.Get("plugin_name", Upp::String("ProtoVMInstrument")).ToStd();
+            request.plugin_name = PayloadGet(req, "plugin_name", Upp::String("ProtoVMInstrument")).ToStd();
         }
         if (req.payload.Find("plugin_id") >= 0) {
-            request.plugin_id = req.payload.Get("plugin_id", Upp::String("protovm.instrument.default")).ToStd();
+            request.plugin_id = PayloadGet(req, "plugin_id", Upp::String("protovm.instrument.default")).ToStd();
         }
         if (req.payload.Find("vendor") >= 0) {
-            request.vendor = req.payload.Get("vendor", Upp::String("ProtoVM")).ToStd();
+            request.vendor = PayloadGet(req, "vendor", Upp::String("ProtoVM")).ToStd();
         }
         if (req.payload.Find("version") >= 0) {
-            request.version = req.payload.Get("version", Upp::String("1.0.0")).ToStd();
+            request.version = PayloadGet(req, "version", Upp::String("1.0.0")).ToStd();
         }
         if (req.payload.Find("output_dir") >= 0) {
-            request.output_dir = req.payload.Get("output_dir", Upp::String("")).ToStd();
+            request.output_dir = PayloadGet(req, "output_dir", Upp::String("")).ToStd();
         }
 
         // Validate required parameters
@@ -3261,7 +3285,7 @@ Result<DaemonResponse> SessionServer::HandleDesignerInstrumentExportPluginProjec
         auto result = co_designer_manager_->ExportInstrumentAsPluginProject(request);
 
         if (!result.ok) {
-            return CreateErrorResponse(req, result.error_message, result.error_code);
+            return CreateErrorResponse(req, result.error_message, JsonIO::ErrorCodeToString(result.error_code));
         }
 
         // Build response data

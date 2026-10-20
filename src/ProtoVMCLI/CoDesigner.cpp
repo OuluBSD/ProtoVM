@@ -7,12 +7,24 @@
 #include "CodeEmitter.h"
 #include "InstrumentExport.h"
 #include "PluginSkeletonExport.h"
+#include "PluginProjectExport.h"
 #include <sstream>
 #include <iomanip>
 #include <chrono>
 #include <random>
 
 namespace ProtoVMCLI {
+
+namespace {
+// Upp::Moveable-derived payload structs are copy-constructible but have the
+// implicit copy assignment operator deleted; emulate assignment by destroying
+// the destination and copy-constructing in place.
+template <class T>
+void Reconstruct(T& dst, const T& src) {
+    std::destroy_at(&dst);
+    new (static_cast<void*>(&dst)) T(src);
+}
+}
 
 std::string CoDesignerManager::GenerateDesignerSessionId() {
     // Generate a unique ID in format "cd-<random_hex>"
@@ -100,7 +112,7 @@ Result<DesignerRetimeResponse> CoDesignerManager::RetimeDesign(const DesignerRet
         );
     }
 
-    CoDesignerSessionState session = session_result.data();
+    CoDesignerSessionState session = session_result.data;
 
     // Load the ProtoVM session metadata using the circuit facade
     auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
@@ -111,7 +123,7 @@ Result<DesignerRetimeResponse> CoDesignerManager::RetimeDesign(const DesignerRet
         );
     }
 
-    SessionMetadata metadata = load_session_result.data();
+    SessionMetadata metadata = load_session_result.data;
     std::string session_dir = metadata.workspace_path + "/sessions/" + std::to_string(session.proto_session_id);
 
     DesignerRetimeResponse response;
@@ -138,7 +150,7 @@ Result<DesignerRetimeResponse> CoDesignerManager::RetimeDesign(const DesignerRet
         }
 
         // Filter results based on min_depth if specified
-        for (const auto& plan : retiming_result.data()) {
+        for (const auto& plan : retiming_result.data) {
             if (plan.estimated_max_depth_before >= request.min_depth) {
                 response.retiming_plans.push_back(plan);
             }
@@ -174,7 +186,7 @@ Result<DesignerRetimeResponse> CoDesignerManager::RetimeDesign(const DesignerRet
         }
 
         // Filter results based on min_depth if specified
-        for (const auto& plan : retiming_result.data()) {
+        for (const auto& plan : retiming_result.data) {
             if (plan.estimated_max_depth_before >= request.min_depth) {
                 response.retiming_plans.push_back(plan);
             }
@@ -204,7 +216,7 @@ Result<DesignerRetimeApplyResponse> CoDesignerManager::ApplyRetimeDesign(const D
         );
     }
 
-    CoDesignerSessionState session = session_result.data();
+    CoDesignerSessionState session = session_result.data;
 
     // Load the ProtoVM session metadata using the circuit facade
     auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
@@ -215,7 +227,7 @@ Result<DesignerRetimeApplyResponse> CoDesignerManager::ApplyRetimeDesign(const D
         );
     }
 
-    SessionMetadata metadata = load_session_result.data();
+    SessionMetadata metadata = load_session_result.data;
     std::string session_dir = metadata.workspace_path + "/sessions/" + std::to_string(session.proto_session_id);
 
     DesignerRetimeApplyResponse response;
@@ -242,8 +254,8 @@ Result<DesignerRetimeApplyResponse> CoDesignerManager::ApplyRetimeDesign(const D
 
         // Find the specific plan by ID
         RetimingPlan* target_plan = nullptr;
-        for (auto& plan : plans_result.data()) {
-            if (plan.id == request.plan_id) {
+        for (auto& plan : plans_result.data) {
+            if (plan.id.ToStd() == request.plan_id) {
                 target_plan = &plan;
                 break;
             }
@@ -267,7 +279,7 @@ Result<DesignerRetimeApplyResponse> CoDesignerManager::ApplyRetimeDesign(const D
             );
         }
 
-        response.application_result = application_result.data();
+        Reconstruct(response.application_result, application_result.data);
 
     } else if (request.target == "subsystem") {
         // Get all retiming plans for the subsystem to find the specific plan
@@ -291,8 +303,8 @@ Result<DesignerRetimeApplyResponse> CoDesignerManager::ApplyRetimeDesign(const D
 
         // Find the specific plan by ID
         RetimingPlan* target_plan = nullptr;
-        for (auto& plan : plans_result.data()) {
-            if (plan.id == request.plan_id) {
+        for (auto& plan : plans_result.data) {
+            if (plan.id.ToStd() == request.plan_id) {
                 target_plan = &plan;
                 break;
             }
@@ -316,7 +328,7 @@ Result<DesignerRetimeApplyResponse> CoDesignerManager::ApplyRetimeDesign(const D
             );
         }
 
-        response.application_result = application_result.data();
+        Reconstruct(response.application_result, application_result.data);
 
     } else {
         return Result<DesignerRetimeApplyResponse>::MakeError(
@@ -347,7 +359,7 @@ Result<DesignerRetimeOptResponse> CoDesignerManager::OptimizeRetimeDesign(const 
         );
     }
 
-    CoDesignerSessionState session = session_result.data();
+    CoDesignerSessionState session = session_result.data;
 
     // Load the ProtoVM session metadata using the circuit facade
     auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
@@ -358,7 +370,7 @@ Result<DesignerRetimeOptResponse> CoDesignerManager::OptimizeRetimeDesign(const 
         );
     }
 
-    SessionMetadata metadata = load_session_result.data();
+    SessionMetadata metadata = load_session_result.data;
     std::string session_dir = metadata.workspace_path + "/sessions/" + std::to_string(session.proto_session_id);
 
     DesignerRetimeOptResponse response;
@@ -395,7 +407,7 @@ Result<DesignerRetimeOptResponse> CoDesignerManager::OptimizeRetimeDesign(const 
             );
         }
 
-        response.optimization_result = result.data();
+        Reconstruct(response.optimization_result, result.data);
 
     } else if (request.target == "subsystem") {
         if (request.subsystem_id.empty() || request.block_ids.empty()) {
@@ -423,7 +435,7 @@ Result<DesignerRetimeOptResponse> CoDesignerManager::OptimizeRetimeDesign(const 
             );
         }
 
-        response.optimization_result = result.data();
+        Reconstruct(response.optimization_result, result.data);
 
     } else {
         return Result<DesignerRetimeOptResponse>::MakeError(
@@ -454,7 +466,7 @@ Result<DesignerCodegenBlockCResponse> CoDesignerManager::CodegenBlockC(const Des
         );
     }
 
-    CoDesignerSessionState session = session_result.data();
+    CoDesignerSessionState session = session_result.data;
 
     // Load the ProtoVM session metadata using the circuit facade
     auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
@@ -465,7 +477,7 @@ Result<DesignerCodegenBlockCResponse> CoDesignerManager::CodegenBlockC(const Des
         );
     }
 
-    SessionMetadata metadata = load_session_result.data();
+    SessionMetadata metadata = load_session_result.data;
     std::string session_dir = metadata.workspace_path + "/sessions/" + std::to_string(session.proto_session_id);
 
     DesignerCodegenBlockCResponse response;
@@ -519,7 +531,7 @@ Result<DesignerCodegenOscDemoResponse> CoDesignerManager::CodegenOscDemo(const D
         );
     }
 
-    CoDesignerSessionState session = session_result.data();
+    CoDesignerSessionState session = session_result.data;
 
     // Load the ProtoVM session metadata using the circuit facade
     auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
@@ -530,7 +542,7 @@ Result<DesignerCodegenOscDemoResponse> CoDesignerManager::CodegenOscDemo(const D
         );
     }
 
-    SessionMetadata metadata = load_session_result.data();
+    SessionMetadata metadata = load_session_result.data;
     std::string session_dir = metadata.workspace_path + "/sessions/" + std::to_string(session.proto_session_id);
 
     DesignerCodegenOscDemoResponse response;
@@ -579,7 +591,7 @@ Result<DesignerCodegenCppClassResponse> CoDesignerManager::CodegenCppClass(const
         );
     }
 
-    CoDesignerSessionState session = session_result.data();
+    CoDesignerSessionState session = session_result.data;
 
     // Load the ProtoVM session metadata using the circuit facade
     auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
@@ -590,7 +602,7 @@ Result<DesignerCodegenCppClassResponse> CoDesignerManager::CodegenCppClass(const
         );
     }
 
-    SessionMetadata metadata = load_session_result.data();
+    SessionMetadata metadata = load_session_result.data;
     std::string session_dir = metadata.workspace_path + "/sessions/" + std::to_string(session.proto_session_id);
 
     // Build class codegen options from the request
@@ -643,7 +655,7 @@ Result<DesignerCodegenAudioDemoResponse> CoDesignerManager::CodegenAudioDemo(con
         );
     }
 
-    CoDesignerSessionState session = session_result.data();
+    CoDesignerSessionState session = session_result.data;
 
     // Load the ProtoVM session metadata using the circuit facade
     auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
@@ -654,7 +666,7 @@ Result<DesignerCodegenAudioDemoResponse> CoDesignerManager::CodegenAudioDemo(con
         );
     }
 
-    SessionMetadata metadata = load_session_result.data();
+    SessionMetadata metadata = load_session_result.data;
     std::string session_dir = metadata.workspace_path + "/sessions/" + std::to_string(session.proto_session_id);
 
     DesignerCodegenAudioDemoResponse response;
@@ -728,7 +740,7 @@ Result<DesignerGlobalPipelineResponse> CoDesignerManager::AnalyzeGlobalPipeline(
         );
     }
 
-    CoDesignerSessionState session = session_result.data();
+    CoDesignerSessionState session = session_result.data;
 
     // Load the ProtoVM session metadata using the circuit facade
     auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
@@ -739,7 +751,7 @@ Result<DesignerGlobalPipelineResponse> CoDesignerManager::AnalyzeGlobalPipeline(
         );
     }
 
-    SessionMetadata metadata = load_session_result.data();
+    SessionMetadata metadata = load_session_result.data;
     std::string session_dir = metadata.workspace_path + "/sessions/" + std::to_string(session.proto_session_id);
 
     DesignerGlobalPipelineResponse response;
@@ -763,7 +775,7 @@ Result<DesignerGlobalPipelineResponse> CoDesignerManager::AnalyzeGlobalPipeline(
             // Call the circuit facade to perform global pipeline analysis for the subsystem
             auto result = circuit_facade_->BuildGlobalPipelineMapForSubsystemInBranch(
                 metadata, session_dir, session.branch,
-                String(request.subsystem_id.c_str()), block_ids);
+                request.subsystem_id, block_ids);
 
             if (!result.ok) {
                 return Result<DesignerGlobalPipelineResponse>::MakeError(
@@ -809,7 +821,7 @@ Result<DesignerGlobalPipelineResponse> CoDesignerManager::OptimizeGlobalPipeline
         );
     }
 
-    CoDesignerSessionState session = session_result.data();
+    CoDesignerSessionState session = session_result.data;
 
     // Load the ProtoVM session metadata using the circuit facade
     auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
@@ -820,7 +832,7 @@ Result<DesignerGlobalPipelineResponse> CoDesignerManager::OptimizeGlobalPipeline
         );
     }
 
-    SessionMetadata metadata = load_session_result.data();
+    SessionMetadata metadata = load_session_result.data;
     std::string session_dir = metadata.workspace_path + "/sessions/" + std::to_string(session.proto_session_id);
 
     DesignerGlobalPipelineResponse response;
@@ -843,7 +855,7 @@ Result<DesignerGlobalPipelineResponse> CoDesignerManager::OptimizeGlobalPipeline
         // Call the circuit facade to propose global pipelining plans for the subsystem
         auto result = circuit_facade_->ProposeGlobalPipeliningPlansInBranch(
             metadata, session_dir, session.branch,
-            String(request.subsystem_id.c_str()), block_ids, request.objective);
+            request.subsystem_id, block_ids, request.objective);
 
         if (!result.ok) {
             return Result<DesignerGlobalPipelineResponse>::MakeError(
@@ -852,7 +864,7 @@ Result<DesignerGlobalPipelineResponse> CoDesignerManager::OptimizeGlobalPipeline
             );
         }
 
-        response.global_plans = result.data;
+        response.global_plans = std::vector<GlobalPipeliningPlan>(result.data.begin(), result.data.end());
 
         // Optionally apply the best plan if requested
         if (request.apply && !result.data.IsEmpty()) {
@@ -902,7 +914,7 @@ Result<DesignerGlobalPipelineApplyResponse> CoDesignerManager::ApplyGlobalPipeli
         );
     }
 
-    CoDesignerSessionState session = session_result.data();
+    CoDesignerSessionState session = session_result.data;
 
     // Load the ProtoVM session metadata using the circuit facade
     auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
@@ -913,7 +925,7 @@ Result<DesignerGlobalPipelineApplyResponse> CoDesignerManager::ApplyGlobalPipeli
         );
     }
 
-    SessionMetadata metadata = load_session_result.data();
+    SessionMetadata metadata = load_session_result.data;
     std::string session_dir = metadata.workspace_path + "/sessions/" + std::to_string(session.proto_session_id);
 
     DesignerGlobalPipelineApplyResponse response;
@@ -941,7 +953,7 @@ Result<DesignerGlobalPipelineApplyResponse> CoDesignerManager::ApplyGlobalPipeli
         );
     }
 
-    response.application_result = apply_result.data;
+    Reconstruct(response.application_result, apply_result.data);
 
     // Update the session state as necessary
     auto update_result = UpdateSession(response.designer_session);
@@ -965,7 +977,7 @@ Result<DesignerStructAnalyzeResponse> CoDesignerManager::AnalyzeStructural(const
                 session_result.error_message
             );
         }
-        CoDesignerSessionState session = session_result.data();
+        CoDesignerSessionState session = session_result.data;
 
         // Validate request
         if (request.target != "block") {
@@ -983,8 +995,7 @@ Result<DesignerStructAnalyzeResponse> CoDesignerManager::AnalyzeStructural(const
         }
 
         // Get the session metadata to pass to the circuit facade
-        SessionStore store;
-        auto metadata_result = store.LoadSession(session.proto_session_id);
+        auto metadata_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
         if (!metadata_result.ok) {
             return Result<DesignerStructAnalyzeResponse>::MakeError(
                 metadata_result.error_code,
@@ -1013,7 +1024,7 @@ Result<DesignerStructAnalyzeResponse> CoDesignerManager::AnalyzeStructural(const
             );
         }
 
-        response.structural_refactor_plan = analysis_result.data;
+        response.structural_refactor_plan.emplace(analysis_result.data);
 
         return Result<DesignerStructAnalyzeResponse>::MakeOk(response);
     } catch (const std::exception& e) {
@@ -1034,11 +1045,10 @@ Result<DesignerStructApplyResponse> CoDesignerManager::ApplyStructural(const Des
                 session_result.error_message
             );
         }
-        CoDesignerSessionState session = session_result.data();
+        CoDesignerSessionState session = session_result.data;
 
         // Get the session metadata to pass to the circuit facade
-        SessionStore store;
-        auto metadata_result = store.LoadSession(session.proto_session_id);
+        auto metadata_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
         if (!metadata_result.ok) {
             return Result<DesignerStructApplyResponse>::MakeError(
                 metadata_result.error_code,
@@ -1082,7 +1092,7 @@ Result<DesignerStructApplyResponse> CoDesignerManager::ApplyStructural(const Des
             );
         }
 
-        response.application_result = apply_result.data;
+        Reconstruct(response.application_result, apply_result.data);
 
         return Result<DesignerStructApplyResponse>::MakeOk(response);
     } catch (const std::exception& e) {
@@ -1120,7 +1130,7 @@ Result<DesignerDspGraphInspectResponse> CoDesignerManager::InspectDspGraph(const
         // Build the AudioDslGraph
         auto graph_result = circuit_facade_->BuildAudioDslForOscillatorBlockInBranch(
             proto_session,
-            circuit_facade_->GetSessionStore()->GetWorkspacePath() + "/sessions/" + std::to_string(session.proto_session_id),
+            proto_session.workspace_path + "/sessions/" + std::to_string(session.proto_session_id),
             session.branch,
             request.block_id,
             request.freq_hz,
@@ -1139,7 +1149,7 @@ Result<DesignerDspGraphInspectResponse> CoDesignerManager::InspectDspGraph(const
         // Build the DSP graph
         auto dsp_graph_result = circuit_facade_->BuildDspGraphForOscillatorBlockInBranch(
             proto_session,
-            circuit_facade_->GetSessionStore()->GetWorkspacePath() + "/sessions/" + std::to_string(session.proto_session_id),
+            proto_session.workspace_path + "/sessions/" + std::to_string(session.proto_session_id),
             session.branch,
             request.block_id,
             graph_result.data
@@ -1193,7 +1203,7 @@ Result<DesignerDspRenderOscResponse> CoDesignerManager::RenderDspOsc(const Desig
         // Build the AudioDslGraph
         auto graph_result = circuit_facade_->BuildAudioDslForOscillatorBlockInBranch(
             proto_session,
-            circuit_facade_->GetSessionStore()->GetWorkspacePath() + "/sessions/" + std::to_string(session.proto_session_id),
+            proto_session.workspace_path + "/sessions/" + std::to_string(session.proto_session_id),
             session.branch,
             request.block_id,
             request.freq_hz,
@@ -1213,7 +1223,7 @@ Result<DesignerDspRenderOscResponse> CoDesignerManager::RenderDspOsc(const Desig
         std::vector<float> out_left, out_right;
         auto render_result = circuit_facade_->RenderDspGraphForOscillatorBlockInBranch(
             proto_session,
-            circuit_facade_->GetSessionStore()->GetWorkspacePath() + "/sessions/" + std::to_string(session.proto_session_id),
+            proto_session.workspace_path + "/sessions/" + std::to_string(session.proto_session_id),
             session.branch,
             request.block_id,
             graph_result.data,
@@ -1285,10 +1295,20 @@ Result<DesignerDspRenderOscResponse> CoDesignerManager::RenderDspOsc(const Desig
 
             CoDesignerSessionState session = session_result.data;
 
+            auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
+            if (!load_session_result.ok) {
+                return Result<DesignerAnalogModelInspectResponse>::MakeError(
+                    load_session_result.error_code,
+                    "Failed to load ProtoVM session: " + load_session_result.error_message
+                );
+            }
+            SessionMetadata metadata = load_session_result.data;
+            std::string session_dir = metadata.workspace_path + "/sessions/" + std::to_string(session.proto_session_id);
+
             // Extract the analog model for the specified block
             auto model_result = circuit_facade_->ExtractAnalogModelForBlockInBranch(
-                session.proto_session_id,
-                "PLACEHOLDER_PATH",  // This would be resolved from the session
+                metadata,
+                session_dir,
                 session.branch,
                 request.block_id
             );
@@ -1327,6 +1347,16 @@ Result<DesignerDspRenderOscResponse> CoDesignerManager::RenderDspOsc(const Desig
 
             CoDesignerSessionState session = session_result.data;
 
+            auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
+            if (!load_session_result.ok) {
+                return Result<DesignerAnalogRenderOscResponse>::MakeError(
+                    load_session_result.error_code,
+                    "Failed to load ProtoVM session: " + load_session_result.error_message
+                );
+            }
+            SessionMetadata metadata = load_session_result.data;
+            std::string session_dir = metadata.workspace_path + "/sessions/" + std::to_string(session.proto_session_id);
+
             // Build the AudioDslGraph with parameters
             AudioDslGraph audio_graph;
             audio_graph.block_id = request.block_id;
@@ -1340,8 +1370,8 @@ Result<DesignerDspRenderOscResponse> CoDesignerManager::RenderDspOsc(const Desig
             // Render the analog block as audio
             std::vector<float> out_left, out_right;
             auto render_result = circuit_facade_->RenderAnalogBlockAsAudioInBranch(
-                session.proto_session_id,
-                "PLACEHOLDER_PATH",  // This would be resolved from the session
+                metadata,
+                session_dir,
                 session.branch,
                 request.block_id,
                 audio_graph,
@@ -1376,8 +1406,8 @@ Result<DesignerDspRenderOscResponse> CoDesignerManager::RenderDspOsc(const Desig
 
             // Get the analog model to extract the estimated frequency
             auto model_result = circuit_facade_->ExtractAnalogModelForBlockInBranch(
-                session.proto_session_id,
-                "PLACEHOLDER_PATH",  // This would be resolved from the session
+                metadata,
+                session_dir,
                 session.branch,
                 request.block_id
             );
@@ -1656,7 +1686,7 @@ Result<DesignerInstrumentExportCppResponse> CoDesignerManager::ExportInstrumentA
         }
 
         // Create export options
-        InstrumentExportOptions export_options;
+        ProtoVM::InstrumentExportOptions export_options;
         export_options.program_name = request.program_name;
         export_options.namespace_name = request.namespace_name;
         export_options.include_wav_writer = request.include_wav_writer;
@@ -1757,15 +1787,15 @@ Result<DesignerInstrumentExportPluginSkeletonResponse> CoDesignerManager::Export
         }
 
         // Parse the plugin target
-        PluginTargetKind target_kind;
+        ::PluginTargetKind target_kind;
         if (request.plugin_target == "vst3") {
-            target_kind = PluginTargetKind::Vst3;
+            target_kind = ::PluginTargetKind::Vst3;
         } else if (request.plugin_target == "lv2") {
-            target_kind = PluginTargetKind::Lv2;
+            target_kind = ::PluginTargetKind::Lv2;
         } else if (request.plugin_target == "clap") {
-            target_kind = PluginTargetKind::Clap;
+            target_kind = ::PluginTargetKind::Clap;
         } else if (request.plugin_target == "ladspa") {
-            target_kind = PluginTargetKind::Ladspa;
+            target_kind = ::PluginTargetKind::Ladspa;
         } else {
             return Result<DesignerInstrumentExportPluginSkeletonResponse>::MakeError(
                 ErrorCode::CommandParseError,
@@ -1806,7 +1836,7 @@ Result<DesignerInstrumentExportPluginSkeletonResponse> CoDesignerManager::Export
         response.plugin_target = request.plugin_target;
         response.plugin_name = request.plugin_name;
         response.plugin_id = request.plugin_id;
-        response.skeleton_source = export_result.data;
+        response.skeleton_source = export_result.data.ToStd();
 
         // Update the designer session - not necessary since we don't modify the session state
         // UpdateSession(session);
@@ -1869,15 +1899,15 @@ Result<DesignerInstrumentExportPluginProjectResponse> CoDesignerManager::ExportI
         InstrumentGraph instrument = instrument_result.data;
 
         // Parse plugin target
-        PluginTargetKind target_kind;
+        ::PluginTargetKind target_kind;
         if (request.plugin_target == "vst3") {
-            target_kind = PluginTargetKind::Vst3;
+            target_kind = ::PluginTargetKind::Vst3;
         } else if (request.plugin_target == "lv2") {
-            target_kind = PluginTargetKind::Lv2;
+            target_kind = ::PluginTargetKind::Lv2;
         } else if (request.plugin_target == "clap") {
-            target_kind = PluginTargetKind::Clap;
+            target_kind = ::PluginTargetKind::Clap;
         } else if (request.plugin_target == "ladspa") {
-            target_kind = PluginTargetKind::Ladspa;
+            target_kind = ::PluginTargetKind::Ladspa;
         } else {
             return Result<DesignerInstrumentExportPluginProjectResponse>::MakeError(
                 ErrorCode::CommandParseError,

@@ -14,7 +14,7 @@ Result<BehaviorDiff> DiffAnalysis::DiffBehavior(
         // Verify that subject IDs match (basic validation)
         if (before.subject_id != after.subject_id) {
             return Result<BehaviorDiff>::MakeError(
-                ErrorCode::InvalidInput,
+                ErrorCode::InvalidArgument,
                 "Cannot diff behaviors with different subject IDs"
             );
         }

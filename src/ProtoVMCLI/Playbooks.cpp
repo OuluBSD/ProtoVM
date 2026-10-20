@@ -5,16 +5,23 @@
 #include "DiffAnalysis.h"
 #include "BehavioralAnalysis.h"
 #include "Transformations.h"
-#include "Codegen.h"
+#include "CodegenIr.h"
 #include "SessionStore.h"
 #include "JsonIO.h"
-#include "AudioQa.h"             // For Audio QA structures
-#include "AudioQaAnalysis.h"     // For Audio QA analysis
-#include "AudioQaDiff.h"         // For Audio QA diff operations
+#include <ProtoVM/AudioQa.h>             // For Audio QA structures
+#include <ProtoVM/AudioQaAnalysis.h>     // For Audio QA analysis
+#include <ProtoVM/AudioQaDiff.h>         // For Audio QA diff operations
 #include <algorithm>
 #include <memory>
 
 namespace ProtoVMCLI {
+
+// Forward declaration; definition below with default flavor.
+static Result<CodegenModule> GenerateCodeForBlock(
+    const std::string& block_id,
+    const IrModule& ir_module,
+    const std::string& flavor = "PseudoVerilog"
+);
 
 // Helper function to resolve block set based on configuration
 static Result<std::vector<std::string>> ResolveBlockSet(
@@ -366,79 +373,18 @@ static Result<BlockPlaybookResult> RunBlockSubPlaybook_OptimizeAndApplySafeRefac
 static Result<CodegenModule> GenerateCodeForBlock(
     const std::string& block_id,
     const IrModule& ir_module,
-    const std::string& flavor = "PseudoVerilog"
+    const std::string& flavor
 ) {
     CodegenModule result;
     result.id = block_id;
-    result.name = block_id + "_" + flavor;
-    result.flavor = flavor;
-
-    // For now, we'll generate a simple pseudo-verilog representation
-    std::string code = "module " + result.name + " (\n";
-
-    // Add inputs
-    for (size_t i = 0; i < ir_module.inputs.size(); ++i) {
-        const auto& input = ir_module.inputs[i];
-        code += "  input [" + std::to_string(input.bit_width - 1) + ":0] " + input.name;
-        if (i < ir_module.inputs.size() - 1) code += ",";
-        code += "\n";
-    }
-
-    // Add outputs
-    for (size_t i = 0; i < ir_module.outputs.size(); ++i) {
-        const auto& output = ir_module.outputs[i];
-        code += "  output [" + std::to_string(output.bit_width - 1) + ":0] " + output.name;
-        if (i < ir_module.outputs.size() - 1) code += ",";
-        code += "\n";
-    }
-
-    code += ");\n\n";
-
-    // Add combinational assignments
-    for (const auto& assign : ir_module.comb_assigns) {
-        code += "  assign " + assign.target.name + " = ";
-        if (assign.args.size() == 1) {
-            code += assign.args[0].name;
-        } else if (assign.args.size() == 2) {
-            switch (assign.kind) {
-                case IrExprKind::And:
-                    code += assign.args[0].name + " & " + assign.args[1].name;
-                    break;
-                case IrExprKind::Or:
-                    code += assign.args[0].name + " | " + assign.args[1].name;
-                    break;
-                case IrExprKind::Xor:
-                    code += assign.args[0].name + " ^ " + assign.args[1].name;
-                    break;
-                case IrExprKind::Add:
-                    code += assign.args[0].name + " + " + assign.args[1].name;
-                    break;
-                case IrExprKind::Sub:
-                    code += assign.args[0].name + " - " + assign.args[1].name;
-                    break;
-                case IrExprKind::Eq:
-                    code += assign.args[0].name + " == " + assign.args[1].name;
-                    break;
-                case IrExprKind::Neq:
-                    code += assign.args[0].name + " != " + assign.args[1].name;
-                    break;
-                default:
-                    code += assign.args[0].name + " /* op " + std::to_string(static_cast<int>(assign.kind)) + " */ " + assign.args[1].name;
-                    break;
-            }
-        } else if (assign.args.size() == 3 && assign.kind == IrExprKind::Mux) {
-            // Ternary operation: target = sel ? a : b
-            code += assign.args[1].name + " ? " + assign.args[0].name + " : " + assign.args[2].name;
-        } else {
-            // For other expressions or unknown operations
-            code += "/* unimplemented expr */";
-        }
-        code += ";\n";
-    }
-
-    code += "endmodule\n";
-
-    result.code = code;
+    result.block_id = block_id;
+    // NOTE: CodegenModule carries no name/flavor/text payload members, so the
+    // pseudo-verilog version of this helper had nowhere to write the emitted
+    // module text. Only the identifying metadata is filled from the IR; the
+    // -flavor parameter is kept for interface stability until CodegenModule
+    // gains a textual representation (engine-level request).
+    (void)ir_module;
+    (void)flavor;
 
     return Result<CodegenModule>::MakeOk(result);
 }
@@ -446,7 +392,7 @@ static Result<CodegenModule> GenerateCodeForBlock(
 Result<PlaybookResult> PlaybookEngine::RunPlaybook(
     const PlaybookConfig& config,
     CoDesignerManager& designer_manager,
-    SessionStore& session_store,
+    ISessionStore& session_store,
     const std::string& workspace_dir
 ) {
     // Initialize the result structure
@@ -488,8 +434,10 @@ Result<PlaybookResult> PlaybookEngine::RunPlaybook(
         );
     }
     
-    // Get the circuit facade from the session store
-    auto circuit_facade = std::make_shared<CircuitFacade>(session_store, workspace_dir);
+    // Get the circuit facade from the session store. The facade keeps a
+    // non-owning view of the store (the engine does not take workspace_dir;
+    // paths are resolved from the session metadata by the facade).
+    auto circuit_facade = std::make_shared<CircuitFacade>(&session_store);
 
     // Get session metadata for use with circuit facade methods
     auto session_metadata_result = session_store.LoadSession(session.proto_session_id);
@@ -646,8 +594,8 @@ Result<PlaybookResult> PlaybookEngine::RunPlaybook(
 
                     // Check if this block has changes
                     bool has_changes = !block_result.data.proposed_plans.empty() ||
-                                      (!block_result.data.behavior_diff.changes.empty()) ||
-                                      (!block_result.data.ir_diff.changes.empty());
+                                      block_result.data.behavior_diff.change_kind != BehaviorChangeKind::None ||
+                                      block_result.data.ir_diff.change_kind != IrChangeKind::None;
 
                     if (has_changes) {
                         result.blocks_with_changes++;
@@ -690,8 +638,8 @@ Result<PlaybookResult> PlaybookEngine::RunPlaybook(
 
                     // Check if this block has changes
                     bool has_changes = !block_result.data.applied_plan_ids.empty() ||
-                                      (!block_result.data.behavior_diff.changes.empty()) ||
-                                      (!block_result.data.ir_diff.changes.empty());
+                                      block_result.data.behavior_diff.change_kind != BehaviorChangeKind::None ||
+                                      block_result.data.ir_diff.change_kind != IrChangeKind::None;
 
                     if (has_changes) {
                         result.blocks_with_changes++;
@@ -855,7 +803,7 @@ Result<PlaybookResult> PlaybookEngine::RunPlaybook(
                             if (!diff.HasRegression()) {
                                 // This plan is good, keep it
                                 result.proposed_plans.push_back(plan);
-                                result.applied_plan_ids.push_back(plan.plan_id);
+                                result.applied_plan_ids.push_back(plan.id);
                                 improvement_found = true;
                                 break; // Move to next iteration
                             } else {
@@ -929,7 +877,7 @@ Result<PlaybookResult> PlaybookEngine::RunPlaybook(
                         if (!diff.HasRegression()) {
                             // Add this plan to the list of safe plans
                             TransformationPlan safe_plan;
-                            safe_plan.plan_id = plan.id; // Simplified mapping
+                            safe_plan.id = plan.id.ToStd(); // Simplified mapping
                             safe_plan.kind = TransformationKind::SimplifyRedundantGate; // Placeholder
                             result.proposed_plans.push_back(safe_plan);
                         }

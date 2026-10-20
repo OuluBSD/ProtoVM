@@ -18,21 +18,6 @@ static IrValue CreateLiteral(int bit_width, uint64_t value) {
     return IrValue("", bit_width, true, value);
 }
 
-// Helper function to convert IrExpr to string for debugging
-static std::string IrExprToString(const IrExpr& expr) {
-    std::string result = IrExprKindToString(expr.kind) + "(";
-    for (size_t i = 0; i < expr.args.size(); ++i) {
-        if (i > 0) result += ", ";
-        if (expr.args[i].is_literal) {
-            result += std::to_string(expr.args[i].literal);
-        } else {
-            result += expr.args[i].name;
-        }
-    }
-    result += ")";
-    return result;
-}
-
 // Helper function to convert IrExprKind to string
 static std::string IrExprKindToString(IrExprKind kind) {
     switch (kind) {
@@ -48,6 +33,21 @@ static std::string IrExprKindToString(IrExprKind kind) {
         case IrExprKind::Neq: return "Neq";
         default: return "Unknown";
     }
+}
+
+// Helper function to convert IrExpr to string for debugging
+static std::string IrExprToString(const IrExpr& expr) {
+    std::string result = IrExprKindToString(expr.kind) + "(";
+    for (size_t i = 0; i < expr.args.size(); ++i) {
+        if (i > 0) result += ", ";
+        if (expr.args[i].is_literal) {
+            result += std::to_string(expr.args[i].literal);
+        } else {
+            result += expr.args[i].name;
+        }
+    }
+    result += ")";
+    return result;
 }
 
 // Main optimization function
@@ -448,19 +448,19 @@ Result<bool> VerifyIrOptimizationBehaviorPreserved(
 ) {
     // Check behavior kind preservation
     if (before_behavior.behavior_kind != after_behavior.behavior_kind) {
-        return Result<bool>::MakeError(ErrorCode::BehaviorChanged,
+        return Result<bool>::MakeError(ErrorCode::Conflict,
                                    "Behavior kind changed during optimization");
     }
 
     // Check bit width preservation
     if (before_behavior.bit_width != after_behavior.bit_width) {
-        return Result<bool>::MakeError(ErrorCode::BehaviorChanged,
+        return Result<bool>::MakeError(ErrorCode::Conflict,
                                    "Bit width changed during optimization");
     }
 
     // Check that port count and names are preserved
     if (before_behavior.ports.size() != after_behavior.ports.size()) {
-        return Result<bool>::MakeError(ErrorCode::BehaviorChanged,
+        return Result<bool>::MakeError(ErrorCode::Conflict,
                                    "Port count changed during optimization");
     }
 
@@ -468,7 +468,7 @@ Result<bool> VerifyIrOptimizationBehaviorPreserved(
     for (size_t i = 0; i < before_behavior.ports.size(); ++i) {
         if (before_behavior.ports[i].port_name != after_behavior.ports[i].port_name ||
             before_behavior.ports[i].role != after_behavior.ports[i].role) {
-            return Result<bool>::MakeError(ErrorCode::BehaviorChanged,
+            return Result<bool>::MakeError(ErrorCode::Conflict,
                                        "Port name or role changed during optimization");
         }
     }
@@ -565,7 +565,13 @@ Result<std::vector<TransformationPlan>> IrToTransformationBridge::PlansFromIrDif
         }
     }
 
-    return Result<std::vector<TransformationPlan>>::Success(plans);
+    return Result<std::vector<TransformationPlan>>::MakeOk(plans);
+}
+
+// TransformationEngine's id counter is private; mint unique plan ids locally.
+static std::string NextIrPlanId() {
+    static int next_id = 0;
+    return "IR_T_" + std::to_string(next_id++);
 }
 
 // Create a plan for simplifying double inversions
@@ -574,17 +580,17 @@ TransformationPlan IrToTransformationBridge::CreateSimplifyDoubleInversionPlan(
     const std::string& block_id
 ) {
     TransformationPlan plan;
-    plan.id = "IR_T_" + std::to_string(TransformationEngine::transformation_id_counter++);
+    plan.id = NextIrPlanId();
     plan.kind = TransformationKind::SimplifyDoubleInversion;
     plan.target.subject_id = block_id;
     plan.target.subject_kind = "Block";
 
-    plan.guarantees.Add(PreservationLevel::BehaviorKindPreserved);
-    plan.guarantees.Add(PreservationLevel::IOContractPreserved);
+    plan.guarantees.push_back(PreservationLevel::BehaviorKindPreserved);
+    plan.guarantees.push_back(PreservationLevel::IOContractPreserved);
 
     TransformationStep step;
     step.description = "Remove redundant NOT-then-NOT around " + change.target_name + " path";
-    plan.steps.Add(step);
+    plan.steps.push_back(step);
 
     return plan;
 }
@@ -595,17 +601,17 @@ TransformationPlan IrToTransformationBridge::CreateSimplifyRedundantGatePlan(
     const std::string& block_id
 ) {
     TransformationPlan plan;
-    plan.id = "IR_T_" + std::to_string(TransformationEngine::transformation_id_counter++);
+    plan.id = NextIrPlanId();
     plan.kind = TransformationKind::SimplifyRedundantGate;
     plan.target.subject_id = block_id;
     plan.target.subject_kind = "Block";
 
-    plan.guarantees.Add(PreservationLevel::BehaviorKindPreserved);
-    plan.guarantees.Add(PreservationLevel::IOContractPreserved);
+    plan.guarantees.push_back(PreservationLevel::BehaviorKindPreserved);
+    plan.guarantees.push_back(PreservationLevel::IOContractPreserved);
 
     TransformationStep step;
     step.description = "Simplify redundant gate operation for " + change.target_name;
-    plan.steps.Add(step);
+    plan.steps.push_back(step);
 
     return plan;
 }

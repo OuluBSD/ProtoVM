@@ -16,8 +16,6 @@
 
 namespace ProtoVMCLI {
 
-// Defined in PluginSkeletonExport.h (keep in sync with that header)
-enum class PluginTargetKind : int;
 
 // Simple JSON utilities for the CLI using U++ types
 class JsonIO {
@@ -332,13 +330,13 @@ public:
 
     static Upp::ValueMap GlobalPipeliningPlanToValueMap(const GlobalPipeliningPlan& plan);
 
-    static Upp::ValueArray GlobalPipelinePathsToValueArray(const std::vector<GlobalPipelinePath>& paths);
+    static Upp::ValueArray GlobalPipelinePathsToValueArray(const Upp::Vector<GlobalPipelinePath>& paths);
 
-    static Upp::ValueArray GlobalPipelineStagesToValueArray(const std::vector<GlobalPipelineStage>& stages);
+    static Upp::ValueArray GlobalPipelineStagesToValueArray(const Upp::Vector<GlobalPipelineStage>& stages);
 
     static Upp::ValueArray GlobalPipeliningObjectivesToValueArray(const std::vector<GlobalPipeliningObjective>& objectives);
 
-    static Upp::ValueArray GlobalPipeliningStepsToValueArray(const std::vector<GlobalPipeliningStep>& steps);
+    static Upp::ValueArray GlobalPipeliningStepsToValueArray(const Upp::Vector<GlobalPipeliningStep>& steps);
 
     static Upp::ValueArray GlobalPipeliningPlansToValueArray(const std::vector<GlobalPipeliningPlan>& plans);
 
@@ -421,7 +419,7 @@ public:
     static Upp::ValueArray VoiceConfigsToValueArray(const std::vector<VoiceConfig>& voices);
 
     // PluginTargetKind serialization methods
-    static Upp::Value PluginTargetKindToJson(PluginTargetKind kind);
+    static Upp::Value PluginTargetKindToJson(int kind);   // underlying value of PluginTargetKind (0=Vst3,1=Lv2,2=Clap,3=Ladspa)
 };
 
 // Template implementation needs to be in header

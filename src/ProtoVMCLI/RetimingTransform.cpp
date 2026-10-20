@@ -21,8 +21,8 @@ Result<TransformationPlan> RetimingTransform::BuildTransformationPlanForRetiming
     transformation_plan.target.subject_kind = "Block";  // Assuming block-level for now
     
     // Add guarantees about what is preserved
-    transformation_plan.guarantees.Add(PreservationLevel::IOContractPreserved);
-    transformation_plan.guarantees.Add(PreservationLevel::DependencyPatternPreserved);
+    transformation_plan.guarantees.push_back(PreservationLevel::IOContractPreserved);
+    transformation_plan.guarantees.push_back(PreservationLevel::DependencyPatternPreserved);
     
     // Filter moves based on safety and options
     Vector<RetimingMove> eligible_moves;
@@ -57,7 +57,7 @@ Result<TransformationPlan> RetimingTransform::BuildTransformationPlanForRetiming
                           " to direction " + 
                           (move.direction == RetimingMoveDirection::Forward ? "forward" : "backward");
         
-        transformation_plan.steps.Add(step);
+        transformation_plan.steps.push_back(step);
     }
     
     return Result<TransformationPlan>::MakeOk(transformation_plan);
@@ -66,7 +66,7 @@ Result<TransformationPlan> RetimingTransform::BuildTransformationPlanForRetiming
 Result<RetimingApplicationResult> RetimingTransform::ApplyRetimingPlanInBranch(
     const RetimingPlan& retiming_plan,
     const RetimingApplicationOptions& options,
-    SessionStore& session_store,
+    ISessionStore& session_store,
     const SessionMetadata& session,
     const String& session_dir,
     const String& branch_name) {

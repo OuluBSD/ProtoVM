@@ -18,7 +18,7 @@ void TestStructuralPatternDetection() {
     pattern.description = "Test redundant logic pattern";
 
     // Verify we can serialize it to JSON
-    auto json_map = JsonIO::StructuralPatternToValueMap(pattern);
+    auto json_map = ProtoVMCLI::JsonIO::StructuralPatternToValueMap(pattern);
     assert(json_map.Get("pattern_id", Upp::String("")) == "SP_0001");
     assert(json_map.Get("kind", Upp::String("")) == "RedundantLogic");
     assert(json_map.Get("description", Upp::String("")) == "Test redundant logic pattern");
@@ -41,7 +41,7 @@ void TestRefactorMoveCreation() {
     move.transform_hint = "Normalize mux structure";
 
     // Verify we can serialize it to JSON
-    auto json_map = JsonIO::StructuralRefactorMoveToValueMap(move);
+    auto json_map = ProtoVMCLI::JsonIO::StructuralRefactorMoveToValueMap(move);
     assert(json_map.Get("move_id", Upp::String("")) == "SRM_0001");
     assert(json_map.Get("safety", Upp::String("")) == "Safe");
     assert(json_map.Get("transform_hint", Upp::String("")) == "Normalize mux structure");
@@ -81,7 +81,7 @@ void TestRefactorPlanCreation() {
     plan.moves.Add(move);
 
     // Verify we can serialize the complete plan
-    auto json_map = JsonIO::StructuralRefactorPlanToValueMap(plan);
+    auto json_map = ProtoVMCLI::JsonIO::StructuralRefactorPlanToValueMap(plan);
     assert(json_map.Get("id", Upp::String("")) == "SRP_TEST_1");
     assert(json_map.Get("target_block_id", Upp::String("")) == "B1");
     assert(json_map.Get("respects_cdc_fences", true) == true);
@@ -94,7 +94,7 @@ void TestStructuralAnalysis() {
     std::cout << "Testing structural analysis...\n";
     
     // Create a minimal circuit graph for testing
-    CircuitGraph graph;
+    ProtoVMCLI::CircuitGraph graph;
     // Add a few nodes and edges to the graph for testing
     // In a real test, we would have a complete circuit graph
     

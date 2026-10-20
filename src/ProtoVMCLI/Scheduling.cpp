@@ -77,7 +77,7 @@ Result<std::vector<int>> SchedulingEngine::ComputeTimingDepths(
         }
     }
     
-    return Result<std::vector<int>>::Ok(depths);
+    return Result<std::vector<int>>::MakeOk(depths);
 }
 
 Result<std::vector<StageIndex>> SchedulingEngine::AssignStages(
@@ -95,7 +95,7 @@ Result<std::vector<StageIndex>> SchedulingEngine::AssignStages(
     if (max_depth == 0) {
         // All operations in stage 0
         std::fill(stages.begin(), stages.end(), 0);
-        return Result<std::vector<StageIndex>>::Ok(stages);
+        return Result<std::vector<StageIndex>>::MakeOk(stages);
     }
     
     for (size_t i = 0; i < depths.size(); ++i) {
@@ -124,7 +124,7 @@ Result<std::vector<StageIndex>> SchedulingEngine::AssignStages(
         stages[i] = stage;
     }
     
-    return Result<std::vector<StageIndex>>::Ok(stages);
+    return Result<std::vector<StageIndex>>::MakeOk(stages);
 }
 
 Result<ScheduledModule> SchedulingEngine::BuildSchedule(

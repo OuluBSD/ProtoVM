@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 namespace ProtoVMCLI {
 
 // Helper function to generate ISO 8601 timestamp
-std::string GetCurrentTimestamp() {
+static std::string GetCurrentTimestamp() {
     auto now = std::chrono::system_clock::now();
     auto time_t = std::chrono::system_clock::to_time_t(now);
     std::tm tm = *std::gmtime(&time_t);
@@ -48,10 +48,7 @@ bool AtomicWriteJsonFile(const fs::path& file_path, const Upp::String& content) 
 
 class JsonFilesystemSessionStore : public ISessionStore {
 public:
-    JsonFilesystemSessionStore(const std::string& workspace_path)
-        : workspace_path_(workspace_path) {
-        sessions_dir_ = fs::path(workspace_path_) / "sessions";
-    }
+    JsonFilesystemSessionStore(const std::string& workspace_path);
 
     Result<int> CreateSession(const SessionCreateInfo& info) override {
         try {
@@ -683,6 +680,11 @@ private:
         return AtomicWriteJsonFile(workspace_json_path, new_content);
     }
 };
+
+JsonFilesystemSessionStore::JsonFilesystemSessionStore(const std::string& workspace_path)
+    : workspace_path_(workspace_path) {
+    sessions_dir_ = fs::path(workspace_path_) / "sessions";
+}
 
 // Factory function to create the filesystem session store
 std::unique_ptr<ISessionStore> CreateFilesystemSessionStore(const std::string& workspace_path) {

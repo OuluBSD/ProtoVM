@@ -16,7 +16,7 @@ Result<GlobalPipelineMap> GlobalPipelineAnalysis::BuildGlobalPipelineMapForSubsy
 ) {
     GlobalPipelineMap global_map;
     global_map.subsystem_id = subsystem_id;
-    global_map.block_ids = block_ids;
+    global_map.block_ids <<= block_ids;
 
     // Collect all clock domains from the per-block pipelines
     std::set<std::string> unique_domains;
@@ -40,30 +40,30 @@ Result<GlobalPipelineMap> GlobalPipelineAnalysis::BuildGlobalPipelineMapForSubsy
     // Find all global paths
     auto paths_result = FindGlobalPaths(subsystem_id, block_ids, per_block_pipelines, graph);
     if (!paths_result.ok) {
-        return Result<GlobalPipelineMap>::MakeError(paths_result.error());
+        return Result<GlobalPipelineMap>::MakeError(paths_result.error_code, paths_result.error_message);
     }
-    global_map.paths = paths_result.data;
+    global_map.paths <<= paths_result.data;
 
     // Build global stages based on paths and per-block pipelines
     auto stages_result = BuildGlobalStages(subsystem_id, block_ids, per_block_pipelines, global_map.paths);
     if (!stages_result.ok) {
-        return Result<GlobalPipelineMap>::MakeError(stages_result.error());
+        return Result<GlobalPipelineMap>::MakeError(stages_result.error_code, stages_result.error_message);
     }
-    global_map.stages = stages_result.data;
+    global_map.stages <<= stages_result.data;
 
     // Update global metrics
     UpdateMetrics(global_map);
 
-    return Result<GlobalPipelineMap>::MakeOk(global_map);
+    return Result<GlobalPipelineMap>::MakeOk(std::move(global_map));
 }
 
-Result<std::vector<GlobalPipelinePath>> GlobalPipelineAnalysis::FindGlobalPaths(
+Result<Vector<GlobalPipelinePath>> GlobalPipelineAnalysis::FindGlobalPaths(
     const String& subsystem_id,
     const Vector<String>& block_ids,
     const Vector<PipelineMap>& per_block_pipelines,
     const CircuitGraph& graph
 ) {
-    std::vector<GlobalPipelinePath> paths;
+    Vector<GlobalPipelinePath> paths;
 
     // Find all registers in the subsystem blocks
     std::set<String> subsystem_registers;
@@ -81,7 +81,7 @@ Result<std::vector<GlobalPipelinePath>> GlobalPipelineAnalysis::FindGlobalPaths(
         // Find the pipeline for this block
         const PipelineMap* current_pipeline = nullptr;
         for (const auto& pipeline : per_block_pipelines) {
-            if (pipeline.id == block_id) {
+            if (pipeline.id == block_id.ToStd()) {
                 current_pipeline = &pipeline;
                 break;
             }
@@ -91,13 +91,24 @@ Result<std::vector<GlobalPipelinePath>> GlobalPipelineAnalysis::FindGlobalPaths(
 
         // For each register in this block's pipeline, try to find paths to other blocks
         for (const auto& reg : current_pipeline->registers) {
-            // Look for outputs that go to other blocks
-            auto connected_outputs = graph.GetOutputs(reg.reg_id);
-            
-            for (const auto& output : connected_outputs) {
+            // CircuitGraph exposes no direct "outputs" query; resolve the two-hop
+            // signal-flow fan-out (register -> net/pin -> register) from the edges.
+            for (const auto& edge : graph.edges) {
+                if (edge.kind != GraphEdgeKind::SignalFlow ||
+                    edge.from.kind != GraphNodeKind::Component ||
+                    edge.from.id != reg.reg_id)
+                    continue;
+
+                const GraphNodeId& mid = edge.to;
+                for (const auto& edge2 : graph.edges) {
+                    if (edge2.from.kind != mid.kind || edge2.from.id != mid.id)
+                        continue;
+                    if (edge2.to.kind != GraphNodeKind::Component)
+                        continue;
+
                 // Check if the output goes to a register in another block
-                auto output_reg = output;
-                if (subsystem_registers.count(output_reg)) {
+                const std::string& output_reg = edge2.to.id;
+                if (subsystem_registers.count(Upp::String(output_reg))) {
                     // Found a path between registers across blocks
                     GlobalPipelinePath path;
                     path.path_id = subsystem_id + "_path_000"; // TODO: Generate unique ID
@@ -134,7 +145,8 @@ Result<std::vector<GlobalPipelinePath>> GlobalPipelineAnalysis::FindGlobalPaths(
                     path.total_comb_depth_estimate = 5; // Placeholder - would come from timing analysis
                     path.segment_depths.Add(5); // Placeholder
                     
-                    paths.push_back(path);
+                    paths.Add(path);
+                }
                 }
             }
         }
@@ -145,16 +157,16 @@ Result<std::vector<GlobalPipelinePath>> GlobalPipelineAnalysis::FindGlobalPaths(
     // - Identifying paths that span multiple stages across multiple blocks
     // - Finding paths that start from subsystem inputs and end at subsystem outputs
 
-    return Result<std::vector<GlobalPipelinePath>>::Success(paths);
+    return Result<Vector<GlobalPipelinePath>>::MakeOk(std::move(paths));
 }
 
-Result<std::vector<GlobalPipelineStage>> GlobalPipelineAnalysis::BuildGlobalStages(
+Result<Vector<GlobalPipelineStage>> GlobalPipelineAnalysis::BuildGlobalStages(
     const String& subsystem_id,
     const Vector<String>& block_ids,
     const Vector<PipelineMap>& per_block_pipelines,
-    const std::vector<GlobalPipelinePath>& paths
+    const Vector<GlobalPipelinePath>& paths
 ) {
-    std::vector<GlobalPipelineStage> stages;
+    Vector<GlobalPipelineStage> stages;
     
     // Map register IDs to their global stage index based on per-block pipeline stage indices
     std::map<String, int> reg_to_stage;
@@ -208,7 +220,7 @@ Result<std::vector<GlobalPipelineStage>> GlobalPipelineAnalysis::BuildGlobalStag
         global_stage.max_comb_depth_estimate = 0; // Would be calculated based on actual paths
         global_stage.avg_comb_depth_estimate = 0; // Would be calculated based on actual paths
         
-        stages.push_back(global_stage);
+        stages.Add(global_stage);
     }
     
     // Sort stages by index to ensure consistent ordering
@@ -216,7 +228,7 @@ Result<std::vector<GlobalPipelineStage>> GlobalPipelineAnalysis::BuildGlobalStag
         return a.stage_index < b.stage_index;
     });
     
-    return Result<std::vector<GlobalPipelineStage>>::Success(stages);
+    return Result<Vector<GlobalPipelineStage>>::MakeOk(std::move(stages));
 }
 
 void GlobalPipelineAnalysis::UpdateMetrics(GlobalPipelineMap& global_map) {

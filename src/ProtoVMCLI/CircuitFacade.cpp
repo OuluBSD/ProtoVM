@@ -61,7 +61,7 @@ std::string ToString(TransformationKind kind) {
 #include "BehavioralAnalysis.h" // For behavioral analysis
 
 // Helper function to find a branch by name in session metadata
-std::optional<BranchMetadata> FindBranchByName(const SessionMetadata& session, const std::string& branch_name) {
+std::optional<BranchMetadata> FindBranchInSession(const SessionMetadata& session, const std::string& branch_name) {
     for (const auto& branch : session.branches) {
         if (branch.name == branch_name) {
             return branch;
@@ -84,7 +84,7 @@ BranchMetadata GetCurrentBranch(const SessionMetadata& session) {
 }
 
 // Helper function to generate ISO 8601 timestamp
-std::string GetCurrentTimestamp() {
+static std::string GetCurrentTimestamp() {
     auto now = std::chrono::system_clock::now();
     auto time_t = std::chrono::system_clock::to_time_t(now);
     std::tm tm = *std::gmtime(&time_t);
@@ -93,7 +93,7 @@ std::string GetCurrentTimestamp() {
     return std::string(buffer);
 }
 
-Result<CircuitRevisionInfo> CircuitFacade::LoadCurrentCircuit(
+Result<CircuitFacade::CircuitRevisionInfo> CircuitFacade::LoadCurrentCircuit(
     const SessionMetadata& session,
     const std::string& session_dir,
     CircuitData& out_circuit
@@ -102,7 +102,7 @@ Result<CircuitRevisionInfo> CircuitFacade::LoadCurrentCircuit(
     return LoadCurrentCircuitForBranch(session, session_dir, session.current_branch, out_circuit);
 }
 
-Result<CircuitRevisionInfo> CircuitFacade::LoadCurrentCircuitForBranch(
+Result<CircuitFacade::CircuitRevisionInfo> CircuitFacade::LoadCurrentCircuitForBranch(
     const SessionMetadata& session,
     const std::string& session_dir,
     const std::string& branch_name,
@@ -110,7 +110,7 @@ Result<CircuitRevisionInfo> CircuitFacade::LoadCurrentCircuitForBranch(
 ) {
     try {
         // Get the branch metadata to determine revision to load
-        std::optional<BranchMetadata> branch_opt = FindBranchByName(session, branch_name);
+        std::optional<BranchMetadata> branch_opt = FindBranchInSession(session, branch_name);
         if (!branch_opt.has_value()) {
             return Result<CircuitRevisionInfo>::MakeError(
                 ErrorCode::InvalidEditOperation,
@@ -175,7 +175,7 @@ Result<CircuitRevisionInfo> CircuitFacade::LoadCurrentCircuitForBranch(
     }
 }
 
-Result<CircuitRevisionInfo> CircuitFacade::ApplyEditOperations(
+Result<CircuitFacade::CircuitRevisionInfo> CircuitFacade::ApplyEditOperations(
     SessionMetadata& session,
     const std::string& session_dir,
     const std::vector<EditOperation>& ops,
@@ -185,7 +185,7 @@ Result<CircuitRevisionInfo> CircuitFacade::ApplyEditOperations(
     return ApplyEditOperationsToBranch(session, session_dir, ops, user_id, session.current_branch);
 }
 
-Result<CircuitRevisionInfo> CircuitFacade::ApplyEditOperationsToBranch(
+Result<CircuitFacade::CircuitRevisionInfo> CircuitFacade::ApplyEditOperationsToBranch(
     SessionMetadata& session,
     const std::string& session_dir,
     const std::vector<EditOperation>& ops,
@@ -194,7 +194,7 @@ Result<CircuitRevisionInfo> CircuitFacade::ApplyEditOperationsToBranch(
 ) {
     try {
         // Find the target branch
-        std::optional<BranchMetadata> target_branch_opt = FindBranchByName(session, branch_name);
+        std::optional<BranchMetadata> target_branch_opt = FindBranchInSession(session, branch_name);
         if (!target_branch_opt.has_value()) {
             return Result<CircuitRevisionInfo>::MakeError(
                 ErrorCode::InvalidEditOperation,
@@ -2388,12 +2388,12 @@ Result<GlobalPipelineMap> CircuitFacade::BuildGlobalPipelineMapForSubsystemInBra
         Vector<PipelineMap> per_block_pipelines;
         for (const auto& block_id : block_ids) {
             auto pipeline_result = BuildPipelineMapForBlockInBranch(
-                session, session_dir, branch_name, block_id
+                session, session_dir, branch_name, block_id.ToStd()
             );
             if (!pipeline_result.ok) {
                 return Result<GlobalPipelineMap>::MakeError(
                     pipeline_result.error_code,
-                    "Error getting pipeline for block " + block_id + ": " + pipeline_result.error_message
+                    "Error getting pipeline for block " + block_id.ToStd() + ": " + pipeline_result.error_message
                 );
             }
             per_block_pipelines.Add(pipeline_result.data);
@@ -2456,12 +2456,12 @@ Result<Vector<GlobalPipeliningPlan>> CircuitFacade::ProposeGlobalPipeliningPlans
             retiming_obj.target_max_depth = objective.target_max_depth;
 
             auto opt_result = OptimizeRetimingForBlockInBranch(
-                session, session_dir, branch_name, block_id, retiming_obj, nullptr
+                session, session_dir, branch_name, block_id.ToStd(), retiming_obj, nullptr
             );
             if (!opt_result.ok) {
                 return Result<Vector<GlobalPipeliningPlan>>::MakeError(
                     opt_result.error_code,
-                    "Error optimizing retiming for block " + block_id + ": " + opt_result.error_message
+                    "Error optimizing retiming for block " + block_id.ToStd() + ": " + opt_result.error_message
                 );
             }
             per_block_opt_results.Add(opt_result.data);

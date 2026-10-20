@@ -15,6 +15,10 @@
 
 namespace ProtoVMCLI {
 
+Upp::String JsonIO::SuccessResponse(const Upp::ValueMap& data) {
+    return SuccessResponse("", data);
+}
+
 Upp::String JsonIO::SuccessResponse(const std::string& command, const Upp::ValueMap& data) {
     Upp::ValueMap response;
     response.Add("ok", true);
@@ -41,24 +45,6 @@ Upp::String JsonIO::ErrorResponse(const std::string& command, const std::string&
     response.Add("error", Upp::String(error_msg.c_str()));
     response.Add("data", Upp::Value());
     return ValueMapToJson(response);
-}
-
-template<typename T>
-Upp::String JsonIO::FromResult(const std::string& command, const Result<T>& result,
-                               std::function<Upp::ValueMap(const T&)> converter) {
-    if (result.ok) {
-        Upp::ValueMap data;
-        if (converter) {
-            data = converter(result.data);
-        } else {
-            // For simple types, just return an empty object or add a value field
-            data.Add("value", Upp::Value(result.data));
-        }
-        return SuccessResponse(command, data);
-    } else {
-        std::string code_str = ErrorCodeToString(result.error_code);
-        return ErrorResponse(command, result.error_message, code_str);
-    }
 }
 
 std::string JsonIO::ErrorCodeToString(ErrorCode code) {
@@ -140,16 +126,16 @@ Upp::ValueMap JsonIO::ParseArgs(int argc, char** argv) {
         }
         else {
             // Positional argument - handle command hierarchy
-            if (!args.IsKey("command")) {
+            if (args.Find("command") < 0) {
                 args.Add("command", arg);
             } else if (args.Get("command", Upp::String("")) == "debug") {
                 // Handle debug subcommands
-                if (!args.IsKey("subcommand")) {
+                if (args.Find("subcommand") < 0) {
                     args.Add("subcommand", arg);
                 } else if (args.Get("subcommand", Upp::String("")) == "process" ||
                           args.Get("subcommand", Upp::String("")) == "websocket" ||
                           args.Get("subcommand", Upp::String("")) == "poll") {
-                    if (!args.IsKey("action")) {
+                    if (args.Find("action") < 0) {
                         args.Add("action", arg);
                     }
                 }
@@ -181,7 +167,7 @@ Upp::String JsonIO::ValueMapToJson(const Upp::ValueMap& vm) {
         if (!first) {
             result += ",";
         }
-        result += "\"" + vm.GetKey(i) + "\":" + ValueToJson(vm[i]);
+        result += "\"" + Upp::AsString(vm.GetKey(i)) + "\":" + ValueToJson(vm[i]);
         first = false;
     }
     
@@ -215,7 +201,8 @@ Upp::String JsonIO::ValueToJson(const Upp::Value& val) {
     } else if (val.Is<Upp::String>()) {
         Upp::String str = val.Get<Upp::String>();
         // Escape quotes and other special characters
-        str = Upp::String().Cat() << "\"" << str.Replace("\"", "\\\"") << "\"";
+        str.Replace("\"", "\\\"");
+        str = Upp::String().Cat() << "\"" << str << "\"";
         return str;
     } else if (val.Is<Upp::ValueMap>()) {
         return ValueMapToJson(val.Get<Upp::ValueMap>());
@@ -941,15 +928,6 @@ Upp::ValueMap JsonIO::PlaybookConfigToValueMap(const PlaybookConfig& config) {
     return config_map;
 }
 
-Upp::ValueMap JsonIO::CodegenModuleToValueMap(const CodegenModule& module) {
-    Upp::ValueMap module_map;
-    module_map.Add("id", Upp::String(module.id.c_str()));
-    module_map.Add("name", Upp::String(module.name.c_str()));
-    module_map.Add("flavor", Upp::String(module.flavor.c_str()));
-    module_map.Add("code", Upp::String(module.code.c_str()));
-    return module_map;
-}
-
 Upp::ValueMap JsonIO::BlockPlaybookResultToValueMap(const BlockPlaybookResult& result) {
     Upp::ValueMap result_map;
     result_map.Add("block_id", Upp::String(result.block_id.c_str()));
@@ -1254,15 +1232,15 @@ Upp::Value JsonIO::CdcSeverityToJson(CdcSeverity severity) {
 
 Upp::ValueMap JsonIO::CdcCrossingEndpointToValueMap(const CdcCrossingEndpoint& endpoint) {
     Upp::ValueMap map;
-    map.Add("reg_id", Upp::String(endpoint.reg_id.c_str()));
-    map.Add("clock_signal", Upp::String(endpoint.clock_signal.c_str()));
+    map.Add("reg_id", endpoint.reg_id);
+    map.Add("clock_signal", endpoint.clock_signal);
     map.Add("domain_id", endpoint.domain_id);
     return map;
 }
 
 Upp::ValueMap JsonIO::CdcCrossingToValueMap(const CdcCrossing& crossing) {
     Upp::ValueMap map;
-    map.Add("id", Upp::String(crossing.id.c_str()));
+    map.Add("id", crossing.id);
     map.Add("src", CdcCrossingEndpointToValueMap(crossing.src));
     map.Add("dst", CdcCrossingEndpointToValueMap(crossing.dst));
     map.Add("kind", CdcCrossingKindToJson(crossing.kind));
@@ -1274,23 +1252,23 @@ Upp::ValueMap JsonIO::CdcCrossingToValueMap(const CdcCrossing& crossing) {
 
 Upp::ValueMap JsonIO::CdcIssueToValueMap(const CdcIssue& issue) {
     Upp::ValueMap map;
-    map.Add("id", Upp::String(issue.id.c_str()));
+    map.Add("id", issue.id);
     map.Add("severity", CdcSeverityToJson(issue.severity));
-    map.Add("summary", Upp::String(issue.summary.c_str()));
-    map.Add("detail", Upp::String(issue.detail.c_str()));
-    map.Add("crossing_id", Upp::String(issue.crossing_id.c_str()));
+    map.Add("summary", issue.summary);
+    map.Add("detail", issue.detail);
+    map.Add("crossing_id", issue.crossing_id);
     return map;
 }
 
 Upp::ValueMap JsonIO::CdcReportToValueMap(const CdcReport& report) {
     Upp::ValueMap map;
-    map.Add("id", Upp::String(report.id.c_str()));
+    map.Add("id", report.id);
 
     // Convert clock domains
     Upp::ValueArray clock_domains_array;
     for (const auto& clock_domain : report.clock_domains) {
         Upp::ValueMap clock_map;
-        clock_map.Add("signal_name", Upp::String(clock_domain.signal_name.c_str()));
+        clock_map.Add("signal_name", clock_domain.signal_name);
         clock_map.Add("domain_id", clock_domain.domain_id);
         clock_domains_array.Add(clock_map);
     }
@@ -1334,19 +1312,19 @@ Upp::Value JsonIO::GlobalPipeliningStrategyKindToJson(GlobalPipeliningStrategyKi
 
 Upp::ValueMap JsonIO::GlobalPipelinePathToValueMap(const GlobalPipelinePath& path) {
     Upp::ValueMap map;
-    map.Add("path_id", Upp::String(path.path_id.c_str()));
+    map.Add("path_id", path.path_id);
 
     // Convert reg_ids vector to array
     Upp::ValueArray reg_ids_array;
     for (const auto& reg_id : path.reg_ids) {
-        reg_ids_array.Add(Upp::String(reg_id.c_str()));
+        reg_ids_array.Add(reg_id);
     }
     map.Add("reg_ids", reg_ids_array);
 
     // Convert block_ids vector to array
     Upp::ValueArray block_ids_array;
     for (const auto& block_id : path.block_ids) {
-        block_ids_array.Add(Upp::String(block_id.c_str()));
+        block_ids_array.Add(block_id);
     }
     map.Add("block_ids", block_ids_array);
 
@@ -1372,14 +1350,14 @@ Upp::ValueMap JsonIO::GlobalPipelineStageToValueMap(const GlobalPipelineStage& s
     // Convert reg_ids vector to array
     Upp::ValueArray reg_ids_array;
     for (const auto& reg_id : stage.reg_ids) {
-        reg_ids_array.Add(Upp::String(reg_id.c_str()));
+        reg_ids_array.Add(reg_id);
     }
     map.Add("reg_ids", reg_ids_array);
 
     // Convert block_ids vector to array
     Upp::ValueArray block_ids_array;
     for (const auto& block_id : stage.block_ids) {
-        block_ids_array.Add(Upp::String(block_id.c_str()));
+        block_ids_array.Add(block_id);
     }
     map.Add("block_ids", block_ids_array);
 
@@ -1391,12 +1369,12 @@ Upp::ValueMap JsonIO::GlobalPipelineStageToValueMap(const GlobalPipelineStage& s
 
 Upp::ValueMap JsonIO::GlobalPipelineMapToValueMap(const GlobalPipelineMap& global_pipeline) {
     Upp::ValueMap map;
-    map.Add("subsystem_id", Upp::String(global_pipeline.subsystem_id.c_str()));
+    map.Add("subsystem_id", global_pipeline.subsystem_id);
 
     // Convert block_ids vector to array
     Upp::ValueArray block_ids_array;
     for (const auto& block_id : global_pipeline.block_ids) {
-        block_ids_array.Add(Upp::String(block_id.c_str()));
+        block_ids_array.Add(block_id);
     }
     map.Add("block_ids", block_ids_array);
 
@@ -1434,20 +1412,20 @@ Upp::ValueMap JsonIO::GlobalPipeliningObjectiveToValueMap(const GlobalPipelining
 
 Upp::ValueMap JsonIO::GlobalPipeliningStepToValueMap(const GlobalPipeliningStep& step) {
     Upp::ValueMap map;
-    map.Add("block_id", Upp::String(step.block_id.c_str()));
-    map.Add("retiming_plan_id", Upp::String(step.retiming_plan_id.c_str()));
+    map.Add("block_id", step.block_id);
+    map.Add("retiming_plan_id", step.retiming_plan_id);
     return map;
 }
 
 Upp::ValueMap JsonIO::GlobalPipeliningPlanToValueMap(const GlobalPipeliningPlan& plan) {
     Upp::ValueMap map;
-    map.Add("id", Upp::String(plan.id.c_str()));
-    map.Add("subsystem_id", Upp::String(plan.subsystem_id.c_str()));
+    map.Add("id", plan.id);
+    map.Add("subsystem_id", plan.subsystem_id);
 
     // Convert block_ids vector to array
     Upp::ValueArray block_ids_array;
     for (const auto& block_id : plan.block_ids) {
-        block_ids_array.Add(Upp::String(block_id.c_str()));
+        block_ids_array.Add(block_id);
     }
     map.Add("block_ids", block_ids_array);
 
@@ -1464,7 +1442,7 @@ Upp::ValueMap JsonIO::GlobalPipeliningPlanToValueMap(const GlobalPipeliningPlan&
     return map;
 }
 
-Upp::ValueArray JsonIO::GlobalPipelinePathsToValueArray(const std::vector<GlobalPipelinePath>& paths) {
+Upp::ValueArray JsonIO::GlobalPipelinePathsToValueArray(const Upp::Vector<GlobalPipelinePath>& paths) {
     Upp::ValueArray array;
     for (const auto& path : paths) {
         array.Add(GlobalPipelinePathToValueMap(path));
@@ -1472,7 +1450,7 @@ Upp::ValueArray JsonIO::GlobalPipelinePathsToValueArray(const std::vector<Global
     return array;
 }
 
-Upp::ValueArray JsonIO::GlobalPipelineStagesToValueArray(const std::vector<GlobalPipelineStage>& stages) {
+Upp::ValueArray JsonIO::GlobalPipelineStagesToValueArray(const Upp::Vector<GlobalPipelineStage>& stages) {
     Upp::ValueArray array;
     for (const auto& stage : stages) {
         array.Add(GlobalPipelineStageToValueMap(stage));
@@ -1488,7 +1466,7 @@ Upp::ValueArray JsonIO::GlobalPipeliningObjectivesToValueArray(const std::vector
     return array;
 }
 
-Upp::ValueArray JsonIO::GlobalPipeliningStepsToValueArray(const std::vector<GlobalPipeliningStep>& steps) {
+Upp::ValueArray JsonIO::GlobalPipeliningStepsToValueArray(const Upp::Vector<GlobalPipeliningStep>& steps) {
     Upp::ValueArray array;
     for (const auto& step : steps) {
         array.Add(GlobalPipeliningStepToValueMap(step));
@@ -1530,9 +1508,9 @@ Upp::Value JsonIO::RetimingMoveSafetyToJson(RetimingMoveSafety safety) {
 
 Upp::ValueMap JsonIO::RetimingMoveToValueMap(const RetimingMove& move) {
     Upp::ValueMap map;
-    map.Add("move_id", Upp::String(move.move_id.c_str()));
-    map.Add("src_reg_id", Upp::String(move.src_reg_id.c_str()));
-    map.Add("dst_reg_id", Upp::String(move.dst_reg_id.c_str()));
+    map.Add("move_id", move.move_id);
+    map.Add("src_reg_id", move.src_reg_id);
+    map.Add("dst_reg_id", move.dst_reg_id);
     map.Add("direction", RetimingMoveDirectionToJson(move.direction));
     map.Add("domain_id", move.domain_id);
     map.Add("src_stage_index", move.src_stage_index);
@@ -1540,12 +1518,12 @@ Upp::ValueMap JsonIO::RetimingMoveToValueMap(const RetimingMove& move) {
     map.Add("before_comb_depth", move.before_comb_depth);
     map.Add("after_comb_depth_est", move.after_comb_depth_est);
     map.Add("safety", RetimingMoveSafetyToJson(move.safety));
-    map.Add("safety_reason", Upp::String(move.safety_reason.c_str()));
+    map.Add("safety_reason", move.safety_reason);
 
     // Convert affected ops vector to array
     Upp::ValueArray affected_ops_array;
     for (const auto& op : move.affected_ops) {
-        affected_ops_array.Add(Upp::String(op.c_str()));
+        affected_ops_array.Add(op);
     }
     map.Add("affected_ops", affected_ops_array);
 
@@ -1554,9 +1532,9 @@ Upp::ValueMap JsonIO::RetimingMoveToValueMap(const RetimingMove& move) {
 
 Upp::ValueMap JsonIO::RetimingPlanToValueMap(const RetimingPlan& plan) {
     Upp::ValueMap map;
-    map.Add("id", Upp::String(plan.id.c_str()));
-    map.Add("target_id", Upp::String(plan.target_id.c_str()));
-    map.Add("description", Upp::String(plan.description.c_str()));
+    map.Add("id", plan.id);
+    map.Add("target_id", plan.target_id);
+    map.Add("description", plan.description);
 
     // Convert moves vector to array
     Upp::ValueArray moves_array;
@@ -1712,7 +1690,7 @@ Upp::ValueMap JsonIO::StructuralPatternToValueMap(const StructuralPattern& patte
     Upp::ValueMap map;
     map.Add("pattern_id", Upp::String(pattern.pattern_id));
     map.Add("kind", StructuralPatternKindToJson(pattern.kind));
-    map.Add("node_ids", StringVectorToValueArray(pattern.node_ids));
+    map.Add("node_ids", ToValueArray(pattern.node_ids));
     map.Add("description", Upp::String(pattern.description));
     return map;
 }
@@ -1749,7 +1727,7 @@ Upp::ValueMap JsonIO::StructuralRefactorMoveToValueMap(const StructuralRefactorM
     map.Add("move_id", Upp::String(move.move_id));
     map.Add("target_block_id", Upp::String(move.target_block_id));
     map.Add("kind", StructuralPatternKindToJson(move.kind));
-    map.Add("affected_node_ids", StringVectorToValueArray(move.affected_node_ids));
+    map.Add("affected_node_ids", ToValueArray(move.affected_node_ids));
     map.Add("safety", StructuralRefactorSafetyToJson(move.safety));
     map.Add("safety_reason", Upp::String(move.safety_reason));
     map.Add("transform_hint", Upp::String(move.transform_hint));
@@ -2188,15 +2166,19 @@ Upp::ValueMap JsonIO::AudioDslGraphToValueMap(const AudioDslGraph& graph) {
         return result;
     }
 
-    Upp::Value JsonIO::PluginTargetKindToJson(PluginTargetKind kind) {
+    Upp::Value JsonIO::PluginTargetKindToJson(int kind) {
+        // PluginTargetKind is only forward-declared in JsonIO.h (underlying int);
+        // it is never completed in namespace ProtoVMCLI, so map through the
+        // underlying value. Keep in sync with the PluginTargetKind enumerators
+        // in PluginSkeletonExport.h (Vst3=0, Lv2=1, Clap=2, Ladspa=3).
         switch (kind) {
-            case PluginTargetKind::Vst3:
+            case 0:
                 return Upp::String("Vst3");
-            case PluginTargetKind::Lv2:
+            case 1:
                 return Upp::String("Lv2");
-            case PluginTargetKind::Clap:
+            case 2:
                 return Upp::String("Clap");
-            case PluginTargetKind::Ladspa:
+            case 3:
                 return Upp::String("Ladspa");
             default:
                 return Upp::String("Unknown");
@@ -2213,23 +2195,23 @@ Upp::ValueMap JsonIO::ToValueMap(const RetimingOptimizationResult& r) {
 
 Upp::ValueMap JsonIO::ToValueMap(const StructuralRefactorPlan& p) {
     Upp::ValueMap m;
-    m.Add("id", Upp::String(p.id.c_str()));
-    m.Add("target_block_id", Upp::String(p.target_block_id.c_str()));
+    m.Add("id", p.id);
+    m.Add("target_block_id", p.target_block_id);
 
     Upp::ValueArray moves;
     for (int i = 0; i < p.moves.GetCount(); i++) {
         const StructuralRefactorMove& mv = p.moves[i];
         Upp::ValueMap mm;
-        mm.Add("move_id", Upp::String(mv.move_id.c_str()));
-        mm.Add("target_block_id", Upp::String(mv.target_block_id.c_str()));
+        mm.Add("move_id", mv.move_id);
+        mm.Add("target_block_id", mv.target_block_id);
         mm.Add("kind", Upp::int64((int)mv.kind));
         Upp::ValueArray nodes;
         for (int j = 0; j < mv.affected_node_ids.GetCount(); j++)
-            nodes.Add(Upp::String(mv.affected_node_ids[j].c_str()));
+            nodes.Add(mv.affected_node_ids[j]);
         mm.Add("affected_node_ids", nodes);
         mm.Add("safety", Upp::int64((int)mv.safety));
-        mm.Add("safety_reason", Upp::String(mv.safety_reason.c_str()));
-        mm.Add("transform_hint", Upp::String(mv.transform_hint.c_str()));
+        mm.Add("safety_reason", mv.safety_reason);
+        mm.Add("transform_hint", mv.transform_hint);
         moves.Add(mm);
     }
     m.Add("moves", moves);
@@ -2244,18 +2226,18 @@ Upp::ValueMap JsonIO::ToValueMap(const StructuralRefactorPlan& p) {
 
 Upp::ValueMap JsonIO::ToValueMap(const GlobalPipeliningPlan& p) {
     Upp::ValueMap m;
-    m.Add("id", Upp::String(p.id.c_str()));
-    m.Add("subsystem_id", Upp::String(p.subsystem_id.c_str()));
+    m.Add("id", p.id);
+    m.Add("subsystem_id", p.subsystem_id);
     Upp::ValueArray bids;
     for (int i = 0; i < p.block_ids.GetCount(); i++)
-        bids.Add(Upp::String(p.block_ids[i].c_str()));
+        bids.Add(p.block_ids[i]);
     m.Add("block_ids", bids);
     m.Add("objective", GlobalPipeliningObjectiveToValueMap(p.objective));
     Upp::ValueArray steps;
     for (int i = 0; i < p.steps.GetCount(); i++) {
         Upp::ValueMap sm;
-        sm.Add("block_id", Upp::String(p.steps[i].block_id.c_str()));
-        sm.Add("retiming_plan_id", Upp::String(p.steps[i].retiming_plan_id.c_str()));
+        sm.Add("block_id", p.steps[i].block_id);
+        sm.Add("retiming_plan_id", p.steps[i].retiming_plan_id);
         steps.Add(sm);
     }
     m.Add("steps", steps);
@@ -2275,7 +2257,7 @@ Upp::ValueArray JsonIO::ToValueArray(const Upp::Vector<GlobalPipeliningPlan>& v)
 Upp::ValueArray JsonIO::ToValueArray(const Upp::Vector<Upp::String>& v) {
     Upp::ValueArray a;
     for (int i = 0; i < v.GetCount(); i++)
-        a.Add(Upp::String(v[i].c_str()));
+        a.Add(v[i]);
     return a;
 }
 

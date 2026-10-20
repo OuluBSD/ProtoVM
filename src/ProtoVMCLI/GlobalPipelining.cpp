@@ -17,14 +17,14 @@ Result<Vector<GlobalPipeliningPlan>> GlobalPipeliningEngine::ProposeGlobalPipeli
     GlobalPipeliningPlan plan;
     plan.id = "GPP_" + subsystem_id + "_GEN_001";
     plan.subsystem_id = subsystem_id;
-    plan.block_ids = block_ids;
+    plan.block_ids <<= block_ids;
     plan.objective = objective;
     
     // Map block IDs to their optimization results
     std::map<String, RetimingOptimizationResult> block_to_result;
     for (size_t i = 0; i < block_ids.GetCount(); ++i) {
         if (i < per_block_opt_results.GetCount()) {
-            block_to_result[block_ids[i]] = per_block_opt_results[i];
+            block_to_result.emplace(block_ids[i], per_block_opt_results[i]);
         }
     }
     
@@ -53,13 +53,13 @@ Result<Vector<GlobalPipeliningPlan>> GlobalPipeliningEngine::ProposeGlobalPipeli
     
     plans.Add(plan);
     
-    return Result<Vector<GlobalPipeliningPlan>>::Success(plans);
+    return Result<Vector<GlobalPipeliningPlan>>::MakeOk(pick(plans));
 }
 
 Result<GlobalPipeliningPlan> GlobalPipeliningEngine::ApplyGlobalPipeliningPlanInBranch(
     const GlobalPipeliningPlan& plan,
     const RetimingApplicationOptions& default_app_options,
-    SessionStore& session_store,
+    ISessionStore& session_store,
     const SessionMetadata& session,
     const String& session_dir,
     const String& branch_name

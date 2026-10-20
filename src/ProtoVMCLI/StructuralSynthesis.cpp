@@ -6,8 +6,12 @@
 #include "TimingAnalysis.h"
 #include "JsonIO.h"
 
-#include <Upp/Upp.h>
+#include <ProtoVM/ProtoVM.h>
+// NOTE: StructuralSynthesis.h declares these helper classes/structs at global
+// scope, so the definitions below stay outside namespace ProtoVMCLI and pull
+// the CLI namespace in explicitly.
 using namespace Upp;
+using namespace ProtoVMCLI;
 
 // Helper to generate unique IDs
 static String GeneratePatternId() {
@@ -29,7 +33,7 @@ Result<StructuralRefactorPlan> StructuralAnalysis::AnalyzeBlockStructure(
     const String& block_id,
     const CircuitGraph& graph,
     const FunctionalAnalysis* functional,
-    const HlsIrModule* ir_module,
+    const IrModule* ir_module,
     const CdcReport* cdc_report
 ) {
     try {
@@ -57,7 +61,7 @@ Result<StructuralRefactorPlan> StructuralAnalysis::AnalyzeBlockStructure(
             move.move_id = GenerateMoveId();
             move.target_block_id = block_id;
             move.kind = pattern.kind;
-            move.affected_node_ids = pattern.node_ids;
+            move.affected_node_ids <<= pattern.node_ids;
             move.safety = AssessSafety(move, cdc_report);
             
             // Set safety reason based on safety level
@@ -116,9 +120,9 @@ Result<StructuralRefactorPlan> StructuralAnalysis::AnalyzeBlockStructure(
             }
         }
 
-        return MakeOk(plan);
+        return Result<StructuralRefactorPlan>::MakeOk(std::move(plan));
     } catch (const std::exception& e) {
-        return MakeError(ErrorCode::InternalError, "Error analyzing block structure: " + String(e.what()));
+        return Result<StructuralRefactorPlan>::MakeError(ErrorCode::InternalError, "Error analyzing block structure: " + String(e.what()).ToStd());
     }
 }
 
@@ -140,19 +144,20 @@ Vector<StructuralPattern> StructuralAnalysis::DetectRedundantLogic(
     }
 
     // Look for specific gate patterns in the circuit graph
-    for (const auto& node_id : graph.GetNodes()) {
-        auto node = graph.GetNode(node_id);
+    // (node classification uses the component-id prefix convention)
+    for (const auto& node : graph.nodes) {
         if (node.kind == GraphNodeKind::Component) {
+            Upp::String comp_name(node.id);
             // Check for AND gate with same input twice: A & A
-            if (node.name.StartsWith("AND") || node.name.StartsWith("NAND")) {
+            if (comp_name.StartsWith("AND") || comp_name.StartsWith("NAND")) {
                 // Look for pins connected to same net - simplified approach
             }
             // Check for OR gate with same input twice: A | A
-            else if (node.name.StartsWith("OR") || node.name.StartsWith("NOR")) {
+            else if (comp_name.StartsWith("OR") || comp_name.StartsWith("NOR")) {
                 // Look for pins connected to same net - simplified approach
             }
             // Check for XOR gate with same input twice: A ^ A (should be 0)
-            else if (node.name.StartsWith("XOR") || node.name.StartsWith("XNOR")) {
+            else if (comp_name.StartsWith("XOR") || comp_name.StartsWith("XNOR")) {
                 // Look for pins connected to same net - simplified approach
             }
         }
@@ -165,7 +170,7 @@ Vector<StructuralPattern> StructuralAnalysis::DetectCommonSubexpressions(
     const String& block_id,
     const CircuitGraph& graph,
     const FunctionalAnalysis* functional,
-    const HlsIrModule* ir_module
+    const IrModule* ir_module
 ) {
     Vector<StructuralPattern> patterns;
     
@@ -188,7 +193,7 @@ Vector<StructuralPattern> StructuralAnalysis::DetectCommonSubexpressions(
 Vector<StructuralPattern> StructuralAnalysis::DetectCanonicalForms(
     const String& block_id,
     const CircuitGraph& graph,
-    const HlsIrModule* ir_module
+    const IrModule* ir_module
 ) {
     Vector<StructuralPattern> patterns;
     
@@ -213,15 +218,15 @@ Vector<StructuralPattern> StructuralAnalysis::DetectCanonicalForms(
 
     // In circuit graph space, detect canonical forms by pattern matching
     // This is a simplified approach
-    for (const auto& node_id : graph.GetNodes()) {
-        auto node = graph.GetNode(node_id);
+    for (const auto& node : graph.nodes) {
         if (node.kind == GraphNodeKind::Component) {
             // Look for mux-like structures (AND-OR combinations with inverters)
-            if (node.name.StartsWith("MUX") || node.name.Contains("mux")) {
+            Upp::String comp_name(node.id);
+            if (comp_name.StartsWith("MUX") || comp_name.Find("mux") >= 0) {
                 StructuralPattern pattern;
                 pattern.pattern_id = GeneratePatternId();
                 pattern.kind = StructuralPatternKind::CanonicalMux;
-                pattern.node_ids.Add(node_id);
+                pattern.node_ids.Add(node.id);
                 pattern.description = "Potential MUX structure found for normalization";
                 patterns.Add(std::move(pattern));
             }
@@ -234,7 +239,7 @@ Vector<StructuralPattern> StructuralAnalysis::DetectCanonicalForms(
 Vector<StructuralPattern> StructuralAnalysis::DetectConstantPropagation(
     const String& block_id,
     const CircuitGraph& graph,
-    const HlsIrModule* ir_module
+    const IrModule* ir_module
 ) {
     Vector<StructuralPattern> patterns;
     
@@ -261,8 +266,7 @@ Vector<StructuralPattern> StructuralAnalysis::DetectConstantPropagation(
 
     // In circuit graph space, detect constants feeding into logic gates
     // Look for logic gates with one or more inputs tied to constants
-    for (const auto& node_id : graph.GetNodes()) {
-        auto node = graph.GetNode(node_id);
+    for (const auto& node : graph.nodes) {
         if (node.kind == GraphNodeKind::Component) {
             // Look for gate inputs that are connected to constant sources
         }
@@ -286,8 +290,7 @@ Vector<StructuralPattern> StructuralAnalysis::DetectDeadLogic(
     
     // In circuit graph space, find nodes that are not connected to outputs
     // This is a simplified approach
-    for (const auto& node_id : graph.GetNodes()) {
-        auto node = graph.GetNode(node_id);
+    for (const auto& node : graph.nodes) {
         if (node.kind == GraphNodeKind::Component) {
             // Check if this component has no path to circuit outputs
             // This is a simplified check
@@ -319,6 +322,6 @@ StructuralRefactorSafety StructuralAnalysis::AssessSafety(
     
     // If the move affects nodes that cross clock domains, mark as suspicious
     // This is a conservative approach - more sophisticated analysis would be needed
-    
+
     return StructuralRefactorSafety::Safe;
 }

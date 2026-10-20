@@ -23,11 +23,13 @@ public:
     );
 
     // Infer IR for a small region around a node (optional but recommended).
+    // NOTE: FunctionAnalysis is taken non-const because FunctionalAnalysis
+    // cone queries are not const-qualified in the current engine plumbing.
     Result<IrModule> InferIrForNodeRegion(
         const CircuitGraph& graph,
         const std::string& node_id,
         const std::string& node_kind_hint, // "Pin", "Component", "Net" or empty
-        const FunctionalAnalysis& func,
+        FunctionalAnalysis& func,
         const BehavioralAnalysis& beh,
         int max_depth = 4
     );

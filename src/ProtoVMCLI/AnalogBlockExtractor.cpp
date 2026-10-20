@@ -27,13 +27,17 @@ Result<AnalogBlockModel> AnalogBlockExtractor::ExtractAnalogModelForBlock(
     int inverter_count = 0;
     
     for (const auto& node : graph.nodes) {
-        if (node.kind == "Resistor" || node.name.Find("R") == 0) {
+        // GraphNodeId carries no component-kind text; classify by component
+        // id prefix convention (R*, C*, Q*, INV*/NOT*).
+        if (node.kind != GraphNodeKind::Component)
+            continue;
+        if (node.id.rfind("R", 0) == 0) {
             resistor_count++;
-        } else if (node.kind == "Capacitor" || node.name.Find("C") == 0) {
+        } else if (node.id.rfind("C", 0) == 0) {
             capacitor_count++;
-        } else if (node.kind == "Transistor" || node.name.Find("Q") == 0) {
+        } else if (node.id.rfind("Q", 0) == 0) {
             transistor_count++;
-        } else if (node.kind == "Inverter" || node.kind == "NOT") {
+        } else if (node.id.rfind("INV", 0) == 0 || node.id.rfind("NOT", 0) == 0) {
             inverter_count++;
         }
     }
@@ -87,29 +91,8 @@ Result<AnalogBlockModel> AnalogBlockExtractor::ExtractAnalogModelForBlock(
                 double R = 10000.0;  // Default if not specified
                 double C = 1e-7;     // Default if not specified
                 
-                // Look for actual values in the graph nodes
-                for (const auto& node : graph.nodes) {
-                    if (node.kind == "Resistor" || node.name.Find("R") == 0) {
-                        // Try to extract resistance value from node properties if available
-                        // This is a simplified approach
-                        auto it = std::find(node.param_keys.begin(), node.param_keys.end(), "resistance");
-                        if (it != node.param_keys.end()) {
-                            int idx = std::distance(node.param_keys.begin(), it);
-                            if (idx < node.param_values.size()) {
-                                R = node.param_values[idx];
-                            }
-                        }
-                    } else if (node.kind == "Capacitor" || node.name.Find("C") == 0) {
-                        // Try to extract capacitance value from node properties if available
-                        auto it = std::find(node.param_keys.begin(), node.param_keys.end(), "capacitance");
-                        if (it != node.param_keys.end()) {
-                            int idx = std::distance(node.param_keys.begin(), it);
-                            if (idx < node.param_values.size()) {
-                                C = node.param_values[idx];
-                            }
-                        }
-                    }
-                }
+                // NOTE: GraphNodeId exposes no per-node parameter values, so the
+                // nominal defaults below are used as-is for the estimate.
                 
                 // Estimate frequency (simplified for RC oscillator)
                 model.estimated_freq_hz = 1.0 / (2 * M_PI * R * C);
@@ -187,7 +170,7 @@ Result<AnalogBlockModel> AnalogBlockExtractor::ExtractAnalogModelForBlock(
             // Return an error since we couldn't recognize the pattern
             Result<AnalogBlockModel> result;
             result.ok = false;
-            result.error_code = ErrorCode::kInvalidArgument;
+            result.error_code = ErrorCode::InvalidArgument;
             result.error_message = "Could not recognize analog circuit pattern in block: " + block_id.ToStd();
             return result;
     }

@@ -2,6 +2,7 @@
 #define _ProtoVM_CircuitOps_h_
 
 #include "CircuitData.h"  // The enhanced version with IDs
+#include <ProtoVM/Common.h>  // For Upp types (String, Vector, Moveable)
 #include <string>
 #include <vector>
 

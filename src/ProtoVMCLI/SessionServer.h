@@ -142,6 +142,8 @@ private:
     Result<DaemonResponse> HandleDesignerCodegenOscDemo(const DaemonRequest& req);
     Result<DaemonResponse> HandleDesignerBuildHybridInstrument(const DaemonRequest& req);
     Result<DaemonResponse> HandleDesignerRenderHybridInstrument(const DaemonRequest& req);
+    Result<DaemonResponse> HandleDesignerInstrumentExportPluginProject(const DaemonRequest& req);  // added: definition exists in SessionServer.cpp
+    Result<DaemonResponse> HandleDesignerRunPlaybook(const DaemonRequest& req);  // added: definition exists in SessionServer.cpp
 
     // Utility methods
     Result<DaemonResponse> CreateSuccessResponse(const DaemonRequest& req, const Upp::ValueMap& data = Upp::ValueMap());

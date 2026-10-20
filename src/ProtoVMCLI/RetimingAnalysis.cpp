@@ -6,6 +6,19 @@
 
 namespace ProtoVMCLI {
 
+// Upp::Vector and std::vector both end up in this helper as container/string
+// flavors vary; std::find works for both.
+template <class C, class V>
+static bool ContainsStr(const C& c, const V& v) {
+    const Upp::String needle(v);
+    for (const auto& e : c) {
+        if (Upp::String(e) == needle) {
+            return true;
+        }
+    }
+    return false;
+}
+
 Result<Vector<RetimingPlan>> RetimingAnalysis::AnalyzeRetimingForBlock(
     const PipelineMap& pipeline,
     const CdcReport& cdc_report,
@@ -54,15 +67,16 @@ Result<Vector<RetimingPlan>> RetimingAnalysis::IdentifyCandidatePaths(
                 continue; // Skip if there was an error generating moves
             }
             
-            Vector<RetimingMove> moves = moves_result.data;
+            Vector<RetimingMove> moves = std::move(moves_result.data);
             
             if (!moves.IsEmpty()) {
                 // Create a plan for this path
                 RetimingPlan plan;
-                plan.id = "RTP_" + target_id + "_" + String(plan.id.GetLength()); // Simple plan ID generation
+                static int plan_seq = 0;
+                plan.id = "RTP_" + target_id + "_" + Upp::AsString(++plan_seq); // Simple plan ID generation
                 plan.target_id = target_id;
                 plan.description = "Retiming plan for path from " + path.src_reg_id + " to " + path.dst_reg_id;
-                plan.moves = moves;
+                plan.moves <<= moves;
                 
                 // Calculate aggregate metrics
                 plan.estimated_max_depth_before = path.comb_depth_estimate;
@@ -88,7 +102,7 @@ Result<Vector<RetimingPlan>> RetimingAnalysis::IdentifyCandidatePaths(
         }
     }
 
-    return Result<Vector<RetimingPlan>>::Success(plans);
+    return Result<Vector<RetimingPlan>>::MakeOk(std::move(plans));
 }
 
 Result<Vector<RetimingMove>> RetimingAnalysis::GenerateMovesForPath(
@@ -107,17 +121,17 @@ Result<Vector<RetimingMove>> RetimingAnalysis::GenerateMovesForPath(
     }
     
     // Check if this path involves any CDC-anchored registers
-    bool involves_cdc_anchored_reg = (cdc_anchored_regs.Find(path.src_reg_id) >= 0 || 
-                                      cdc_anchored_regs.Find(path.dst_reg_id) >= 0);
+    bool involves_cdc_anchored_reg = (ContainsStr(cdc_anchored_regs, path.src_reg_id) || 
+                                      ContainsStr(cdc_anchored_regs, path.dst_reg_id));
 
     if (involves_cdc_anchored_reg) {
         // If either register is part of a CDC crossing, this path cannot be retimed safely
-        return Result<Vector<RetimingMove>>::Success(moves);
+        return Result<Vector<RetimingMove>>::MakeOk(std::move(moves));
     }
 
     // Create a forward move (moving register closer to the output)
     RetimingMove forward_move;
-    forward_move.move_id = "RTM_FWD_" + String(moves.GetCount() + 1); // Simple move ID generation
+    forward_move.move_id = "RTM_FWD_" + Upp::AsString(moves.GetCount() + 1); // Simple move ID generation
     forward_move.src_reg_id = path.src_reg_id;
     forward_move.dst_reg_id = path.dst_reg_id;
     forward_move.direction = RetimingMoveDirection::Forward;
@@ -129,10 +143,10 @@ Result<Vector<RetimingMove>> RetimingAnalysis::GenerateMovesForPath(
     int src_stage_idx = -1, dst_stage_idx = -1;
     for (int i = 0; i < pipeline.stages.size(); ++i) {
         const auto& stage = pipeline.stages[i];
-        if (stage.registers_out.Find(path.src_reg_id) >= 0) {
+        if (ContainsStr(stage.registers_out, path.src_reg_id)) {
             src_stage_idx = i;
         }
-        if (stage.registers_in.Find(path.dst_reg_id) >= 0) {
+        if (ContainsStr(stage.registers_in, path.dst_reg_id)) {
             dst_stage_idx = i;
         }
     }
@@ -170,7 +184,7 @@ Result<Vector<RetimingMove>> RetimingAnalysis::GenerateMovesForPath(
     // Create a backward move (moving register closer to the input) - only if stage indices allow
     if (dst_stage_idx > src_stage_idx) {
         RetimingMove backward_move = forward_move;
-        backward_move.move_id = "RTM_BWD_" + String(moves.GetCount() + 1);
+        backward_move.move_id = "RTM_BWD_" + Upp::AsString(moves.GetCount() + 1);
         backward_move.direction = RetimingMoveDirection::Backward;
         backward_move.after_comb_depth_est = EstimateDepthAfterMove(path.comb_depth_estimate, RetimingMoveDirection::Backward);
         
@@ -181,7 +195,7 @@ Result<Vector<RetimingMove>> RetimingAnalysis::GenerateMovesForPath(
         moves.Add(backward_move);
     }
 
-    return Result<Vector<RetimingMove>>::Success(moves);
+    return Result<Vector<RetimingMove>>::MakeOk(std::move(moves));
 }
 
 RetimingMoveSafety RetimingAnalysis::DetermineSafety(
@@ -190,8 +204,8 @@ RetimingMoveSafety RetimingAnalysis::DetermineSafety(
     const Vector<String>& cdc_anchored_regs
 ) {
     // Check if either register in the path is part of a CDC crossing
-    if (cdc_anchored_regs.Find(path.src_reg_id) >= 0 || 
-        cdc_anchored_regs.Find(path.dst_reg_id) >= 0) {
+    if (ContainsStr(cdc_anchored_regs, path.src_reg_id) || 
+        ContainsStr(cdc_anchored_regs, path.dst_reg_id)) {
         return RetimingMoveSafety::Forbidden;
     }
     

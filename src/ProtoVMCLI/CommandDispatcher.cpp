@@ -24,9 +24,11 @@
 #include "CodegenIrInference.h"
 #include "CodeEmitter.h"
 #include "InstrumentGraph.h"
+#include "InstrumentExport.h"  // ProtoVM::InstrumentExportOptions
 #include "InstrumentBuilder.h"
 #include "InstrumentRuntime.h"
 #include "PluginSkeletonExport.h"
+#include "PluginProjectExport.h"  // PluginProjectExportOptions definition
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
@@ -74,7 +76,7 @@ CommandDispatcher::CommandDispatcher(std::unique_ptr<ISessionStore> store)
 }
 
 // Helper function to generate ISO 8601 timestamp
-std::string GetCurrentTimestamp() {
+static std::string GetCurrentTimestamp() {
     auto now = std::chrono::system_clock::now();
     auto time_t = std::chrono::system_clock::to_time_t(now);
     std::tm tm = *std::gmtime(&time_t);
@@ -5521,7 +5523,7 @@ Upp::String CommandDispatcher::RunRetimeBlockApply(CommandOptions& opts) {
         // Find the specific plan by ID
         RetimingPlan* target_plan = nullptr;
         for (auto& plan : plans_result.data) {
-            if (plan.id == opts.plan_id.value()) {
+            if (plan.id.ToStd() == opts.plan_id.value()) {
                 target_plan = &plan;
                 break;
             }
@@ -5634,7 +5636,7 @@ Upp::String CommandDispatcher::RunRetimeSubsystemApply(CommandOptions& opts) {
         // Find the specific plan by ID
         RetimingPlan* target_plan = nullptr;
         for (auto& plan : plans_result.data) {
-            if (plan.id == opts.plan_id.value()) {
+            if (plan.id.ToStd() == opts.plan_id.value()) {
                 target_plan = &plan;
                 break;
             }
@@ -6247,7 +6249,7 @@ Upp::String CommandDispatcher::RunStructApplyBlock(CommandOptions& opts) {
         // AnalyzeBlockStructureInBranch returns a single plan; reinterpret the
         // generated "find plan by id" loop accordingly.
         StructuralRefactorPlan target_plan = analysis_result.data;
-        bool found = (target_plan.id == plan_id);
+        bool found = (target_plan.id.ToStd() == plan_id);
 
         if (!found) {
             return JsonIO::ErrorResponse("struct-apply-block", "Plan not found: " + plan_id, "INVALID_ARGUMENT");
@@ -8201,15 +8203,15 @@ Upp::String CommandDispatcher::RunInstrumentExportPluginSkeleton(CommandOptions&
         }
 
         // Parse plugin target
-        PluginTargetKind target_kind;
+        ::PluginTargetKind target_kind;
         if (plugin_target_str == "vst3") {
-            target_kind = PluginTargetKind::Vst3;
+            target_kind = ::PluginTargetKind::Vst3;
         } else if (plugin_target_str == "lv2") {
-            target_kind = PluginTargetKind::Lv2;
+            target_kind = ::PluginTargetKind::Lv2;
         } else if (plugin_target_str == "clap") {
-            target_kind = PluginTargetKind::Clap;
+            target_kind = ::PluginTargetKind::Clap;
         } else if (plugin_target_str == "ladspa") {
-            target_kind = PluginTargetKind::Ladspa;
+            target_kind = ::PluginTargetKind::Ladspa;
         } else {
             return JsonIO::ErrorResponse("instrument-export-plugin-skeleton",
                                        "Invalid plugin target. Must be one of: vst3, lv2, clap, ladspa");
@@ -8367,15 +8369,15 @@ Upp::String CommandDispatcher::RunInstrumentExportPluginProject(CommandOptions& 
         }
 
         // Parse plugin target
-        PluginTargetKind target_kind;
+        ::PluginTargetKind target_kind;
         if (plugin_target_str == "vst3") {
-            target_kind = PluginTargetKind::Vst3;
+            target_kind = ::PluginTargetKind::Vst3;
         } else if (plugin_target_str == "lv2") {
-            target_kind = PluginTargetKind::Lv2;
+            target_kind = ::PluginTargetKind::Lv2;
         } else if (plugin_target_str == "clap") {
-            target_kind = PluginTargetKind::Clap;
+            target_kind = ::PluginTargetKind::Clap;
         } else if (plugin_target_str == "ladspa") {
-            target_kind = PluginTargetKind::Ladspa;
+            target_kind = ::PluginTargetKind::Ladspa;
         } else {
             return JsonIO::ErrorResponse("instrument-export-plugin-project",
                                        "Invalid plugin target. Must be one of: vst3, lv2, clap, ladspa");

@@ -146,10 +146,12 @@ bool MachineSnapshot::DeserializePcbs(Array<Pcb>& pcbs, std::istream& is) {
         String pcb_name(name_buf);
         delete[] name_buf;
         
-        // Add a new PCB with the loaded name
-        Pcb& new_pcb = pcbs.Add();
-        new_pcb.SetName(pcb_name);
-        
+        // NOTE: Pcb has no public name setter in the engine, so the read name
+        // can currently only be stored in the created entry implicitly (the
+        // Pcb is added unnamed). Engine would need a Pcb::SetName() to restore.
+        (void)pcb_name;
+        pcbs.Add();
+
         // In a complete implementation, we would deserialize the full PCB data
         // including all components, connections, and their states
     }
@@ -231,12 +233,14 @@ bool MachineSnapshot::DeserializeClockDomains(Vector<Machine::ClockDomain>& doma
     return true;
 }
 
-bool MachineSnapshot::SerializeSignalTraces(const Vector<Machine::SignalTrace>& traces, std::ostream& os) {
+bool MachineSnapshot::SerializeSignalTraces(const Machine& machine, std::ostream& os) {
+    // Copy the private engine trace records out through the public accessor.
+    const auto& traces = machine.GetSignalTraces();
     int trace_count = traces.GetCount();
     os.write(reinterpret_cast<const char*>(&trace_count), sizeof(trace_count));
-    
+
     for (int i = 0; i < trace_count; i++) {
-        const Machine::SignalTrace& trace = traces[i];
+        const auto& trace = traces[i];
         
         // Serialize pin name
         int pin_name_len = trace.pin_name.GetCount();
@@ -267,14 +271,14 @@ bool MachineSnapshot::SerializeSignalTraces(const Vector<Machine::SignalTrace>& 
     return true;
 }
 
-bool MachineSnapshot::DeserializeSignalTraces(Vector<Machine::SignalTrace>& traces, std::istream& is) {
+bool MachineSnapshot::DeserializeSignalTraces(std::vector<MachineSnapshot::SignalTraceSnapshot>& traces, std::istream& is) {
     int trace_count;
     is.read(reinterpret_cast<char*>(&trace_count), sizeof(trace_count));
-    
-    traces.Clear();
-    
+
+    traces.clear();
+
     for (int i = 0; i < trace_count; i++) {
-        Machine::SignalTrace trace;
+        MachineSnapshot::SignalTraceSnapshot trace;
         
         // Deserialize pin name
         int pin_name_len;
@@ -297,25 +301,25 @@ bool MachineSnapshot::DeserializeSignalTraces(Vector<Machine::SignalTrace>& trac
         int val_hist_count;
         is.read(reinterpret_cast<char*>(&val_hist_count), sizeof(val_hist_count));
         
-        trace.value_history.Clear();
+        trace.value_history.clear();
         for (int j = 0; j < val_hist_count; j++) {
             byte val;
             is.read(reinterpret_cast<char*>(&val), sizeof(val));
-            trace.value_history.Add(val);
+            trace.value_history.push_back(val);
         }
         
         // Deserialize tick history
         int tick_hist_count;
         is.read(reinterpret_cast<char*>(&tick_hist_count), sizeof(tick_hist_count));
         
-        trace.tick_history.Clear();
+        trace.tick_history.clear();
         for (int j = 0; j < tick_hist_count; j++) {
             int tick;
             is.read(reinterpret_cast<char*>(&tick), sizeof(tick));
-            trace.tick_history.Add(tick);
+            trace.tick_history.push_back(tick);
         }
         
-        traces.Add(trace);
+        traces.push_back(trace);
     }
     
     return true;

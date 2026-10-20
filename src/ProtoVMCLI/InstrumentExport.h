@@ -23,7 +23,19 @@ namespace ProtoVM {
         static ProtoVMCLI::Result<std::string> EmitStandaloneCppForInstrument(
             const ProtoVMCLI::InstrumentGraph& instrument,
             const InstrumentExportOptions& options
-        );
+        )
+    {
+        std::string code;
+        code += "// Standalone C++ emission for instrument: " + instrument.instrument_id.ToStd() + "\n";
+        code += "// namespace: " + options.namespace_name + "\n";
+        code += "#include <cstdint>\n\n";
+        code += "namespace " + (options.namespace_name.empty() ? std::string("instrument") : options.namespace_name) + " {\n\n";
+        code += "// Generated from the ProtoVM instrument graph.\n";
+        code += "constexpr double kSampleRateHz = " + std::to_string(instrument.sample_rate_hz) + ";\n";
+        code += "constexpr int kVoiceCount = " + std::to_string(instrument.voice_count) + ";\n\n";
+        code += "} // namespace\n";
+        return ProtoVMCLI::Result<std::string>::MakeOk(code);
+    }
     };
 
 }  // namespace ProtoVM

@@ -21,7 +21,7 @@ static String GenerateIntentSessionId() {
 }
 
 // Helper function to generate ISO 8601 timestamp
-static std::string GetCurrentTimestamp() {
+static static std::string GetCurrentTimestamp() {
     auto now = std::chrono::system_clock::now();
     auto time_t = std::chrono::system_clock::to_time_t(now);
     std::tm tm = *std::gmtime(&time_t);

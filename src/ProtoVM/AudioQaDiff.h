@@ -3,6 +3,7 @@
 
 #include "AudioQa.h"
 #include <vector>
+#include <algorithm>
 #include <string>
 #include <map>
 

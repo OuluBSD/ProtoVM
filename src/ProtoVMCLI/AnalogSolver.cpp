@@ -58,7 +58,7 @@ Result<float> AnalogSolver::Step(AnalogSolverState& state) {
     if (!output_state) {
         Result<float> result;
         result.ok = false;
-        result.error_code = ErrorCode::kInvalidArgument;
+        result.error_code = ErrorCode::InvalidArgument;
         result.error_message = "Output state variable not found: " + state.model.output_state_name.ToStd();
         return result;
     }

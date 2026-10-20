@@ -3,7 +3,9 @@
 #include "EngineFacade.h"
 #include "CircuitFacade.h"
 
-#include <Upp/Upp.h>
+#include <ProtoVM/ProtoVM.h>
+
+using namespace ProtoVMCLI;
 using namespace Upp;
 
 Result<TransformationPlan> StructuralTransform::BuildTransformationPlanForStructuralRefactor(
@@ -21,8 +23,8 @@ Result<TransformationPlan> StructuralTransform::BuildTransformationPlanForStruct
         transformation_plan.target.subject_kind = "Block";
         
         // Add guarantees that structural refactors preserve
-        transformation_plan.guarantees.Add(PreservationLevel::BehaviorKindPreserved);
-        transformation_plan.guarantees.Add(PreservationLevel::IOContractPreserved);
+        transformation_plan.guarantees.push_back(PreservationLevel::BehaviorKindPreserved);
+        transformation_plan.guarantees.push_back(PreservationLevel::IOContractPreserved);
         
         // Convert structural refactor moves to transformation steps
         Vector<TransformationStep> steps;
@@ -62,18 +64,18 @@ Result<TransformationPlan> StructuralTransform::BuildTransformationPlanForStruct
             steps.Add(std::move(step));
         }
         
-        transformation_plan.steps = std::move(steps);
+        for (const auto& st : steps) transformation_plan.steps.push_back(st);
         
-        return MakeOk(transformation_plan);
+        return Result<TransformationPlan>::MakeOk(transformation_plan);
     } catch (const std::exception& e) {
-        return MakeError(ErrorCode::InternalError, "Error building transformation plan: " + String(e.what()));
+        return Result<TransformationPlan>::MakeError(ErrorCode::InternalError, "Error building transformation plan: " + std::string(e.what()));
     }
 }
 
 Result<RetimingApplicationResult> StructuralTransform::ApplyStructuralRefactorInBranch(
     const StructuralRefactorPlan& plan,
     bool apply_only_safe_moves,
-    SessionStore& session_store,
+    ISessionStore& session_store,
     const SessionMetadata& session,
     const String& session_dir,
     const String& branch_name
@@ -82,7 +84,7 @@ Result<RetimingApplicationResult> StructuralTransform::ApplyStructuralRefactorIn
         // First, build the transformation plan from the structural refactor plan
         auto transformation_result = BuildTransformationPlanForStructuralRefactor(plan, apply_only_safe_moves);
         if (!transformation_result.ok) {
-            return MakeError(transformation_result.error_code, transformation_result.error_message);
+            return Result<RetimingApplicationResult>::MakeError(transformation_result.error_code, transformation_result.error_message);
         }
         
         const auto& transformation_plan = transformation_result.data;
@@ -104,9 +106,9 @@ Result<RetimingApplicationResult> StructuralTransform::ApplyStructuralRefactorIn
         result.estimated_max_depth_after = plan.depth_after_estimate;
         result.all_moves_safe = true; // Would be determined by checking safety of applied moves
         
-        return MakeOk(result);
+        return Result<RetimingApplicationResult>::MakeOk(result);
     } catch (const std::exception& e) {
-        return MakeError(ErrorCode::InternalError, "Error applying structural refactor: " + String(e.what()));
+        return Result<RetimingApplicationResult>::MakeError(ErrorCode::InternalError, "Error applying structural refactor: " + std::string(e.what()));
     }
 }
 

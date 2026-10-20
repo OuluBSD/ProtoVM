@@ -35,14 +35,14 @@ bool TestPlaybookConfigSerialization() {
     
     // Verify all fields are present
     assert(!serialized.IsEmpty());
-    assert(serialized.IsKey("kind"));
-    assert(serialized.IsKey("designer_session_id"));
-    assert(serialized.IsKey("target"));
-    assert(serialized.IsKey("block_id"));
-    assert(serialized.IsKey("baseline_branch"));
-    assert(serialized.IsKey("passes"));
-    assert(serialized.IsKey("use_optimized_ir"));
-    assert(serialized.IsKey("apply_refactors"));
+    assert(serialized.Find("kind") >= 0);
+    assert(serialized.Find("designer_session_id") >= 0);
+    assert(serialized.Find("target") >= 0);
+    assert(serialized.Find("block_id") >= 0);
+    assert(serialized.Find("baseline_branch") >= 0);
+    assert(serialized.Find("passes") >= 0);
+    assert(serialized.Find("use_optimized_ir") >= 0);
+    assert(serialized.Find("apply_refactors") >= 0);
     
     std::cout << "✓ PlaybookConfig serialization test passed" << std::endl;
     return true;

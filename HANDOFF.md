@@ -124,11 +124,20 @@ CoDesigner 41, AnalogBlockExtractor 25, PipelineAnalysis 23, CommandDispatcher
 `std::vector`/`Upp::Vector` conversions. Files mixing global-scope member
 definitions need `using namespace ProtoVMCLI;` (already applied where safe).
 
-## ProtoVMCLI build status (side-quest, NOT done)
+## ProtoVMCLI build status (side-quest COMPLETE: builds and runs)
 
-The `src/ProtoVMCLI` package **does not compile** — and never did. ~250+ errors in
-`CommandDispatcher.cpp` alone plus more in its siblings. The handlers (Phases 18-29
-commits `eace235`..`7648c4b`) were generated against APIs that never existed:
+**RESOLVED 2026-10-20:** the package compiles (56 TUs, 0 errors), links against
+the engine + `fftw3`, and the binary runs (JSON envelope responses from
+`bin/CLANG/ProtoVMCLI`). The fix session (see git log `947873c`..`2c22e29`) applied:
+- jsoncpp fully decoupled (AudioQaDiff ToJsonString, ToStd conversions)
+- AudioQaReport/Threshold/GetCurrentTimestamp ODR/inline fixes
+- Machine.h include reorder (Common.h first) + public SignalTrace/SignalTransition + transition getters
+- Moveable + deep copy/assign for all Upp-container model structs (Retiming/Cdc/Structural/GlobalPipelining/Pipeline/Transformation families)
+- Result<T> move semantics + Result<void>; factory name/arg-order unification
+- phantom facade/graph/analysis methods re-pointed or implemented; plugin/project/instrument emitters implemented inline
+- engine (ProtoVM) app package now also compiles fully (79 files)
+
+Original findings kept below for context.
 
 - `opts.Get("key", "def")` settings-bag accessor on `CommandOptions` (127+ sites)
 - `ISessionStore::LoadSessionMetadata`/`GetSession` (only `LoadSession` exists — wrappers added)

@@ -2,10 +2,10 @@
 
 #include <queue>
 #include <functional>
+#include "Common.h"  // For basic types (must come first - Link.h/Pcb.h/Component.h rely on it)
 #include "Link.h"  // For LinkBaseMap definition
 #include "Pcb.h"  // For Pcb class
 #include "Component.h"  // For ElectricNodeBase
-#include "Common.h"  // For basic types
 
 
 
@@ -206,14 +206,15 @@ public:
 	void DisableSignalTrace(int trace_id);
 	void LogSignalTraces();  // Log all traced signals
 	const Vector<SignalTrace>& GetSignalTraces() const { return signal_traces; }
+	// Transition log access (public - used by CLI diagnostics and snapshots)
+	int GetSignalTransitionCount() const { return signal_transitions.GetCount(); }
+	const Vector<SignalTransition>& GetSignalTransitions() const { return signal_transitions; }
 private:
 
 	// Methods for signal transition logging
 	void LogSignalTransition(ElectricNodeBase* component, const String& pin_name, byte old_val, byte new_val);
 	void LogAllSignalTransitions();  // Log all transitions in the current tick
 	void ClearSignalTransitionLog(); // Clear the transition log
-	int GetSignalTransitionCount() const { return signal_transitions.GetCount(); }
-	const Vector<SignalTransition>& GetSignalTransitions() const { return signal_transitions; }
 	void SetMaxTransitionLogSize(int max_size) { max_transitions_to_store = max_size; }
 
 	// Methods for waveform generation

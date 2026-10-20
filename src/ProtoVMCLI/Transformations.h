@@ -4,15 +4,16 @@
 #include "SessionTypes.h"  // For Result<T>, SessionMetadata
 #include "CircuitOps.h"    // For EditOperation
 #include "CircuitGraph.h"  // For CircuitGraph
+#include "BlockAnalysis.h" // For BlockGraph / BlockInstance / BlockKind
+#include "CircuitData.h"   // For CircuitData (the ID-based circuit model)
 #include "PipelineModel.h" // For PipelineMap
 #include "TimingAnalysis.h" // For TimingAnalysis
 #include <vector>
 #include <string>
 
-// Forward declarations that may still be needed
-class BlockGraph;
-class Circuit;
-class BlockInstance;
+// NOTE: BlockGraph / BlockInstance live in namespace ProtoVMCLI; CircuitData
+// (global scope) replaces the retired engine-side Circuit abstraction as the
+// analysis subject.
 
 enum class TransformationKind {
     Unknown,
@@ -29,23 +30,58 @@ enum class PreservationLevel {
     DependencyPatternPreserved
 };
 
-struct TransformationTarget {
+struct TransformationTarget : public Upp::Moveable<TransformationTarget> {
     std::string subject_id;          // e.g. block ID, component ID, or region identifier
     std::string subject_kind;        // "Block", "Component", "Region"
+
+    TransformationTarget() {}
+    TransformationTarget(const TransformationTarget& other)
+        : subject_id(other.subject_id), subject_kind(other.subject_kind) {}
+    TransformationTarget(TransformationTarget&& other) = default;
+    TransformationTarget& operator=(const TransformationTarget& other) {
+        subject_id = other.subject_id;
+        subject_kind = other.subject_kind;
+        return *this;
+    }
+    TransformationTarget& operator=(TransformationTarget&& other) = default;
 };
 
-struct TransformationStep {
+struct TransformationStep : public Upp::Moveable<TransformationStep> {
     std::string description;         // human-readable
     // You may include references to components/pins/nets as needed.
+
+    TransformationStep() {}
+    TransformationStep(const TransformationStep& other) : description(other.description) {}
+    TransformationStep(TransformationStep&& other) = default;
+    TransformationStep& operator=(const TransformationStep& other) {
+        description = other.description;
+        return *this;
+    }
+    TransformationStep& operator=(TransformationStep&& other) = default;
 };
 
-struct TransformationPlan {
+struct TransformationPlan : public Upp::Moveable<TransformationPlan> {
     std::string id;                              // unique transformation ID (per proposal)
     TransformationKind kind;
     TransformationTarget target;
     std::vector<PreservationLevel> guarantees;   // what we assert is preserved
     std::vector<TransformationStep> steps;       // high-level steps
     // Optional: pre- and post- BehaviorDescriptor snapshots (for verification)
+
+    TransformationPlan() : kind(TransformationKind::Unknown) {}
+    TransformationPlan(const TransformationPlan& other)
+        : id(other.id), kind(other.kind), target(other.target),
+          guarantees(other.guarantees), steps(other.steps) {}
+    TransformationPlan(TransformationPlan&& other) = default;
+    TransformationPlan& operator=(const TransformationPlan& other) {
+        id = other.id;
+        kind = other.kind;
+        target = other.target;
+        guarantees = other.guarantees;
+        steps = other.steps;
+        return *this;
+    }
+    TransformationPlan& operator=(TransformationPlan&& other) = default;
 };
 
 class TransformationEngine {
@@ -82,20 +118,32 @@ public:
 
 private:
     // Internal helper methods
-    std::vector<TransformationPlan> FindDoubleInversionPatterns(const ProtoVMCLI::CircuitGraph& graph, int max_plans);
-    std::vector<TransformationPlan> FindRedundantGatePatterns(const ProtoVMCLI::CircuitGraph& graph, int max_plans);
+    std::vector<TransformationPlan> FindDoubleInversionPatterns(
+        const ProtoVMCLI::CircuitGraph& graph,
+        const CircuitData& circuit,
+        int max_plans
+    );
+    std::vector<TransformationPlan> FindRedundantGatePatterns(
+        const ProtoVMCLI::CircuitGraph& graph,
+        const CircuitData& circuit,
+        int max_plans
+    );
     std::vector<TransformationPlan> FindKnownBlockReplacementPatterns(
-        const Circuit& circuit,
-        const BlockGraph& block_graph,
+        const CircuitData& circuit,
+        const ProtoVMCLI::BlockGraph& block_graph,
         int max_plans
     );
     std::vector<TransformationPlan> FindDoubleInversionPatternsInBlock(
         const ProtoVMCLI::CircuitGraph& graph,
+        const CircuitData& circuit,
+        const ProtoVMCLI::BlockGraph& block_graph,
         const std::string& block_id,
         int max_plans
     );
     std::vector<TransformationPlan> FindRedundantGatePatternsInBlock(
         const ProtoVMCLI::CircuitGraph& graph,
+        const CircuitData& circuit,
+        const ProtoVMCLI::BlockGraph& block_graph,
         const std::string& block_id,
         int max_plans
     );
@@ -108,7 +156,7 @@ private:
     std::vector<ProtoVMCLI::EditOperation> MaterializeFanoutRewiring(const TransformationPlan& plan);
 
     // Helper for applying edit operations
-    ProtoVMCLI::Result<void> ApplyEditOperation(Circuit& circuit, const ProtoVMCLI::EditOperation& op);
+    ProtoVMCLI::Result<void> ApplyEditOperation(CircuitData& circuit, const ProtoVMCLI::EditOperation& op);
 
     // Helper for analyzing block structure
     struct BlockAnalysisResult {
@@ -116,7 +164,7 @@ private:
         bool matches_mux = false;
         // Add more patterns as needed
     };
-    BlockAnalysisResult AnalyzeBlockStructure(const Circuit& circuit, const BlockInstance& block);
+    BlockAnalysisResult AnalyzeBlockStructure(const CircuitData& circuit, const ProtoVMCLI::BlockInstance& block);
 
     static int transformation_id_counter;
 };

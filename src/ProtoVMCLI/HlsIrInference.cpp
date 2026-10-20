@@ -156,7 +156,7 @@ std::vector<IrExpr> HlsIrInference::InferExpressionsFromBlockBehavior(const Bloc
             break;
         }
         
-        case BehaviorKind::GenericComb: {
+        case BehaviorKind::CombinationalLogic: {
             // For generic combinational blocks, we'll try to identify simple connections
             // This is a simplified approach - in a real implementation, you'd need to
             // analyze the internal structure more deeply
@@ -241,7 +241,7 @@ Result<IrModule> HlsIrInference::InferIrForNodeRegion(
     const CircuitGraph& graph,
     const std::string& node_id,
     const std::string& node_kind_hint,
-    const FunctionalAnalysis& func,
+    FunctionalAnalysis& func,
     const BehavioralAnalysis& beh,
     int max_depth
 ) {

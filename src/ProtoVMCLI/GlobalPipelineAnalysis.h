@@ -23,18 +23,18 @@ public:
 
 private:
     // Helper methods for building the global pipeline map
-    static Result<std::vector<GlobalPipelinePath>> FindGlobalPaths(
+    static Result<Vector<GlobalPipelinePath>> FindGlobalPaths(
         const String& subsystem_id,
         const Vector<String>& block_ids,
         const Vector<PipelineMap>& per_block_pipelines,
         const CircuitGraph& graph
     );
 
-    static Result<std::vector<GlobalPipelineStage>> BuildGlobalStages(
+    static Result<Vector<GlobalPipelineStage>> BuildGlobalStages(
         const String& subsystem_id,
         const Vector<String>& block_ids,
         const Vector<PipelineMap>& per_block_pipelines,
-        const std::vector<GlobalPipelinePath>& paths
+        const Vector<GlobalPipelinePath>& paths
     );
 
     static void UpdateMetrics(GlobalPipelineMap& global_map);

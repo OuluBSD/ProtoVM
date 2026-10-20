@@ -144,9 +144,9 @@ Result<std::vector<ClockSignalInfo>> PipelineAnalysis::DiscoverClockDomains(
             }
         }
 
-        return Result<std::vector<ClockSignalInfo>>::Success(std::move(clock_domains));
+        return Result<std::vector<ClockSignalInfo>>::MakeOk(std::move(clock_domains));
     } catch (const std::exception& e) {
-        return Result<std::vector<ClockSignalInfo>>::Error("Failed to discover clock domains: " + std::string(e.what()), "CLOCK_DOMAIN_DISCOVERY_ERROR");
+        return Result<std::vector<ClockSignalInfo>>::MakeError("Failed to discover clock domains: " + std::string(e.what()), "CLOCK_DOMAIN_DISCOVERY_ERROR");
     }
 }
 
@@ -198,9 +198,9 @@ Result<std::vector<RegisterInfo>> PipelineAnalysis::DiscoverRegisters(
         // In a real implementation, we would need to connect registers to their clock signals
         // by analyzing the circuit graph for connections from clock nets to register clock pins
 
-        return Result<std::vector<RegisterInfo>>::Success(std::move(registers));
+        return Result<std::vector<RegisterInfo>>::MakeOk(std::move(registers));
     } catch (const std::exception& e) {
-        return Result<std::vector<RegisterInfo>>::Error("Failed to discover registers: " + std::string(e.what()), "REGISTER_DISCOVERY_ERROR");
+        return Result<std::vector<RegisterInfo>>::MakeError("Failed to discover registers: " + std::string(e.what()), "REGISTER_DISCOVERY_ERROR");
     }
 }
 
@@ -261,9 +261,9 @@ Result<std::vector<PipelineStageInfo>> PipelineAnalysis::DiscoverPipelineStages(
             }
         }
 
-        return Result<std::vector<PipelineStageInfo>>::Success(std::move(stages));
+        return Result<std::vector<PipelineStageInfo>>::MakeOk(std::move(stages));
     } catch (const std::exception& e) {
-        return Result<std::vector<PipelineStageInfo>>::Error("Failed to discover pipeline stages: " + std::string(e.what()), "PIPELINE_STAGE_DISCOVERY_ERROR");
+        return Result<std::vector<PipelineStageInfo>>::MakeError("Failed to discover pipeline stages: " + std::string(e.what()), "PIPELINE_STAGE_DISCOVERY_ERROR");
     }
 }
 
@@ -317,9 +317,9 @@ Result<std::vector<RegToRegPathInfo>> PipelineAnalysis::DiscoverRegToRegPaths(
             }
         }
 
-        return Result<std::vector<RegToRegPathInfo>>::Success(std::move(paths));
+        return Result<std::vector<RegToRegPathInfo>>::MakeOk(std::move(paths));
     } catch (const std::exception& e) {
-        return Result<std::vector<RegToRegPathInfo>>::Error("Failed to discover reg-to-reg paths: " + std::string(e.what()), "REG_TO_REG_PATH_DISCOVERY_ERROR");
+        return Result<std::vector<RegToRegPathInfo>>::MakeError("Failed to discover reg-to-reg paths: " + std::string(e.what()), "REG_TO_REG_PATH_DISCOVERY_ERROR");
     }
 }
 

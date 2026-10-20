@@ -43,12 +43,8 @@ namespace ProtoVM { struct InstrumentExportOptions; }
 #include <vector>
 #include <optional>
 
-// Forward declarations for functional analysis types
-namespace ProtoVMCLI {
-    struct FunctionalNodeId;
-    struct FunctionalCone;
-    struct DependencySummary;
-}
+// FunctionalNodeId / FunctionalCone / DependencySummary are declared in
+// FunctionalAnalysis.h, included below inside this namespace.
 
 namespace ProtoVMCLI {
 

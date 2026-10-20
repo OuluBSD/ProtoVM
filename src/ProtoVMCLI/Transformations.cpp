@@ -7,6 +7,8 @@
 #include "CircuitFacade.h"
 #include "CircuitData.h"
 
+using namespace ProtoVMCLI;
+
 // Initialize static member
 int TransformationEngine::transformation_id_counter = 0;
 
@@ -23,7 +25,7 @@ Result<Vector<TransformationPlan>> TransformationEngine::ProposeTransformationsF
     CircuitFacade circuit_facade;
     auto circuit_result = circuit_facade.LoadCircuitForBranch(session, session_dir, branch_name);
     if (!circuit_result.IsOk()) {
-        return Result<Vector<TransformationPlan>>::Error(circuit_result.GetError());
+        return Result<Vector<TransformationPlan>>::MakeError(circuit_result.GetError());
     }
 
     auto circuit = circuit_result.TakeValue();
@@ -36,7 +38,7 @@ Result<Vector<TransformationPlan>> TransformationEngine::ProposeTransformationsF
     BlockAnalysis block_analysis;
     auto block_graph_result = block_analysis.AnalyzeCircuit(circuit);
     if (!block_graph_result.IsOk()) {
-        return Result<Vector<TransformationPlan>>::Error(block_graph_result.GetError());
+        return Result<Vector<TransformationPlan>>::MakeError(block_graph_result.GetError());
     }
 
     auto block_graph = block_graph_result.TakeValue();
@@ -66,7 +68,7 @@ Result<Vector<TransformationPlan>> TransformationEngine::ProposeTransformationsF
         }
     }
 
-    return Result<Vector<TransformationPlan>>::Success(plans);
+    return Result<Vector<TransformationPlan>>::MakeOk(plans);
 }
 
 Result<Vector<TransformationPlan>> TransformationEngine::ProposeTransformationsForBlock(
@@ -82,7 +84,7 @@ Result<Vector<TransformationPlan>> TransformationEngine::ProposeTransformationsF
     CircuitFacade circuit_facade;
     auto circuit_result = circuit_facade.LoadCircuitForBranch(session, session_dir, branch_name);
     if (!circuit_result.IsOk()) {
-        return Result<Vector<TransformationPlan>>::Error(circuit_result.GetError());
+        return Result<Vector<TransformationPlan>>::MakeError(circuit_result.GetError());
     }
     
     auto circuit = circuit_result.TakeValue();
@@ -107,7 +109,7 @@ Result<Vector<TransformationPlan>> TransformationEngine::ProposeTransformationsF
         }
     }
     
-    return Result<Vector<TransformationPlan>>::Success(plans);
+    return Result<Vector<TransformationPlan>>::MakeOk(plans);
 }
 
 Result<Vector<EditOperation>> TransformationEngine::MaterializePlan(
@@ -132,10 +134,10 @@ Result<Vector<EditOperation>> TransformationEngine::MaterializePlan(
             operations = MaterializeFanoutRewiring(plan);
             break;
         default:
-            return Result<Vector<EditOperation>>::Error("Unknown transformation kind");
+            return Result<Vector<EditOperation>>::MakeError("Unknown transformation kind");
     }
     
-    return Result<Vector<EditOperation>>::Success(operations);
+    return Result<Vector<EditOperation>>::MakeOk(operations);
 }
 
 Result<bool> TransformationEngine::VerifyBehaviorPreserved(

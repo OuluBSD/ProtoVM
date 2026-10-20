@@ -10,6 +10,36 @@
 
 namespace ProtoVMCLI {
 
+// String-typed command member that also satisfies the optional-flavored usage
+// idioms the handler layer was generated against (.empty(), .c_str(), .find(),
+// .substr(), .value_or(), assignment from std::string/const char*).
+struct OptStr {
+    std::string s;
+    bool set = false;
+
+    OptStr() = default;
+    OptStr(const char* x) : s(x ? x : ""), set(true) {}
+    OptStr(const std::string& x) : s(x), set(true) {}
+    OptStr& operator=(const std::string& x) { s = x; set = true; return *this; }
+    OptStr& operator=(const char* x) { s = x ? x : ""; set = true; return *this; }
+
+    bool has_value() const { return set; }
+    std::string value_or(const std::string& d) const { return set ? s : d; }
+    const std::string& value() const { return s; }
+    const std::string& operator*() const { return s; }
+    explicit operator bool() const { return !s.empty(); }   // "usable" = non-empty
+    const char* c_str() const { return s.c_str(); }
+    const std::string& str() const { return s; }
+    operator const std::string&() const { return s; }
+
+    bool empty() const { return s.empty(); }
+    size_t size() const { return s.size(); }
+    size_t length() const { return s.length(); }
+    size_t find(const std::string& x, size_t pos = 0) const { return s.find(x, pos); }
+    size_t find(char x, size_t pos = 0) const { return s.find(x, pos); }
+    std::string substr(size_t pos = 0, size_t n = std::string::npos) const { return s.substr(pos, n); }
+};
+
 // Error codes for the CLI system
 enum class ErrorCode {
     None = 0,
@@ -28,6 +58,8 @@ enum class ErrorCode {
     InternalError,
     Conflict,
     InvalidEditOperation,
+    NotFound,
+    InvalidArgument,
     CircuitStateCorrupt
     // add more if needed
 };
@@ -40,13 +72,13 @@ struct Result {
     std::string error_message;  // human-readable message
     T data;
 
-    Result(T val) : ok(true), error_code(ErrorCode::None), error_message(""), data(val) {}
+    Result(T val) : ok(true), error_code(ErrorCode::None), error_message(""), data(std::move(val)) {}
     Result() : ok(false), error_code(ErrorCode::InternalError), error_message(""), data() {}
     Result(bool is_ok, ErrorCode code, const std::string& msg, T val)
-        : ok(is_ok), error_code(code), error_message(msg), data(val) {}
+        : ok(is_ok), error_code(code), error_message(msg), data(std::move(val)) {}
 
-    static Result<T> MakeOk(const T& data) {
-        return Result<T>(true, ErrorCode::None, "", data);
+    static Result<T> MakeOk(T data) {
+        return Result<T>(true, ErrorCode::None, "", std::move(data));
     }
 
     static Result<T> MakeError(ErrorCode code, const std::string& message) {
@@ -94,6 +126,7 @@ struct SessionMetadata {
     int circuit_revision = 0;  // Revision of the circuit (editing operations) - DEPRECATED: use branches info now
     int sim_revision = 0;      // Revision on which the latest simulation snapshot is based - DEPRECATED: use branches info now
     std::string workspace;
+    std::string workspace_path;  // absolute workspace path (handler layer)
     std::chrono::system_clock::time_point created_time;
     std::chrono::system_clock::time_point last_used_time;
 
@@ -146,7 +179,7 @@ struct CommandOptions {
     std::optional<std::string> circuit_file;
     std::optional<std::string> netlist_file;
     std::optional<bool> soft_delete;
-    std::optional<std::string> branch;  // Branch name for branch-aware operations
+    OptStr branch;  // Branch name for branch-aware operations
     std::optional<std::string> branch_from;  // Source branch for operations like merge or create
     std::optional<std::string> branch_to;    // Target branch for operations like merge
     std::optional<std::string> branch_name;  // Name of branch to create or switch to
@@ -168,18 +201,20 @@ struct CommandOptions {
     std::optional<bool> apply_only_safe;    // Apply only safe moves (default true)
     std::optional<bool> allow_suspicious;   // Allow suspicious moves (default false)
     std::optional<int> max_moves;           // Max number of moves to apply (default -1, no limit)
+    std::optional<int> min_depth;           // Min depth threshold for path queries
+    OptStr max_depth;                       // Max depth for traversal (string form)
     std::optional<std::string> max_plans;   // Max number of refactoring plans to consider
-    std::optional<std::string> plan_id;     // Specific plan id to apply
+    OptStr plan_id;     // Specific plan id to apply
 
     // Code generation parameters
-    std::optional<std::string> block_id;        // Block ID for codegen operations
-    std::optional<std::string> node_id;         // Node ID for codegen operations
-    std::optional<std::string> lang;            // Language for codegen: "C" or "Cpp"
-    std::optional<std::string> emit_state_struct;  // Whether to emit state struct (true/false as string)
-    std::optional<std::string> state_struct_name;  // State struct name
-    std::optional<std::string> function_name;      // Function name for generated code
-    std::optional<std::string> step_function_name; // Step function name for oscillator demos
-    std::optional<std::string> render_function_name; // Render function name for oscillator demos
+    OptStr block_id;        // Block ID for codegen operations
+    OptStr node_id;         // Node ID for codegen operations
+    OptStr lang;            // Language for codegen: "C" or "Cpp"
+    OptStr emit_state_struct;  // Whether to emit state struct (true/false as string)
+    OptStr state_struct_name;  // State struct name
+    OptStr function_name;      // Function name for generated code
+    OptStr step_function_name; // Step function name for oscillator demos
+    OptStr render_function_name; // Render function name for oscillator demos
 
     // Hybrid instrument parameters
     std::optional<std::string> instrument_id;            // Instrument ID for instrument operations
@@ -201,13 +236,19 @@ struct CommandOptions {
     std::optional<std::string> instrument_from_json;     // Load instrument from JSON file
 
     // Plugin skeleton export parameters
-    std::optional<std::string> plugin_target;            // Target plugin format (vst3, lv2, clap, ladspa)
-    std::optional<std::string> plugin_name;              // Plugin name
-    std::optional<std::string> plugin_id;                // Plugin ID
-    std::optional<std::string> vendor;                   // Plugin vendor name
-    std::optional<std::string> version;                  // Plugin version string
-    std::optional<std::string> output_dir;               // Output directory for plugin project
-    std::optional<std::string> node_kind;                // Node kind hint (Pin, Component, Net)
+    OptStr plugin_target;            // Target plugin format (vst3, lv2, clap, ladspa)
+    OptStr plugin_name;              // Plugin name
+    OptStr plugin_id;                // Plugin ID
+    OptStr vendor;                   // Plugin vendor name
+    OptStr version;                  // Plugin version string
+    OptStr output_dir;               // Output directory for plugin project
+    OptStr node_kind;                // Node kind hint (Pin, Component, Net)
+    OptStr node_kind_hint;           // Node kind hint (handler-layer alias)
+    OptStr subsystem_id;             // Subsystem ID
+    OptStr block_ids;                // Comma/space separated block ids
+    std::string branch_before;                           // Branch ref (before side)
+    std::string branch_after;                            // Branch ref (after side)
+    std::string passes;                                  // Comma separated pass list
 
     // Free-form command payload (JSON object with command-specific keys)
     Upp::ValueMap payload;

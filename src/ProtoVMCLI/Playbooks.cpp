@@ -719,10 +719,10 @@ Result<PlaybookResult> PlaybookEngine::RunPlaybook(
                 config.block_id
             );
 
-            if (!initial_analysis_result.ok()) {
+            if (!initial_analysis_result.ok) {
                 return Result<PlaybookResult>::MakeError(
-                    initial_analysis_result.error_code(),
-                    "Failed to analyze initial audio: " + initial_analysis_result.error_message()
+                    initial_analysis_result.error_code,
+                    "Failed to analyze initial audio: " + initial_analysis_result.error_message
                 );
             }
 
@@ -739,7 +739,7 @@ Result<PlaybookResult> PlaybookEngine::RunPlaybook(
                     config.passes
                 );
 
-                if (opt_result.ok()) {
+                if (opt_result.ok) {
                     result.optimization = opt_result.data;
 
                     // Step 3: Analyze the optimized version
@@ -750,11 +750,11 @@ Result<PlaybookResult> PlaybookEngine::RunPlaybook(
                         config.block_id
                     );
 
-                    if (final_analysis_result.ok()) {
+                    if (final_analysis_result.ok) {
                         // Step 4: Compare audio quality metrics
                         AudioQa::AudioQaDiff diff = AudioQa::AudioQaComparator::CompareReports(
-                            initial_analysis_result.value(),
-                            final_analysis_result.value()
+                            initial_analysis_result.data,
+                            final_analysis_result.data
                         );
 
                         // Check for regressions
@@ -793,10 +793,10 @@ Result<PlaybookResult> PlaybookEngine::RunPlaybook(
                 config.block_id
             );
 
-            if (!initial_analysis_result.ok()) {
+            if (!initial_analysis_result.ok) {
                 return Result<PlaybookResult>::MakeError(
-                    initial_analysis_result.error_code(),
-                    "Failed to analyze initial audio: " + initial_analysis_result.error_message()
+                    initial_analysis_result.error_code,
+                    "Failed to analyze initial audio: " + initial_analysis_result.error_message
                 );
             }
 
@@ -820,7 +820,7 @@ Result<PlaybookResult> PlaybookEngine::RunPlaybook(
                     5  // max_plans
                 );
 
-                if (!plan_result.ok() || plan_result.data.empty()) {
+                if (!plan_result.ok || plan_result.data.empty()) {
                     break; // No more plans available
                 }
 
@@ -835,7 +835,7 @@ Result<PlaybookResult> PlaybookEngine::RunPlaybook(
                         "audio_qa_playbook"
                     );
 
-                    if (apply_result.ok()) {
+                    if (apply_result.ok) {
                         // Analyze the result
                         auto after_plan_analysis = circuit_facade->RenderAndAnalyzeBlockInBranch(
                             session_metadata,
@@ -844,11 +844,11 @@ Result<PlaybookResult> PlaybookEngine::RunPlaybook(
                             config.block_id
                         );
 
-                        if (after_plan_analysis.ok()) {
+                        if (after_plan_analysis.ok) {
                             // Compare with original
                             AudioQa::AudioQaDiff diff = AudioQa::AudioQaComparator::CompareReports(
-                                initial_analysis_result.value(),
-                                after_plan_analysis.value()
+                                initial_analysis_result.data,
+                                after_plan_analysis.data
                             );
 
                             // Check if this is an improvement or neutral change
@@ -886,10 +886,10 @@ Result<PlaybookResult> PlaybookEngine::RunPlaybook(
                 config.block_id
             );
 
-            if (!initial_analysis_result.ok()) {
+            if (!initial_analysis_result.ok) {
                 return Result<PlaybookResult>::MakeError(
-                    initial_analysis_result.error_code(),
-                    "Failed to analyze initial audio: " + initial_analysis_result.error_message()
+                    initial_analysis_result.error_code,
+                    "Failed to analyze initial audio: " + initial_analysis_result.error_message
                 );
             }
 
@@ -904,7 +904,7 @@ Result<PlaybookResult> PlaybookEngine::RunPlaybook(
                 config.block_id
             );
 
-            if (retiming_result.ok() && !retiming_result.data.IsEmpty()) {
+            if (retiming_result.ok && !retiming_result.data.IsEmpty()) {
                 // Step 3: For each plan, test if it preserves audio quality
                 for (const auto& plan : retiming_result.data) {
                     // In a real implementation, we would apply the retiming plan temporarily
@@ -918,11 +918,11 @@ Result<PlaybookResult> PlaybookEngine::RunPlaybook(
                         config.block_id
                     );
 
-                    if (after_plan_analysis.ok()) {
+                    if (after_plan_analysis.ok) {
                         // Compare with original
                         AudioQa::AudioQaDiff diff = AudioQa::AudioQaComparator::CompareReports(
-                            initial_analysis_result.value(),
-                            after_plan_analysis.value()
+                            initial_analysis_result.data,
+                            after_plan_analysis.data
                         );
 
                         // Only keep plans that don't cause regressions

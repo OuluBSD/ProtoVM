@@ -125,7 +125,7 @@ Result<CodegenModule> CodegenIrInference::BuildCodegenModuleForBlockInBranch(
     );
     
     if (!ir_result.ok) {
-        return Result<CodegenModule>::Error(
+        return Result<CodegenModule>::MakeError(
             ir_result.error_code,
             "Failed to build IR module for block: " + ir_result.error_message
         );
@@ -137,7 +137,7 @@ Result<CodegenModule> CodegenIrInference::BuildCodegenModuleForBlockInBranch(
     );
     
     if (!behavior_result.ok) {
-        return Result<CodegenModule>::Error(
+        return Result<CodegenModule>::MakeError(
             behavior_result.error_code,
             "Failed to infer behavior for block: " + behavior_result.error_message
         );
@@ -167,7 +167,7 @@ Result<CodegenModule> CodegenIrInference::BuildCodegenModuleForNodeRegionInBranc
     );
     
     if (!ir_result.ok) {
-        return Result<CodegenModule>::Error(
+        return Result<CodegenModule>::MakeError(
             ir_result.error_code,
             "Failed to build IR module for node region: " + ir_result.error_message
         );
@@ -175,7 +175,7 @@ Result<CodegenModule> CodegenIrInference::BuildCodegenModuleForNodeRegionInBranc
     
     // Get behavioral analysis for one of the nodes (first one)
     if (node_ids.empty()) {
-        return Result<CodegenModule>::Error(
+        return Result<CodegenModule>::MakeError(
             ErrorCode::InvalidArgument,
             "Node IDs list is empty"
         );
@@ -186,7 +186,7 @@ Result<CodegenModule> CodegenIrInference::BuildCodegenModuleForNodeRegionInBranc
     );
     
     if (!behavior_result.ok) {
-        return Result<CodegenModule>::Error(
+        return Result<CodegenModule>::MakeError(
             behavior_result.error_code,
             "Failed to infer behavior for node: " + behavior_result.error_message
         );
@@ -280,7 +280,7 @@ Result<CodegenModule> CodegenIrInference::BuildFromIrModuleAndBehavior(
     // Set behavior summary
     module.behavior_summary = behavior.description;
     
-    return Result<CodegenModule>::Success(module);
+    return Result<CodegenModule>::MakeOk(module);
 }
 
 } // namespace ProtoVMCLI

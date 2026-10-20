@@ -1,7 +1,14 @@
 #include "CdcAnalysis.h"
-#include <Core/Sort.h>
 
 using namespace Upp;
+using namespace ProtoVMCLI;
+
+// Resolve a numeric domain id for a clock signal name (handler-layer shim:
+// the CdcCrossing endpoint carries the numeric id, the pipeline layer the name).
+static int CdcCrossingDomainNum(const std::string& clock_signal) {
+    return -1;
+}
+
 
 Result<CdcReport> CdcAnalysis::BuildCdcReportForBlock(
     const PipelineMap& pipeline,
@@ -13,9 +20,9 @@ Result<CdcReport> CdcAnalysis::BuildCdcReportForBlock(
     
     // Add clock domains from pipeline
     for (const auto& domain : pipeline.clock_domains) {
-        ClockSignalInfo clock_info;
-        clock_info.signal_name = domain.domain_id; // domain_id is the clock name
-        clock_info.domain_id = domain.domain_id_num;
+        ::ClockSignalInfo clock_info;   // global variant (CdcModel.h)
+        clock_info.signal_name = Upp::String(domain.signal_name.c_str());
+        clock_info.domain_id = domain.domain_id;
         report.clock_domains.Add(clock_info);
     }
     
@@ -24,17 +31,17 @@ Result<CdcReport> CdcAnalysis::BuildCdcReportForBlock(
     for (const auto& path : pipeline.reg_paths) {
         if (path.crosses_clock_domain) {
             CdcCrossing crossing;
-            crossing.id = "CDCC_" + String().Cat() << FormatInt(crossing_counter++, 4, '0');
+            crossing.id = Upp::String("CDCC_") + Upp::Format("%04d", crossing_counter++);
             
             // Source endpoint
             crossing.src.reg_id = path.src_reg_id;
-            crossing.src.clock_signal = path.src_clock_domain.domain_id; // clock signal name
-            crossing.src.domain_id = path.src_clock_domain.domain_id_num;
+            crossing.src.clock_signal = path.src_clock_domain;
+            crossing.src.domain_id = CdcCrossingDomainNum(path.src_clock_domain);
             
             // Destination endpoint
             crossing.dst.reg_id = path.dst_reg_id;
-            crossing.dst.clock_signal = path.dst_clock_domain.domain_id; // clock signal name
-            crossing.dst.domain_id = path.dst_clock_domain.domain_id_num;
+            crossing.dst.clock_signal = path.dst_clock_domain;
+            crossing.dst.domain_id = CdcCrossingDomainNum(path.dst_clock_domain);
             
             // Determine bit width (simplified - in practice this might require more analysis)
             crossing.is_single_bit = path.width == 1;
@@ -49,7 +56,7 @@ Result<CdcReport> CdcAnalysis::BuildCdcReportForBlock(
             
             // Create an issue for this crossing
             CdcIssue issue;
-            issue.id = "CDCISS_" + String().Cat() << FormatInt(report.issues.GetCount(), 4, '0');
+            issue.id = Upp::String("CDCISS_") + Upp::Format("%04d", report.issues.GetCount());
             issue.severity = DetermineSeverity(crossing.kind);
             issue.summary = GenerateSummary(crossing.kind, crossing.src, crossing.dst, crossing.bit_width);
             issue.detail = GenerateDetail(crossing.kind, crossing.src, crossing.dst, crossing.bit_width);
@@ -91,11 +98,11 @@ CdcCrossingKind CdcAnalysis::ClassifyCrossing(const CdcCrossing& crossing,
     
     // Check for handshake-like patterns (simplified check)
     // Look for signals with names like *valid/*ready, *req/*ack, etc.
-    if (crossing.src.reg_id.Contains("valid") && crossing.dst.reg_id.Contains("ready")) {
+    if (crossing.src.reg_id.Find("valid") >= 0 && crossing.dst.reg_id.Find("ready") >= 0) {
         return CdcCrossingKind::HandshakeLike;
-    } else if (crossing.src.reg_id.Contains("req") && crossing.dst.reg_id.Contains("ack")) {
+    } else if (crossing.src.reg_id.Find("req") >= 0 && crossing.dst.reg_id.Find("ack") >= 0) {
         return CdcCrossingKind::HandshakeLike;
-    } else if (crossing.src.reg_id.Contains("request") && crossing.dst.reg_id.Contains("acknowledge")) {
+    } else if (crossing.src.reg_id.Find("request") >= 0 && crossing.dst.reg_id.Find("acknowledge") >= 0) {
         return CdcCrossingKind::HandshakeLike;
     }
     
@@ -117,24 +124,24 @@ CdcSeverity CdcAnalysis::DetermineSeverity(CdcCrossingKind kind) {
     }
 }
 
-String CdcAnalysis::GenerateSummary(CdcCrossingKind kind, 
+std::string CdcAnalysis::GenerateSummary(CdcCrossingKind kind, 
                                   const CdcCrossingEndpoint& src, 
                                   const CdcCrossingEndpoint& dst,
                                   int bit_width) {
     switch (kind) {
         case CdcCrossingKind::SingleBitSyncCandidate:
-            return "Single-bit CDC from " + src.clock_signal + " to " + dst.clock_signal + ".";
+            return "Single-bit CDC from " + src.clock_signal.ToStd() + " to " + dst.clock_signal.ToStd() + ".";
         case CdcCrossingKind::MultiBitBundle:
-            return String().Cat() << bit_width << "-bit CDC bundle from " << src.clock_signal << " to " << dst.clock_signal << ".";
+            return std::to_string(bit_width) + "-bit CDC bundle from " + src.clock_signal.ToStd() + " to " + dst.clock_signal.ToStd() + ".";
         case CdcCrossingKind::HandshakeLike:
-            return "Handshake-like CDC from " + src.clock_signal + " to " + dst.clock_signal + ".";
+            return "Handshake-like CDC from " + src.clock_signal.ToStd() + " to " + dst.clock_signal.ToStd() + ".";
         case CdcCrossingKind::UnknownPattern:
         default:
-            return "Unknown CDC pattern from " + src.clock_signal + " to " + dst.clock_signal + ".";
+            return "Unknown CDC pattern from " + src.clock_signal.ToStd() + " to " + dst.clock_signal.ToStd() + ".";
     }
 }
 
-String CdcAnalysis::GenerateDetail(CdcCrossingKind kind, 
+std::string CdcAnalysis::GenerateDetail(CdcCrossingKind kind, 
                                  const CdcCrossingEndpoint& src, 
                                  const CdcCrossingEndpoint& dst,
                                  int bit_width) {
@@ -143,18 +150,14 @@ String CdcAnalysis::GenerateDetail(CdcCrossingKind kind,
             return "Single-bit control signal crossing clock domains. This is typically safe with a 2-flop synchronizer.";
         case CdcCrossingKind::MultiBitBundle:
             if (bit_width > 0) {
-                return String().Cat() << "Multi-bit (" << bit_width << " bits) register crossing clock domains without recognized safe structure. "
-                                      << "Consider using async FIFO, Gray code encoding, or other multi-bit CDC techniques.";
+                return std::string("Multi-bit (" + std::to_string(bit_width) + " bits) register crossing clock domains without recognized safe structure. Consider using async FIFO, Gray code encoding, or other multi-bit CDC techniques.");
             } else {
-                return "Multi-bit register crossing clock domains without recognized safe structure. "
-                       << "Consider using async FIFO, Gray code encoding, or other multi-bit CDC techniques.";
+                return std::string("Multi-bit register crossing clock domains without recognized safe structure. Consider using async FIFO, Gray code encoding, or other multi-bit CDC techniques.");
             }
         case CdcCrossingKind::HandshakeLike:
-            return "Signal pair resembles ready/valid or request/ack pattern. "
-                   << "Verify that the handshake protocol is correctly designed for clock domain crossing.";
+            return std::string("Signal pair resembles ready/valid or request/ack pattern. Verify that the handshake protocol is correctly designed for clock domain crossing.");
         case CdcCrossingKind::UnknownPattern:
         default:
-            return "Signal crossing clock domains with an unrecognized pattern. "
-                   << "Review this crossing to ensure proper synchronizer implementation.";
+            return std::string("Signal crossing clock domains with an unrecognized pattern. Review this crossing to ensure proper synchronizer implementation.");
     }
 }

@@ -93,7 +93,7 @@ Result<void> DspRuntime::Render(DspRuntimeState& state) {
         }
     }
     
-    return Result<void>::MakeOk({});
+    return Result<void>::MakeOk();
 }
 
 Result<void> DspRuntime::RenderSample(DspRuntimeState& state, int sample_index) {
@@ -207,7 +207,7 @@ Result<void> DspRuntime::RenderSample(DspRuntimeState& state, int sample_index) 
         state.out_right[sample_index] = static_cast<float>(right_sample);
     }
 
-    return Result<void>::MakeOk({});
+    return Result<void>::MakeOk();
 }
 
 } // namespace ProtoVMCLI

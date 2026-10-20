@@ -50,11 +50,11 @@ Result<Vector<RetimingPlan>> RetimingAnalysis::IdentifyCandidatePaths(
         // For MVP, consider paths with significant combinatorial depth (> threshold)
         if (path.comb_depth_estimate > 4) {
             auto moves_result = GenerateMovesForPath(path, pipeline, cdc_report, scheduled_ir);
-            if (!moves_result.ok()) {
+            if (!moves_result.ok) {
                 continue; // Skip if there was an error generating moves
             }
             
-            Vector<RetimingMove> moves = moves_result.value();
+            Vector<RetimingMove> moves = moves_result.data;
             
             if (!moves.IsEmpty()) {
                 // Create a plan for this path

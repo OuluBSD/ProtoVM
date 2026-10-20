@@ -1,5 +1,5 @@
 #include "EngineFacade.h"
-#include "Machine.h"  // Include the main Machine class
+#include <ProtoVM/Machine.h>  // main engine Machine class
 #include "CircuitSerializer.h"  // Include the circuit serialization
 #include "CircuitData.h"  // Include circuit data structures
 #include "MachineSnapshot.h"  // Include the machine snapshot functionality
@@ -29,7 +29,7 @@ Result<std::unique_ptr<Machine>> EngineFacade::CreateMachineFromCircuit(const st
     try {
         // Use the CircuitSerializer to load circuit data from the file
         CircuitData circuitData;
-        wxString wx_circuit_file(circuit_file.c_str());
+        std::string wx_circuit_file = circuit_file;
         
         if (!CircuitSerializer::LoadCircuit(wx_circuit_file, circuitData)) {
             return Result<std::unique_ptr<Machine>>::MakeError(

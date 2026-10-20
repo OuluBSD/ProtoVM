@@ -125,5 +125,13 @@ private:
 };
 
 } // namespace ProtoVMCLI
+namespace std {
+template <> struct hash<ProtoVMCLI::TimingNodeId> {
+    size_t operator()(const ProtoVMCLI::TimingNodeId& n) const {
+        return std::hash<std::string>()(n.id);
+    }
+};
+} // namespace std
+
 
 #endif // _ProtoVM_TimingAnalysis_h_

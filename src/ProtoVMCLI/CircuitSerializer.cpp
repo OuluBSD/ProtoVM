@@ -1,0 +1,196 @@
+#include "CircuitSerializer.h"
+#include <cstdlib>
+
+std::vector<std::string> CircuitSerializer::SplitTokens(const std::string& line) {
+    std::vector<std::string> out;
+    std::string cur;
+    for (char c : line) {
+        if (c == ' ' || c == '\t' || c == '\r') {
+            if (!cur.empty()) { out.push_back(cur); cur.clear(); }
+        } else {
+            cur.push_back(c);
+        }
+    }
+    if (!cur.empty()) out.push_back(cur);
+    return out;
+}
+
+std::string CircuitSerializer::EscapeString(const std::string& str) {
+    return str;
+}
+
+std::string CircuitSerializer::UnescapeString(const std::string& str) {
+    return str;
+}
+
+bool CircuitSerializer::SaveCircuit(const CircuitData& circuitData, const std::string& filepath)
+{
+    std::ofstream file(filepath);
+    if (!file.is_open())
+        return false;
+
+    // Write header
+    file << "# ProtoVM Circuit File\n";
+    file << "name=" << circuitData.name << "\n";
+    file << "description=" << circuitData.description << "\n";
+    file << "\n";
+
+    // Write components
+    file << "# Components (" << circuitData.components.size() << ")\n";
+    for (const auto& comp : circuitData.components)
+    {
+        file << "component " << comp.id.id << " " << comp.type << " " << comp.name
+             << " " << comp.x << " " << comp.y << "\n";
+
+        // Write input pins for this component
+        for (const auto& input : comp.inputs)
+        {
+            file << "  input " << input.id.id << " " << input.name << " " << input.x << " " << input.y << "\n";
+        }
+
+        // Write output pins for this component
+        for (const auto& output : comp.outputs)
+        {
+            file << "  output " << output.id.id << " " << output.name << " " << output.x << " " << output.y << "\n";
+        }
+    }
+    file << "\n";
+
+    // Write wires
+    file << "# Wires (" << circuitData.wires.size() << ")\n";
+    for (const auto& wire : circuitData.wires)
+    {
+        file << "wire " << wire.id.id << " " << wire.start_component_id.id << " " << wire.start_pin_name
+             << " " << wire.end_component_id.id << " " << wire.end_pin_name << "\n";
+    }
+
+    file.close();
+    return true;
+}
+
+bool CircuitSerializer::LoadCircuit(const std::string& filepath, CircuitData& circuitData)
+{
+    std::ifstream file(filepath);
+    if (!file.is_open())
+        return false;
+
+    std::string line;
+    std::getline(file, line); // Skip header comment
+
+    // Read name
+    std::getline(file, line);
+    size_t pos = line.find('=');
+    if (pos != std::string::npos)
+        circuitData.name = line.substr(pos + 1);
+
+    // Read description
+    std::getline(file, line);
+    pos = line.find('=');
+    if (pos != std::string::npos)
+        circuitData.description = line.substr(pos + 1);
+
+    // Skip empty line
+    std::getline(file, line);
+
+    // Read components section header
+    std::getline(file, line);
+
+    // Remember the last line we consumed so we can reprocess non-pin lines
+    std::string pending = "";
+
+    // Read components
+    while (std::getline(file, line) && !line.empty() && line[0] != '#')
+    {
+        if (!pending.empty())
+        {
+            line = pending;
+            pending = "";
+        }
+
+        if (line.substr(0, 9) == "component")
+        {
+            // Parse component: "component id type name x y"
+            std::vector<std::string> tokens = SplitTokens(line);
+            if (tokens.size() >= 6)
+            {
+                ComponentData comp;
+                comp.id = CircuitEntityId(tokens[1]);
+                comp.type = tokens[2];
+                comp.name = tokens[3];
+                comp.x = std::atoi(tokens[4].c_str());
+                comp.y = std::atoi(tokens[5].c_str());
+
+                // Read input and output pins for this component
+                bool reprocess = false;
+                while (file.peek() != '#' && !file.eof())
+                {
+                    std::getline(file, line);
+                    if (line.empty()) break;
+
+                    if (line[0] == ' ')  // Indented line - pin definition
+                    {
+                        std::vector<std::string> pinTokens = SplitTokens(line);
+                        if (pinTokens.size() >= 6)
+                        {
+                            PinData pin;
+                            std::string pinType = pinTokens[1];
+                            pin.id = CircuitEntityId(pinTokens[2]);
+                            pin.name = pinTokens[3];
+                            pin.x = std::atoi(pinTokens[4].c_str());
+                            pin.y = std::atoi(pinTokens[5].c_str());
+                            pin.is_input = (pinType == "input");
+
+                            if (pin.is_input)
+                                comp.inputs.push_back(pin);
+                            else
+                                comp.outputs.push_back(pin);
+                        }
+                    }
+                    else  // Not an indented line - next component or section start
+                    {
+                        pending = line;
+                        reprocess = true;
+                        break;
+                    }
+                }
+
+                circuitData.components.push_back(comp);
+
+                // If the next line is a component/wire header, loop will reprocess it
+                if (reprocess)
+                    continue;
+            }
+        }
+
+        if (line[0] == '#')
+            break;
+    }
+
+    // If the last line was a section header, process the wires
+    if (!line.empty() && line[0] == '#')
+    {
+        // Read wires
+        while (std::getline(file, line) && !line.empty())
+        {
+            if (line.substr(0, 4) == "wire")
+            {
+                // Parse wire: "wire id start_id start_pin end_id end_pin"
+                std::vector<std::string> tokens = SplitTokens(line);
+                if (tokens.size() >= 6)
+                {
+                    WireData wire;
+                    wire.id = CircuitEntityId(tokens[1]);
+                    wire.start_component_id = CircuitEntityId(tokens[2]);
+                    wire.start_pin_name = tokens[3];
+                    wire.end_component_id = CircuitEntityId(tokens[4]);
+                    wire.end_pin_name = tokens[5];
+
+                    circuitData.wires.push_back(wire);
+                }
+            }
+        }
+    }
+
+    file.close();
+    return true;
+}

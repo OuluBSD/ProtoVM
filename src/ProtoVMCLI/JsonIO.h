@@ -16,6 +16,9 @@
 
 namespace ProtoVMCLI {
 
+// Defined in PluginSkeletonExport.h (keep in sync with that header)
+enum class PluginTargetKind : int;
+
 // Simple JSON utilities for the CLI using U++ types
 class JsonIO {
 public:
@@ -42,6 +45,20 @@ public:
 
     // Helper to convert ValueMap to JSON string (recursive)
     static Upp::String ValueMapToJson(const Upp::ValueMap& vm);
+
+    // Generic result-model serializers used by the handler layer.
+    static Upp::ValueMap ToValueMap(const RetimingApplicationResult& r);
+    static Upp::ValueMap ToValueMap(const RetimingOptimizationResult& r);
+    static Upp::ValueMap ToValueMap(const StructuralRefactorPlan& p);
+
+    // String-list helpers.
+    static Upp::ValueArray ToValueArray(const Upp::Vector<Upp::String>& v);
+    static Upp::ValueMap ToValueMap(const GlobalPipeliningPlan& p);
+    static Upp::ValueArray ToValueArray(const Upp::Vector<GlobalPipeliningPlan>& v);
+    static Upp::ValueArray PreservationLevelsToValueArray(const std::vector<PreservationLevel>& levels);
+    static Upp::ValueArray TransformationStepsToValueArray(const std::vector<TransformationStep>& steps);
+    static Upp::ValueArray VectorToStringValueArray(const std::vector<std::string>& v);
+    static std::vector<std::string> ParseStringList(const Upp::String& s);
 
     // Helper to convert ValueArray to JSON string
     static Upp::String ValueArrayToJson(const Upp::ValueArray& va);
@@ -415,9 +432,12 @@ Upp::String JsonIO::FromResult(const std::string& command, const Result<T>& resu
         Upp::ValueMap data;
         if (converter) {
             data = converter(result.data);
-        } else {
-            // For simple types, just return an empty object or add a value field
-            data.Add("value", Upp::Value(result.data));
+        }     else {
+            // No converter provided and the result type has no generic Value
+            // representation - surface an explicit error instead of trying to
+            // value-construct an arbitrary model type.
+            std::string code_str = ErrorCodeToString(result.error_code);
+            return ErrorResponse(command, "No JSON converter available for this result type", "INTERNAL_ERROR");
         }
         return SuccessResponse(command, data);
     } else {

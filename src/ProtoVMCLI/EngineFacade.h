@@ -22,7 +22,9 @@ struct EngineStateSummary {
     // optional: basic signals/stats
 };
 
-class Machine;  // Forward declaration
+// Machine comes from the engine via <ProtoVM/ProtoVM.h> (global namespace).
+// The original forward declaration here created a phantom ProtoVMCLI::Machine
+// that made unique_ptr<Machine> incomplete at destructor instantiation.
 
 class EngineFacade {
 public:

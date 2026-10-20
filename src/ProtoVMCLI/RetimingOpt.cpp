@@ -173,7 +173,7 @@ Result<RetimingOptimizationResult> RetimingOptimizer::EvaluateRetimingPlans(
         }
     }
 
-    return Result<RetimingOptimizationResult>::Success(result);
+    return Result<RetimingOptimizationResult>::MakeOk(result);
 }
 
 Result<RetimingOptimizationResult> RetimingOptimizer::EvaluateAndApplyBestPlanInBranch(
@@ -189,7 +189,7 @@ Result<RetimingOptimizationResult> RetimingOptimizer::EvaluateAndApplyBestPlanIn
     // First, evaluate the plans
     auto eval_result = EvaluateRetimingPlans(target_id, plans, objective, nullptr, nullptr, nullptr);
     if (!eval_result.ok) {
-        return Result<RetimingOptimizationResult>::Error(eval_result.error);
+        return Result<RetimingOptimizationResult>::MakeError(eval_result.error);
     }
 
     auto result = eval_result.value;
@@ -206,7 +206,7 @@ Result<RetimingOptimizationResult> RetimingOptimizer::EvaluateAndApplyBestPlanIn
     if (!best_plan || result.best_plan_id.IsEmpty()) {
         // No plan meets the objective, return result without applying anything
         result.applied = false;
-        return Result<RetimingOptimizationResult>::Success(result);
+        return Result<RetimingOptimizationResult>::MakeOk(result);
     }
 
     // Apply the best plan
@@ -220,13 +220,13 @@ Result<RetimingOptimizationResult> RetimingOptimizer::EvaluateAndApplyBestPlanIn
     );
 
     if (!apply_result.ok) {
-        return Result<RetimingOptimizationResult>::Error(apply_result.error);
+        return Result<RetimingOptimizationResult>::MakeError(apply_result.error);
     }
 
     result.applied = true;
     result.application_result = apply_result.value;
 
-    return Result<RetimingOptimizationResult>::Success(result);
+    return Result<RetimingOptimizationResult>::MakeOk(result);
 }
 
 } // namespace ProtoVMCLI

@@ -115,6 +115,7 @@ private:
 	int max_components_to_profile = 50;  // Maximum number of components to profile individually
 
 	// Clock domain management
+public:
 	struct ClockDomain : Moveable<ClockDomain> {
 		int id;
 		int frequency_hz;           // Frequency in Hertz
@@ -205,6 +206,7 @@ public:
 	void DisableSignalTrace(int trace_id);
 	void LogSignalTraces();  // Log all traced signals
 	const Vector<SignalTrace>& GetSignalTraces() const { return signal_traces; }
+private:
 
 	// Methods for signal transition logging
 	void LogSignalTransition(ElectricNodeBase* component, const String& pin_name, byte old_val, byte new_val);
@@ -221,7 +223,9 @@ public:
 	void CreateWaveformForSignal(const String& component_name, const String& pin_name); // Create waveform for specific signal
 
 	// Methods for circuit visualization and netlist generation
+public:
 	String GenerateNetlist(int pcb_id);  // Generate netlist representation of the circuit
+private:
 
 	// Methods for performance profiling
 	void StartProfiling();           // Start performance profiling

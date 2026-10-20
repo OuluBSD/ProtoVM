@@ -22,7 +22,8 @@ enum class RetimingObjectiveKind {
 };
 
 // Configuration for optimization objectives
-struct RetimingObjective {
+struct RetimingObjective : public Upp::Moveable<RetimingObjective>
+{
     RetimingObjectiveKind kind;
 
     // Optional constraints / budgets:
@@ -32,7 +33,8 @@ struct RetimingObjective {
 };
 
 // Score for a single retiming plan
-struct RetimingPlanScore {
+struct RetimingPlanScore : public Upp::Moveable<RetimingPlanScore>
+{
     String plan_id;
 
     int estimated_max_depth_before = -1;
@@ -54,7 +56,20 @@ struct RetimingPlanScore {
 };
 
 // Result of retiming optimization
-struct RetimingOptimizationResult {
+struct RetimingOptimizationResult : public Upp::Moveable<RetimingOptimizationResult> {
+    RetimingOptimizationResult() = default;
+    RetimingOptimizationResult(const RetimingOptimizationResult& p)
+        : Upp::Moveable<RetimingOptimizationResult>()
+        , target_id(p.target_id)
+        , objective(p.objective)
+        , best_plan_id(p.best_plan_id)
+        , applied(p.applied)
+        , application_result(p.application_result)
+    {
+        for (const auto& s : p.plan_scores)
+            plan_scores.Add(s);
+    }
+
     String target_id; // block or subsystem id
 
     RetimingObjective objective;

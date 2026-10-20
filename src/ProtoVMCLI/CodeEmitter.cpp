@@ -154,7 +154,7 @@ Result<std::string> CodeEmitter::EmitCodeForModule(
     
     oss << "}\n";
     
-    return Result<std::string>::Success(oss.str());
+    return Result<std::string>::MakeOk(oss.str());
 }
 
 Result<std::string> CodeEmitter::EmitOscillatorDemo(
@@ -165,7 +165,7 @@ Result<std::string> CodeEmitter::EmitOscillatorDemo(
     const std::string& render_function_name
 ) {
     if (!module.is_oscillator_like) {
-        return Result<std::string>::Error(
+        return Result<std::string>::MakeError(
             ErrorCode::InvalidArgument,
             "Module is not oscillator-like, cannot generate oscillator demo"
         );
@@ -184,7 +184,7 @@ Result<std::string> CodeEmitter::EmitOscillatorDemo(
         module, lang, true, state_struct_name, step_function_name
     );
     if (!step_result.ok) {
-        return Result<std::string>::Error(
+        return Result<std::string>::MakeError(
             step_result.error_code,
             step_result.error_message
         );
@@ -213,7 +213,7 @@ Result<std::string> CodeEmitter::EmitOscillatorDemo(
     oss << "    }\n";
     oss << "}\n";
     
-    return Result<std::string>::Success(oss.str());
+    return Result<std::string>::MakeOk(oss.str());
 }
 
 Result<std::string> CodeEmitter::EmitCppClassForModule(
@@ -329,7 +329,7 @@ Result<std::string> CodeEmitter::EmitCppClassForModule(
         oss << "} // namespace " << options.namespace_name << "\n";
     }
 
-    return Result<std::string>::Success(oss.str());
+    return Result<std::string>::MakeOk(oss.str());
 }
 
 Result<std::string> CodeEmitter::EmitAudioDemoForOscillator(
@@ -338,7 +338,7 @@ Result<std::string> CodeEmitter::EmitAudioDemoForOscillator(
     const AudioDslGraph& graph
 ) {
     if (!module.is_oscillator_like) {
-        return Result<std::string>::Error(
+        return Result<std::string>::MakeError(
             ErrorCode::InvalidArgument,
             "Module is not oscillator-like, cannot generate audio demo"
         );
@@ -357,7 +357,7 @@ Result<std::string> CodeEmitter::EmitAudioDemoForOscillator(
     oss << "// Generated C++ class for the oscillator\n";
     auto class_result = EmitCppClassForModule(module, class_opts);
     if (!class_result.ok) {
-        return Result<std::string>::Error(
+        return Result<std::string>::MakeError(
             class_result.error_code,
             class_result.error_message
         );
@@ -428,7 +428,7 @@ Result<std::string> CodeEmitter::EmitAudioDemoForOscillator(
     oss << "    return 0;\n";
     oss << "}\n";
 
-    return Result<std::string>::Success(oss.str());
+    return Result<std::string>::MakeOk(oss.str());
 }
 
 } // namespace ProtoVMCLI

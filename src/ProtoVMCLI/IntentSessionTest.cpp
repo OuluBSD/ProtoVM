@@ -4,8 +4,6 @@
 #include <iostream>
 #include <cassert>
 
-using namespace ProtoVMCLI;
-
 void TestCreateIntentSession() {
     std::cout << "Testing Create IntentSession..." << std::endl;
     

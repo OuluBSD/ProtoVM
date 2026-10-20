@@ -87,7 +87,7 @@ Result<IrOptimizationResult> IrOptimizer::OptimizeModule(
     }
 
     IrOptimizationResult result(module, current_module, summaries);
-    return Result<IrOptimizationResult>::Success(result);
+    return Result<IrOptimizationResult>::MakeOk(result);
 }
 
 // Simplify algebraic expressions
@@ -138,7 +138,7 @@ Result<bool> IrOptimizer::SimplifyAlgebraicPass(IrModule& module, int& change_co
     }
 
     change_count = total_changes;
-    return Result<bool>::Success(true);
+    return Result<bool>::MakeOk(true);
 }
 
 // Helper function to determine if an expression is a double negation pattern
@@ -237,7 +237,7 @@ Result<bool> IrOptimizer::FoldConstantsPass(IrModule& module, int& change_count)
     }
 
     change_count = total_changes;
-    return Result<bool>::Success(true);
+    return Result<bool>::MakeOk(true);
 }
 
 // Fold constant expression patterns
@@ -353,7 +353,7 @@ Result<bool> IrOptimizer::SimplifyMuxPass(IrModule& module, int& change_count) {
     }
 
     change_count = total_changes;
-    return Result<bool>::Success(true);
+    return Result<bool>::MakeOk(true);
 }
 
 // Simplify mux expression patterns
@@ -421,7 +421,7 @@ Result<bool> IrOptimizer::EliminateTrivialLogicPass(IrModule& module, int& chang
     }
 
     change_count = total_changes;
-    return Result<bool>::Success(true);
+    return Result<bool>::MakeOk(true);
 }
 
 // Eliminate trivial logic expression patterns
@@ -448,19 +448,19 @@ Result<bool> VerifyIrOptimizationBehaviorPreserved(
 ) {
     // Check behavior kind preservation
     if (before_behavior.behavior_kind != after_behavior.behavior_kind) {
-        return Result<bool>::Error(ErrorCode::BehaviorChanged,
+        return Result<bool>::MakeError(ErrorCode::BehaviorChanged,
                                    "Behavior kind changed during optimization");
     }
 
     // Check bit width preservation
     if (before_behavior.bit_width != after_behavior.bit_width) {
-        return Result<bool>::Error(ErrorCode::BehaviorChanged,
+        return Result<bool>::MakeError(ErrorCode::BehaviorChanged,
                                    "Bit width changed during optimization");
     }
 
     // Check that port count and names are preserved
     if (before_behavior.ports.size() != after_behavior.ports.size()) {
-        return Result<bool>::Error(ErrorCode::BehaviorChanged,
+        return Result<bool>::MakeError(ErrorCode::BehaviorChanged,
                                    "Port count changed during optimization");
     }
 
@@ -468,13 +468,13 @@ Result<bool> VerifyIrOptimizationBehaviorPreserved(
     for (size_t i = 0; i < before_behavior.ports.size(); ++i) {
         if (before_behavior.ports[i].port_name != after_behavior.ports[i].port_name ||
             before_behavior.ports[i].role != after_behavior.ports[i].role) {
-            return Result<bool>::Error(ErrorCode::BehaviorChanged,
+            return Result<bool>::MakeError(ErrorCode::BehaviorChanged,
                                        "Port name or role changed during optimization");
         }
     }
 
     // If all checks passed, behavior is preserved
-    return Result<bool>::Success(true);
+    return Result<bool>::MakeOk(true);
 }
 
 // Helper function to detect if the change represents a double inversion simplification

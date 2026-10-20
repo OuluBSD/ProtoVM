@@ -14,6 +14,8 @@
 #include "GlobalPipelining.h"    // For global pipelining structures
 #include "StructuralSynthesis.h" // For structural synthesis analysis
 #include "AnalogModel.h"         // For analog model structures
+#include "AudioDsl.h"            // For AudioDslGraph (audio demo codegen)
+         // For analog model structures
 #include <ProtoVM/AudioQa.h>             // For Audio QA structures
 #include <ProtoVM/AudioQaAnalysis.h>     // For Audio QA analysis
 #include <ProtoVM/AudioQaDiff.h>        // For Audio QA diff operations
@@ -115,6 +117,45 @@ struct DesignerCodegenOscDemoRequest {
     std::string state_struct_name;
     std::string step_function_name;
     std::string render_function_name;
+};
+
+// C++-style class emission request for a block.
+struct DesignerCodegenCppClassRequest {
+    std::string designer_session_id;
+    std::string block_id;
+    std::string lang;                 // "C" / "Cpp"
+    std::string class_name;           // e.g. BlockClass
+    std::string state_class_name;     // e.g. BlockState
+    std::string namespace_name;
+    bool generate_render_method = false;
+};
+
+struct DesignerCodegenCppClassResponse {
+    CoDesignerSessionState designer_session;
+    struct CodegenCppClassResult {
+        std::string code;             // emitted C++ class source
+    } result;
+};
+
+// Audio demo codegen request (audio DSL + oscillator demo code).
+struct DesignerCodegenAudioDemoRequest {
+    std::string designer_session_id;
+    std::string block_id;
+    double freq_hz = 440.0;           // base frequency (Hz)
+    double pan_lfo_hz = 0.25;         // pan LFO frequency (Hz)
+    double sample_rate = 48000.0;     // sample rate (Hz)
+    double duration_sec = 3.0;        // demo duration (seconds)
+    std::string class_name;
+    std::string state_class_name;
+    std::string namespace_name;
+};
+
+struct DesignerCodegenAudioDemoResponse {
+    CoDesignerSessionState designer_session;
+    struct CodegenAudioDemoResult {
+        AudioDslGraph audio_dsl;      // audio DSL graph for the demo
+        std::string code;             // emitted demo code
+    } result;
 };
 
 // Response structures for designer commands
@@ -581,6 +622,8 @@ public:
     // Codegen methods
     Result<DesignerCodegenBlockCResponse> CodegenBlockC(const DesignerCodegenBlockCRequest& request);
     Result<DesignerCodegenOscDemoResponse> CodegenOscDemo(const DesignerCodegenOscDemoRequest& request);
+    Result<DesignerCodegenCppClassResponse> CodegenCppClass(const DesignerCodegenCppClassRequest& request);
+    Result<DesignerCodegenAudioDemoResponse> CodegenAudioDemo(const DesignerCodegenAudioDemoRequest& request);
 
     // Global pipelining methods
     Result<DesignerGlobalPipelineResponse> AnalyzeGlobalPipeline(const DesignerGlobalPipelineRequest& request);

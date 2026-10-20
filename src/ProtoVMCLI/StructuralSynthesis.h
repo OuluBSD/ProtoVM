@@ -26,7 +26,18 @@ enum class StructuralRefactorSafety {
     Forbidden      // detected, but should not be auto-applied
 };
 
-struct StructuralPattern {
+struct StructuralPattern : public Upp::Moveable<StructuralPattern> {
+    StructuralPattern() = default;
+    StructuralPattern(const StructuralPattern& p)
+        : Upp::Moveable<StructuralPattern>()
+        , pattern_id(p.pattern_id)
+        , kind(p.kind)
+        , description(p.description)
+    {
+        for (int i = 0; i < p.node_ids.GetCount(); i++)
+            node_ids.Add(p.node_ids[i]);
+    }
+
     String pattern_id;
 
     StructuralPatternKind kind;
@@ -38,7 +49,21 @@ struct StructuralPattern {
     String description;
 };
 
-struct StructuralRefactorMove {
+struct StructuralRefactorMove : public Upp::Moveable<StructuralRefactorMove> {
+    StructuralRefactorMove() = default;
+    StructuralRefactorMove(const StructuralRefactorMove& p)
+        : Upp::Moveable<StructuralRefactorMove>()
+        , move_id(p.move_id)
+        , target_block_id(p.target_block_id)
+        , kind(p.kind)
+        , safety(p.safety)
+        , safety_reason(p.safety_reason)
+        , transform_hint(p.transform_hint)
+    {
+        for (int i = 0; i < p.affected_node_ids.GetCount(); i++)
+            affected_node_ids.Add(p.affected_node_ids[i]);
+    }
+
     String move_id;
     String target_block_id;        // block in which this refactor occurs
 
@@ -53,7 +78,29 @@ struct StructuralRefactorMove {
     String transform_hint;
 };
 
-struct StructuralRefactorPlan {
+struct StructuralRefactorPlan : public Upp::Moveable<StructuralRefactorPlan> {
+    StructuralRefactorPlan()
+        : gate_count_before(-1)
+        , gate_count_after_estimate(-1)
+        , depth_before(-1)
+        , depth_after_estimate(-1)
+        , respects_cdc_fences(true) {}
+    StructuralRefactorPlan(const StructuralRefactorPlan& p)
+        : Upp::Moveable<StructuralRefactorPlan>()
+        , id(p.id)
+        , target_block_id(p.target_block_id)
+        , gate_count_before(p.gate_count_before)
+        , gate_count_after_estimate(p.gate_count_after_estimate)
+        , depth_before(p.depth_before)
+        , depth_after_estimate(p.depth_after_estimate)
+        , respects_cdc_fences(p.respects_cdc_fences)
+    {
+        for (const auto& pt : p.patterns)
+            patterns.Add(pt);
+        for (const auto& mv : p.moves)
+            moves.Add(mv);
+    }
+
     String id;
     String target_block_id;
 

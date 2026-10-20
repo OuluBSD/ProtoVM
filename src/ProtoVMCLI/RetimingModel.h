@@ -19,7 +19,26 @@ enum class RetimingMoveSafety {
     Forbidden            // should not be applied (documented as such)
 };
 
-struct RetimingMove {
+struct RetimingMove : public Upp::Moveable<RetimingMove> {
+    RetimingMove() = default;
+    RetimingMove(const RetimingMove& p)
+        : Upp::Moveable<RetimingMove>()
+        , move_id(p.move_id)
+        , src_reg_id(p.src_reg_id)
+        , dst_reg_id(p.dst_reg_id)
+        , direction(p.direction)
+        , domain_id(p.domain_id)
+        , src_stage_index(p.src_stage_index)
+        , dst_stage_index(p.dst_stage_index)
+        , before_comb_depth(p.before_comb_depth)
+        , after_comb_depth_est(p.after_comb_depth_est)
+        , safety(p.safety)
+        , safety_reason(p.safety_reason)
+    {
+        for (int i = 0; i < p.affected_ops.GetCount(); i++)
+            affected_ops.Add(p.affected_ops[i]);
+    }
+
     String move_id;             // stable id for this move (e.g. "RTM_0001")
 
     String src_reg_id;          // register being moved or part of path
@@ -41,7 +60,24 @@ struct RetimingMove {
     Vector<String> affected_ops; // ids or names of scheduled ops / nodes
 };
 
-struct RetimingPlan {
+struct RetimingPlan : public Upp::Moveable<RetimingPlan> {
+    RetimingPlan()
+        : estimated_max_depth_before(-1)
+        , estimated_max_depth_after(-1)
+        , respects_cdc_fences(true) {}
+    RetimingPlan(const RetimingPlan& p)
+        : Upp::Moveable<RetimingPlan>()
+        , id(p.id)
+        , target_id(p.target_id)
+        , description(p.description)
+        , estimated_max_depth_before(p.estimated_max_depth_before)
+        , estimated_max_depth_after(p.estimated_max_depth_after)
+        , respects_cdc_fences(p.respects_cdc_fences)
+    {
+        for (const auto& m : p.moves)
+            moves.Add(m);
+    }
+
     String id;                  // plan id, e.g. "RTP_ALU_BALANCE_1"
     String target_id;           // block or subsystem id
     String description;         // short human-readable summary

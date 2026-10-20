@@ -10,7 +10,7 @@ namespace ProtoVMCLI {
 bool BlockAnalysis::IsCombinationalComponent(const ComponentData& component) const {
     // Check if component has no state storage (i.e., not a latch, register, or memory)
     // This is a simplified check - in a real implementation, you'd have more comprehensive type checking
-    std::string type = component.type.ToStd();
+    std::string type = component.type;
     
     // Common combinational component types
     if (type == "AND" || type == "OR" || type == "NOT" || type == "NAND" || 
@@ -30,7 +30,7 @@ bool BlockAnalysis::IsCombinationalComponent(const ComponentData& component) con
 }
 
 bool BlockAnalysis::IsComponentType(const ComponentData& component, const std::string& type) const {
-    return component.type.ToStd() == type;
+    return component.type == type;
 }
 
 std::vector<std::vector<std::string>> BlockAnalysis::FindConnectedComponents(
@@ -54,7 +54,7 @@ std::vector<std::vector<std::string>> BlockAnalysis::FindConnectedComponents(
     std::vector<std::vector<std::string>> result;
     
     for (const auto& comp_id : component_ids) {
-        if (comp_set.count(comp_id) == 0) continue;  // Not in our set to check
+        if (component_set.count(comp_id) == 0) continue;  // Not in our set to check
         
         size_t comp_idx = comp_to_idx[comp_id];
         if (visited[comp_idx]) continue;  // Already processed
@@ -126,7 +126,7 @@ BlockKind BlockAnalysis::ClassifyBlock(const std::vector<std::string>& component
     for (const auto& comp_id : component_ids) {
         auto it = comp_map.find(comp_id);
         if (it != comp_map.end()) {
-            std::string type = it->second->type.ToStd();
+            std::string type = it->second->type;
             if (type == "AND") { and_count++; mux_related++; adder_related++; }
             else if (type == "OR") { or_count++; mux_related++; }
             else if (type == "XOR") { xor_count++; adder_related++; }
@@ -355,7 +355,7 @@ Result<std::vector<BlockInstance>> BlockAnalysis::DetectAdders(
     for (const auto& comp : circuit.components) {
         if (processed.count(comp.id.id) > 0) continue;
         
-        std::string type = comp.type.ToStd();
+        std::string type = comp.type;
         if (type == "XOR") {
             // Look for potential carry-lookahead logic or simple ripple carry
             std::vector<std::string> candidate_components = {comp.id.id};
@@ -365,18 +365,16 @@ Result<std::vector<BlockInstance>> BlockAnalysis::DetectAdders(
             auto fanout_result = queries.FindFanOut(graph, GraphNodeId(GraphNodeKind::Pin, comp.id.id + ":" + comp.outputs[0].name), 3);
             
             if (fanout_result.ok) {
-                for (const auto& path : fanout_result.data.paths) {
-                    for (const auto& node : path.nodes) {
+                for (const auto& node : fanout_result.data.endpoints) {
                         if (node.kind == GraphNodeKind::Component) {
                             size_t colon_pos = node.id.find(':');
                             if (colon_pos != std::string::npos) {
                                 std::string comp_id = node.id.substr(0, colon_pos);
                                 auto it = comp_map.find(comp_id);
                                 if (it != comp_map.end() && 
-                                    (it->second->type.ToStd() == "AND" || it->second->type.ToStd() == "OR")) {
+                                    (it->second->type == "AND" || it->second->type == "OR")) {
                                     candidate_components.push_back(comp_id);
-                                }
-                            }
+                }
                         }
                     }
                 }
@@ -422,7 +420,7 @@ Result<std::vector<BlockInstance>> BlockAnalysis::DetectMuxes(
     for (const auto& comp : circuit.components) {
         if (processed.count(comp.id.id) > 0) continue;
         
-        std::string type = comp.type.ToStd();
+        std::string type = comp.type;
         if (type == "OR") {
             // Check if this OR gate has AND gates as inputs (potential mux output)
             std::vector<std::string> candidate_components = {comp.id.id};
@@ -432,20 +430,18 @@ Result<std::vector<BlockInstance>> BlockAnalysis::DetectMuxes(
             auto fanin_result = queries.FindFanIn(graph, GraphNodeId(GraphNodeKind::Pin, comp.id.id + ":" + comp.inputs[0].name), 3);
             
             if (fanin_result.ok) {
-                for (const auto& path : fanin_result.data.paths) {
-                    for (const auto& node : path.nodes) {
+                for (const auto& node : fanin_result.data.endpoints) {
                         if (node.kind == GraphNodeKind::Component) {
                             size_t colon_pos = node.id.find(':');
                             if (colon_pos != std::string::npos) {
                                 std::string comp_id = node.id.substr(0, colon_pos);
                                 auto it = comp_map.find(comp_id);
-                                if (it != comp_map.end() && it->second->type.ToStd() == "AND") {
+                                if (it != comp_map.end() && it->second->type == "AND") {
                                     if (std::find(candidate_components.begin(), 
                                                  candidate_components.end(), 
                                                  comp_id) == candidate_components.end()) {
                                         candidate_components.push_back(comp_id);
-                                    }
-                                }
+                }
                             }
                         }
                     }
@@ -455,20 +451,18 @@ Result<std::vector<BlockInstance>> BlockAnalysis::DetectMuxes(
             // Check for selection logic (NOT gates for inverted selection)
             auto full_fanin = queries.FindFanIn(graph, GraphNodeId(GraphNodeKind::Pin, comp.id.id + ":" + comp.inputs[0].name), 5);
             if (full_fanin.ok) {
-                for (const auto& path : full_fanin.data.paths) {
-                    for (const auto& node : path.nodes) {
+                for (const auto& node : full_fanin.data.endpoints) {
                         if (node.kind == GraphNodeKind::Component) {
                             size_t colon_pos = node.id.find(':');
                             if (colon_pos != std::string::npos) {
                                 std::string comp_id = node.id.substr(0, colon_pos);
                                 auto it = comp_map.find(comp_id);
-                                if (it != comp_map.end() && it->second->type.ToStd() == "NOT") {
+                                if (it != comp_map.end() && it->second->type == "NOT") {
                                     if (std::find(candidate_components.begin(), 
                                                  candidate_components.end(), 
                                                  comp_id) == candidate_components.end()) {
                                         candidate_components.push_back(comp_id);
-                                    }
-                                }
+                }
                             }
                         }
                     }
@@ -515,7 +509,7 @@ Result<std::vector<BlockInstance>> BlockAnalysis::DetectComparators(
     for (const auto& comp : circuit.components) {
         if (processed.count(comp.id.id) > 0) continue;
         
-        std::string type = comp.type.ToStd();
+        std::string type = comp.type;
         if (type == "XOR") {
             // Look for XOR gates that feed into AND gates (equality check)
             std::vector<std::string> candidate_components = {comp.id.id};
@@ -524,21 +518,19 @@ Result<std::vector<BlockInstance>> BlockAnalysis::DetectComparators(
             auto fanout_result = queries.FindFanOut(graph, GraphNodeId(GraphNodeKind::Pin, comp.id.id + ":" + comp.outputs[0].name), 2);
             
             if (fanout_result.ok) {
-                for (const auto& path : fanout_result.data.paths) {
-                    for (const auto& node : path.nodes) {
+                for (const auto& node : fanout_result.data.endpoints) {
                         if (node.kind == GraphNodeKind::Component) {
                             size_t colon_pos = node.id.find(':');
                             if (colon_pos != std::string::npos) {
                                 std::string comp_id = node.id.substr(0, colon_pos);
                                 auto it = comp_map.find(comp_id);
                                 if (it != comp_map.end() && 
-                                    (it->second->type.ToStd() == "AND" || it->second->type.ToStd() == "NOR")) {
+                                    (it->second->type == "AND" || it->second->type == "NOR")) {
                                     if (std::find(candidate_components.begin(), 
                                                  candidate_components.end(), 
                                                  comp_id) == candidate_components.end()) {
                                         candidate_components.push_back(comp_id);
-                                    }
-                                }
+                }
                             }
                         }
                     }
@@ -548,20 +540,18 @@ Result<std::vector<BlockInstance>> BlockAnalysis::DetectComparators(
             // Look for additional XOR gates that might be part of the same comparison
             auto fanin_result = queries.FindFanIn(graph, GraphNodeId(GraphNodeKind::Pin, comp.id.id + ":" + comp.inputs[0].name), 2);
             if (fanin_result.ok) {
-                for (const auto& path : fanin_result.data.paths) {
-                    for (const auto& node : path.nodes) {
+                for (const auto& node : fanin_result.data.endpoints) {
                         if (node.kind == GraphNodeKind::Component) {
                             size_t colon_pos = node.id.find(':');
                             if (colon_pos != std::string::npos) {
                                 std::string comp_id = node.id.substr(0, colon_pos);
                                 auto it = comp_map.find(comp_id);
-                                if (it != comp_map.end() && it->second->type.ToStd() == "XOR") {
+                                if (it != comp_map.end() && it->second->type == "XOR") {
                                     if (std::find(candidate_components.begin(), 
                                                  candidate_components.end(), 
                                                  comp_id) == candidate_components.end()) {
                                         candidate_components.push_back(comp_id);
-                                    }
-                                }
+                }
                             }
                         }
                     }
@@ -608,7 +598,7 @@ Result<std::vector<BlockInstance>> BlockAnalysis::DetectDecoders(
     for (const auto& comp : circuit.components) {
         if (processed.count(comp.id.id) > 0) continue;
         
-        std::string type = comp.type.ToStd();
+        std::string type = comp.type;
         if (type == "AND") {
             // Check if this AND gate has NOT gates as inputs (typical decoder pattern)
             std::vector<std::string> candidate_components = {comp.id.id};
@@ -617,21 +607,19 @@ Result<std::vector<BlockInstance>> BlockAnalysis::DetectDecoders(
             auto fanin_result = queries.FindFanIn(graph, GraphNodeId(GraphNodeKind::Pin, comp.id.id + ":" + comp.inputs[0].name), 2);
             
             if (fanin_result.ok) {
-                for (const auto& path : fanin_result.data.paths) {
-                    for (const auto& node : path.nodes) {
+                for (const auto& node : fanin_result.data.endpoints) {
                         if (node.kind == GraphNodeKind::Component) {
                             size_t colon_pos = node.id.find(':');
                             if (colon_pos != std::string::npos) {
                                 std::string comp_id = node.id.substr(0, colon_pos);
                                 auto it = comp_map.find(comp_id);
                                 if (it != comp_map.end() && 
-                                    (it->second->type.ToStd() == "NOT" || it->second->type.ToStd() == "AND")) {
+                                    (it->second->type == "NOT" || it->second->type == "AND")) {
                                     if (std::find(candidate_components.begin(), 
                                                  candidate_components.end(), 
                                                  comp_id) == candidate_components.end()) {
                                         candidate_components.push_back(comp_id);
-                                    }
-                                }
+                }
                             }
                         }
                     }

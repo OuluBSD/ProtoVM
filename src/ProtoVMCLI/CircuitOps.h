@@ -17,7 +17,7 @@ enum class EditOpType {
 };
 
 // Structure representing a circuit editing operation
-struct EditOperation {
+struct EditOperation : public Upp::Moveable<EditOperation>  {
     EditOpType type;
     int64_t revision_base;  // optional: expected current revision, for optimistic concurrency
     CircuitEntityId component_id;  // ID of the component involved in the operation

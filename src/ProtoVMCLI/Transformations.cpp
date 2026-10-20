@@ -6,9 +6,6 @@
 #include "CircuitGraph.h"
 #include "CircuitFacade.h"
 #include "CircuitData.h"
-#include <Core/Time.h>
-#include <Core/Random.h>
-#include <Core/Log.h>
 
 // Initialize static member
 int TransformationEngine::transformation_id_counter = 0;
@@ -160,30 +157,30 @@ Result<bool> TransformationEngine::VerifyBehaviorPreserved(
         case TransformationKind::SimplifyDoubleInversion:
             // Double inversion simplification should preserve logical behavior
             // A -> NOT -> NOT -> B becomes A -> B, which is logically equivalent
-            return Result<bool>::Success(true);
+            return Result<bool>::MakeOk(true);
 
         case TransformationKind::SimplifyRedundantGate:
             // Redundant gate simplification (X AND X = X, X OR X = X) preserves behavior
-            return Result<bool>::Success(true);
+            return Result<bool>::MakeOk(true);
 
         case TransformationKind::ReplaceWithKnownBlock:
             // For block replacement, we need to verify that the new block preserves
             // the essential behavior characteristics
             // This would require more detailed analysis in a full implementation
-            return Result<bool>::Success(true);
+            return Result<bool>::MakeOk(true);
 
         case TransformationKind::MergeEquivalentBlocks:
             // Block merging requires checking that the blocks are truly equivalent
             // This would need more detailed analysis
-            return Result<bool>::Success(true);
+            return Result<bool>::MakeOk(true);
 
         case TransformationKind::RewireFanoutTree:
             // Fanout tree rewrites need to preserve signal timing and fanout constraints
-            return Result<bool>::Success(true);
+            return Result<bool>::MakeOk(true);
 
         default:
             // For unknown transformation types, we err on the side of caution
-            return Result<bool>::Error("Unknown transformation kind, cannot verify preservation");
+            return Result<bool>::MakeError("Unknown transformation kind, cannot verify preservation");
     }
 }
 
@@ -444,7 +441,7 @@ Vector<TransformationPlan> TransformationEngine::FindRedundantGatePatternsInBloc
 Result<void> TransformationEngine::ApplyEditOperation(Circuit& circuit, const EditOperation& op) {
     // This would implement the actual application of edit operations to the circuit
     // For now, return success as a placeholder
-    return Result<void>::Success();
+    return Result<void>::MakeOk();
 }
 
 TransformationEngine::BlockAnalysisResult TransformationEngine::AnalyzeBlockStructure(

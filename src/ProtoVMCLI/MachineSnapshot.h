@@ -1,7 +1,7 @@
 #ifndef _ProtoVM_MachineSnapshot_h_
 #define _ProtoVM_MachineSnapshot_h_
 
-#include "Machine.h"
+#include <ProtoVM/Machine.h>  // real engine Machine (global)
 #include <memory>
 #include <string>
 

@@ -36,9 +36,9 @@ Result<BehaviorDescriptor> BehavioralAnalysis::InferBehaviorForBlock(
             description
         );
 
-        return MakeOk(descriptor);
+        return Result<BehaviorDescriptor>::MakeOk(descriptor);
     } catch (const std::exception& e) {
-        return MakeError(ErrorCode::InternalError, std::string("Error inferring behavior for block: ") + e.what());
+        return Result<BehaviorDescriptor>::MakeError(ErrorCode::InternalError, std::string("Error inferring behavior for block: ") + e.what());
     }
 }
 
@@ -54,7 +54,7 @@ Result<BehaviorDescriptor> BehavioralAnalysis::InferBehaviorForNode(
         // For now, we'll implement a basic version
 
         // First, try to resolve the node in the circuit graph
-        GraphNodeId graph_node_id(node_id, node_kind_hint);
+        GraphNodeId graph_node_id(GraphNodeKind::Component, node_id);
         
         // Check if this node is part of a known block
         // This is a simplified approach - in a real implementation, you might need to check
@@ -63,9 +63,9 @@ Result<BehaviorDescriptor> BehavioralAnalysis::InferBehaviorForNode(
 
         // For now, return an unknown behavior descriptor
         BehaviorDescriptor descriptor = GetUnknownBehaviorDescriptor(node_id, node_kind_hint);
-        return MakeOk(descriptor);
+        return Result<BehaviorDescriptor>::MakeOk(descriptor);
     } catch (const std::exception& e) {
-        return MakeError(ErrorCode::InternalError, std::string("Error inferring behavior for node: ") + e.what());
+        return Result<BehaviorDescriptor>::MakeError(ErrorCode::InternalError, std::string("Error inferring behavior for node: ") + e.what());
     }
 }
 
@@ -151,7 +151,7 @@ std::string BehavioralAnalysis::GenerateDescription(BehaviorKind kind, int bit_w
     std::string description = "";
     
     switch (kind) {
-        case BehaviorKind::Adder:
+        case BehaviorKind::Adder: {
             description = "adder";
             if (bit_width > 0) {
                 description = std::to_string(bit_width) + "-bit ripple-carry " + description;
@@ -170,6 +170,7 @@ std::string BehavioralAnalysis::GenerateDescription(BehaviorKind kind, int bit_w
                 description += "out carry";
             }
             break;
+            }
         case BehaviorKind::Mux:
             description = "multiplexer";
             if (bit_width > 0) {

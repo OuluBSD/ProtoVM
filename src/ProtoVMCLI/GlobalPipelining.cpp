@@ -75,7 +75,7 @@ Result<GlobalPipeliningPlan> GlobalPipeliningEngine::ApplyGlobalPipeliningPlanIn
     // Placeholder implementation - just return the plan as applied
     applied_plan.estimated_global_depth_after = applied_plan.estimated_global_depth_before; // Placeholder
     
-    return Result<GlobalPipeliningPlan>::Success(applied_plan);
+    return Result<GlobalPipeliningPlan>::MakeOk(applied_plan);
 }
 
 } // namespace ProtoVMCLI

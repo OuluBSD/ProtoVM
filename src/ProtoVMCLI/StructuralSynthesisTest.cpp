@@ -5,8 +5,6 @@
 #include <cassert>
 #include <iostream>
 
-using namespace ProtoVMCLI;
-
 // Test basic structural pattern detection
 void TestStructuralPatternDetection() {
     std::cout << "Testing structural pattern detection...\n";

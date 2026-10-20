@@ -76,5 +76,13 @@ private:
 };
 
 } // namespace ProtoVMCLI
+namespace std {
+template <> struct hash<ProtoVMCLI::GraphNodeId> {
+    size_t operator()(const ProtoVMCLI::GraphNodeId& n) const {
+        return std::hash<std::string>()(n.id) ^ (std::hash<int>()((int)n.kind) << 1);
+    }
+};
+} // namespace std
+
 
 #endif // _ProtoVM_CircuitGraph_h_

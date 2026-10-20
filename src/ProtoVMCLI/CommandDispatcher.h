@@ -1,10 +1,6 @@
 #ifndef _ProtoVM_CommandDispatcher_h_
 #define _ProtoVM_CommandDispatcher_h_
 
-// jsoncpp must be parsed before SessionTypes.h -> <ProtoVM/ProtoVM.h>, which
-// pulls in Core/Core.h and its `Upp::Json` class; otherwise jsoncpp's
-// unqualified `Json` becomes ambiguous with Upp::Json.
-#include <json/json.h>
 #include "SessionTypes.h"
 #include "SessionStore.h"
 #include <ProtoVM/ProtoVM.h>
@@ -17,13 +13,13 @@ class CommandDispatcher {
 public:
     CommandDispatcher(std::unique_ptr<ISessionStore> store);
     
-    Upp::String RunInitWorkspace(const CommandOptions& opts);
-    Upp::String RunCreateSession(const CommandOptions& opts);
-    Upp::String RunListSessions(const CommandOptions& opts);
-    Upp::String RunRunTicks(const CommandOptions& opts);
-    Upp::String RunGetState(const CommandOptions& opts);
-    Upp::String RunExportNetlist(const CommandOptions& opts);
-    Upp::String RunDestroySession(const CommandOptions& opts);
+    Upp::String RunInitWorkspace(CommandOptions& opts);
+    Upp::String RunCreateSession(CommandOptions& opts);
+    Upp::String RunListSessions(CommandOptions& opts);
+    Upp::String RunRunTicks(CommandOptions& opts);
+    Upp::String RunGetState(CommandOptions& opts);
+    Upp::String RunExportNetlist(CommandOptions& opts);
+    Upp::String RunDestroySession(CommandOptions& opts);
 
     // Streaming debug commands
     Upp::String RunDebugProcessLogs(int process_id);
@@ -31,155 +27,155 @@ public:
     Upp::String RunDebugPollStream(const Upp::String& poll_id);
 
     // Circuit editing commands
-    Upp::String RunEditAddComponent(const CommandOptions& opts);
-    Upp::String RunEditRemoveComponent(const CommandOptions& opts);
-    Upp::String RunEditMoveComponent(const CommandOptions& opts);
-    Upp::String RunEditSetComponentProperty(const CommandOptions& opts);
-    Upp::String RunEditConnect(const CommandOptions& opts);
-    Upp::String RunEditDisconnect(const CommandOptions& opts);
-    Upp::String RunEditGetCircuit(const CommandOptions& opts);
+    Upp::String RunEditAddComponent(CommandOptions& opts);
+    Upp::String RunEditRemoveComponent(CommandOptions& opts);
+    Upp::String RunEditMoveComponent(CommandOptions& opts);
+    Upp::String RunEditSetComponentProperty(CommandOptions& opts);
+    Upp::String RunEditConnect(CommandOptions& opts);
+    Upp::String RunEditDisconnect(CommandOptions& opts);
+    Upp::String RunEditGetCircuit(CommandOptions& opts);
 
     // Circuit analysis and linting commands
-    Upp::String RunLintCircuit(const CommandOptions& opts);
-    Upp::String RunAnalyzeCircuit(const CommandOptions& opts);
+    Upp::String RunLintCircuit(CommandOptions& opts);
+    Upp::String RunAnalyzeCircuit(CommandOptions& opts);
 
     // Collaboration utility commands
-    Upp::String RunCircuitDiff(const CommandOptions& opts);
-    Upp::String RunCircuitPatch(const CommandOptions& opts);
-    Upp::String RunCircuitReplay(const CommandOptions& opts);
-    Upp::String RunCircuitHistory(const CommandOptions& opts);
+    Upp::String RunCircuitDiff(CommandOptions& opts);
+    Upp::String RunCircuitPatch(CommandOptions& opts);
+    Upp::String RunCircuitReplay(CommandOptions& opts);
+    Upp::String RunCircuitHistory(CommandOptions& opts);
 
     // Branch commands
-    Upp::String RunBranchList(const CommandOptions& opts);
-    Upp::String RunBranchCreate(const CommandOptions& opts);
-    Upp::String RunBranchSwitch(const CommandOptions& opts);
-    Upp::String RunBranchDelete(const CommandOptions& opts);
-    Upp::String RunBranchMerge(const CommandOptions& opts);
+    Upp::String RunBranchList(CommandOptions& opts);
+    Upp::String RunBranchCreate(CommandOptions& opts);
+    Upp::String RunBranchSwitch(CommandOptions& opts);
+    Upp::String RunBranchDelete(CommandOptions& opts);
+    Upp::String RunBranchMerge(CommandOptions& opts);
 
     // Graph commands
-    Upp::String RunGraphExport(const CommandOptions& opts);
-    Upp::String RunGraphPaths(const CommandOptions& opts);
-    Upp::String RunGraphFanIn(const CommandOptions& opts);
-    Upp::String RunGraphFanOut(const CommandOptions& opts);
-    Upp::String RunGraphStats(const CommandOptions& opts);
+    Upp::String RunGraphExport(CommandOptions& opts);
+    Upp::String RunGraphPaths(CommandOptions& opts);
+    Upp::String RunGraphFanIn(CommandOptions& opts);
+    Upp::String RunGraphFanOut(CommandOptions& opts);
+    Upp::String RunGraphStats(CommandOptions& opts);
 
     // Timing analysis commands
-    Upp::String RunTimingSummary(const CommandOptions& opts);
-    Upp::String RunTimingCriticalPaths(const CommandOptions& opts);
-    Upp::String RunTimingLoops(const CommandOptions& opts);
-    Upp::String RunTimingHazards(const CommandOptions& opts);
+    Upp::String RunTimingSummary(CommandOptions& opts);
+    Upp::String RunTimingCriticalPaths(CommandOptions& opts);
+    Upp::String RunTimingLoops(CommandOptions& opts);
+    Upp::String RunTimingHazards(CommandOptions& opts);
 
     // Functional dependency analysis commands
-    Upp::String RunDepsSummary(const CommandOptions& opts);
-    Upp::String RunDepsBackward(const CommandOptions& opts);
-    Upp::String RunDepsForward(const CommandOptions& opts);
-    Upp::String RunDepsBoth(const CommandOptions& opts);
+    Upp::String RunDepsSummary(CommandOptions& opts);
+    Upp::String RunDepsBackward(CommandOptions& opts);
+    Upp::String RunDepsForward(CommandOptions& opts);
+    Upp::String RunDepsBoth(CommandOptions& opts);
 
     // Block analysis commands
-    Upp::String RunBlocksList(const CommandOptions& opts);
-    Upp::String RunBlocksExport(const CommandOptions& opts);
-    Upp::String RunBlockInspect(const CommandOptions& opts);
+    Upp::String RunBlocksList(CommandOptions& opts);
+    Upp::String RunBlocksExport(CommandOptions& opts);
+    Upp::String RunBlockInspect(CommandOptions& opts);
 
     // Behavioral analysis commands
-    Upp::String RunBehaviorBlock(const CommandOptions& opts);
-    Upp::String RunBehaviorNode(const CommandOptions& opts);
+    Upp::String RunBehaviorBlock(CommandOptions& opts);
+    Upp::String RunBehaviorNode(CommandOptions& opts);
 
     // HLS IR commands
-    Upp::String RunIrBlock(const CommandOptions& opts);
-    Upp::String RunIrNodeRegion(const CommandOptions& opts);
+    Upp::String RunIrBlock(CommandOptions& opts);
+    Upp::String RunIrNodeRegion(CommandOptions& opts);
 
     // Scheduled IR commands
-    Upp::String RunScheduleBlock(const CommandOptions& opts);
-    Upp::String RunScheduleNodeRegion(const CommandOptions& opts);
+    Upp::String RunScheduleBlock(CommandOptions& opts);
+    Upp::String RunScheduleNodeRegion(CommandOptions& opts);
 
     // Refactoring commands
-    Upp::String RunRefactorSuggest(const CommandOptions& opts);
-    Upp::String RunRefactorSuggestBlock(const CommandOptions& opts);
-    Upp::String RunRefactorApply(const CommandOptions& opts);
+    Upp::String RunRefactorSuggest(CommandOptions& opts);
+    Upp::String RunRefactorSuggestBlock(CommandOptions& opts);
+    Upp::String RunRefactorApply(CommandOptions& opts);
 
     // IR optimization commands
-    Upp::String RunIrOptBlock(const CommandOptions& opts);
-    Upp::String RunIrOptRefactorBlock(const CommandOptions& opts);
+    Upp::String RunIrOptBlock(CommandOptions& opts);
+    Upp::String RunIrOptRefactorBlock(CommandOptions& opts);
 
     // Diff analysis commands
-    Upp::String RunBehaviorDiffBlock(const CommandOptions& opts);
-    Upp::String RunIrDiffBlock(const CommandOptions& opts);
-    Upp::String RunIrDiffNodeRegion(const CommandOptions& opts);
+    Upp::String RunBehaviorDiffBlock(CommandOptions& opts);
+    Upp::String RunIrDiffBlock(CommandOptions& opts);
+    Upp::String RunIrDiffNodeRegion(CommandOptions& opts);
 
     // Pipeline analysis commands
-    Upp::String RunPipelineBlock(const CommandOptions& opts);
-    Upp::String RunPipelineSubsystem(const CommandOptions& opts);
+    Upp::String RunPipelineBlock(CommandOptions& opts);
+    Upp::String RunPipelineSubsystem(CommandOptions& opts);
 
     // CDC analysis commands
-    Upp::String RunCdcBlock(const CommandOptions& opts);
-    Upp::String RunCdcSubsystem(const CommandOptions& opts);
+    Upp::String RunCdcBlock(CommandOptions& opts);
+    Upp::String RunCdcSubsystem(CommandOptions& opts);
 
     // Retiming analysis commands
-    Upp::String RunRetimeBlock(const CommandOptions& opts);
-    Upp::String RunRetimeSubsystem(const CommandOptions& opts);
+    Upp::String RunRetimeBlock(CommandOptions& opts);
+    Upp::String RunRetimeSubsystem(CommandOptions& opts);
 
     // Retiming application commands
-    Upp::String RunRetimeBlockApply(const CommandOptions& opts);
-    Upp::String RunRetimeSubsystemApply(const CommandOptions& opts);
+    Upp::String RunRetimeBlockApply(CommandOptions& opts);
+    Upp::String RunRetimeSubsystemApply(CommandOptions& opts);
 
     // Retiming optimization commands
-    Upp::String RunRetimeOptBlock(const CommandOptions& opts);
-    Upp::String RunRetimeOptSubsystem(const CommandOptions& opts);
+    Upp::String RunRetimeOptBlock(CommandOptions& opts);
+    Upp::String RunRetimeOptSubsystem(CommandOptions& opts);
 
     // Global pipeline analysis commands
-    Upp::String RunGlobalPipelineSubsystem(const CommandOptions& opts);
-    Upp::String RunGlobalPipelineOptSubsystem(const CommandOptions& opts);
-    Upp::String RunGlobalPipelineApply(const CommandOptions& opts);
+    Upp::String RunGlobalPipelineSubsystem(CommandOptions& opts);
+    Upp::String RunGlobalPipelineOptSubsystem(CommandOptions& opts);
+    Upp::String RunGlobalPipelineApply(CommandOptions& opts);
 
     // Structural synthesis commands
-    Upp::String RunStructAnalyzeBlock(const CommandOptions& opts);
-    Upp::String RunStructApplyBlock(const CommandOptions& opts);
+    Upp::String RunStructAnalyzeBlock(CommandOptions& opts);
+    Upp::String RunStructApplyBlock(CommandOptions& opts);
 
     // Codegen commands
-    Upp::String RunCodegenBlockIr(const CommandOptions& opts);
-    Upp::String RunCodegenBlockC(const CommandOptions& opts);
-    Upp::String RunCodegenBlockOscDemo(const CommandOptions& opts);
-    Upp::String RunCodegenBlockCppClass(const CommandOptions& opts);
-    Upp::String RunCodegenBlockAudioDemo(const CommandOptions& opts);
+    Upp::String RunCodegenBlockIr(CommandOptions& opts);
+    Upp::String RunCodegenBlockC(CommandOptions& opts);
+    Upp::String RunCodegenBlockOscDemo(CommandOptions& opts);
+    Upp::String RunCodegenBlockCppClass(CommandOptions& opts);
+    Upp::String RunCodegenBlockAudioDemo(CommandOptions& opts);
 
     // CoDesigner commands
-    Upp::String RunDesignerCreateSession(const CommandOptions& opts);
-    Upp::String RunDesignerSetFocus(const CommandOptions& opts);
-    Upp::String RunDesignerGetContext(const CommandOptions& opts);
-    Upp::String RunDesignerAnalyze(const CommandOptions& opts);
-    Upp::String RunDesignerOptimize(const CommandOptions& opts);
-    Upp::String RunDesignerProposeRefactors(const CommandOptions& opts);
-    Upp::String RunDesignerApplyRefactors(const CommandOptions& opts);
-    Upp::String RunDesignerDiff(const CommandOptions& opts);
-    Upp::String RunDesignerCodegen(const CommandOptions& opts);
-    Upp::String RunDesignerRunPlaybook(const CommandOptions& opts);
-    Upp::String RunDesignerRetime(const CommandOptions& opts);
-    Upp::String RunDesignerRetimeApply(const CommandOptions& opts);
-    Upp::String RunDesignerRetimeOpt(const CommandOptions& opts);
+    Upp::String RunDesignerCreateSession(CommandOptions& opts);
+    Upp::String RunDesignerSetFocus(CommandOptions& opts);
+    Upp::String RunDesignerGetContext(CommandOptions& opts);
+    Upp::String RunDesignerAnalyze(CommandOptions& opts);
+    Upp::String RunDesignerOptimize(CommandOptions& opts);
+    Upp::String RunDesignerProposeRefactors(CommandOptions& opts);
+    Upp::String RunDesignerApplyRefactors(CommandOptions& opts);
+    Upp::String RunDesignerDiff(CommandOptions& opts);
+    Upp::String RunDesignerCodegen(CommandOptions& opts);
+    Upp::String RunDesignerRunPlaybook(CommandOptions& opts);
+    Upp::String RunDesignerRetime(CommandOptions& opts);
+    Upp::String RunDesignerRetimeApply(CommandOptions& opts);
+    Upp::String RunDesignerRetimeOpt(CommandOptions& opts);
 
     // Designer codegen for C++ class and audio demo
-    Upp::String RunDesignerCodegenBlockCppClass(const CommandOptions& opts);
-    Upp::String RunDesignerCodegenBlockAudioDemo(const CommandOptions& opts);
+    Upp::String RunDesignerCodegenBlockCppClass(CommandOptions& opts);
+    Upp::String RunDesignerCodegenBlockAudioDemo(CommandOptions& opts);
 
     // DSP graph commands
-    Upp::String RunDspGraphInspect(const CommandOptions& opts);
-    Upp::String RunDspRenderOsc(const CommandOptions& opts);
+    Upp::String RunDspGraphInspect(CommandOptions& opts);
+    Upp::String RunDspRenderOsc(CommandOptions& opts);
 
     // Analog model commands
-    Upp::String RunAnalogModelInspect(const CommandOptions& opts);
-    Upp::String RunAnalogRenderOsc(const CommandOptions& opts);
+    Upp::String RunAnalogModelInspect(CommandOptions& opts);
+    Upp::String RunAnalogRenderOsc(CommandOptions& opts);
 
     // Audio QA analysis commands
-    Upp::String RunDesignerQaAnalyze(const CommandOptions& opts);
-    Upp::String RunDesignerQaDiff(const CommandOptions& opts);
-    Upp::String RunDesignerQaVerify(const CommandOptions& opts);
+    Upp::String RunDesignerQaAnalyze(CommandOptions& opts);
+    Upp::String RunDesignerQaDiff(CommandOptions& opts);
+    Upp::String RunDesignerQaVerify(CommandOptions& opts);
 
     // Hybrid instrument commands
-    Upp::String RunInstrumentBuildHybrid(const CommandOptions& opts);
-    Upp::String RunInstrumentRenderHybrid(const CommandOptions& opts);
-    Upp::String RunInstrumentExportCpp(const CommandOptions& opts);
-    Upp::String RunInstrumentExportPluginSkeleton(const CommandOptions& opts);
-    Upp::String RunInstrumentExportPluginProject(const CommandOptions& opts);
+    Upp::String RunInstrumentBuildHybrid(CommandOptions& opts);
+    Upp::String RunInstrumentRenderHybrid(CommandOptions& opts);
+    Upp::String RunInstrumentExportCpp(CommandOptions& opts);
+    Upp::String RunInstrumentExportPluginSkeleton(CommandOptions& opts);
+    Upp::String RunInstrumentExportPluginProject(CommandOptions& opts);
 
 private:
     std::unique_ptr<ISessionStore> session_store_;

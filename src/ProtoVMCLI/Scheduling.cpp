@@ -136,7 +136,7 @@ Result<ScheduledModule> SchedulingEngine::BuildSchedule(
     // Compute timing depths for all expressions
     auto depth_result = ComputeTimingDepths(ir, timing, graph);
     if (!depth_result.ok) {
-        return Result<ScheduledModule>::Error(depth_result.error_code, depth_result.error_message);
+        return Result<ScheduledModule>::MakeError(depth_result.error_code, depth_result.error_message);
     }
     
     const std::vector<int>& depths = depth_result.data;
@@ -160,7 +160,7 @@ Result<ScheduledModule> SchedulingEngine::BuildSchedule(
     // Assign stages to expressions
     auto stage_result = AssignStages(depths, num_stages, config);
     if (!stage_result.ok) {
-        return Result<ScheduledModule>::Error(stage_result.error_code, stage_result.error_message);
+        return Result<ScheduledModule>::MakeError(stage_result.error_code, stage_result.error_message);
     }
     
     const std::vector<StageIndex>& stages = stage_result.data;
@@ -188,7 +188,7 @@ Result<ScheduledModule> SchedulingEngine::BuildSchedule(
     scheduled_module.comb_ops = scheduled_comb_ops;
     scheduled_module.reg_ops = scheduled_reg_ops;
     
-    return Result<ScheduledModule>::Ok(scheduled_module);
+    return Result<ScheduledModule>::MakeOk(scheduled_module);
 }
 
 } // namespace ProtoVMCLI

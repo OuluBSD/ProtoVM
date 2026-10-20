@@ -18,6 +18,8 @@ file
 	EventLogger.cpp,
 	CircuitFacade.h,
 	CircuitFacade.cpp,
+	CircuitSerializer.h,
+	CircuitSerializer.cpp,
 	CircuitOps.h,
 	CircuitData.h,
 	CircuitMerge.h,

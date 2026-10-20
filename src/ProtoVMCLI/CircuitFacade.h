@@ -27,12 +27,18 @@
 #include "DspRuntime.h"          // For DSP runtime
 #include "AnalogModel.h"         // For analog model structures
 #include "InstrumentGraph.h"     // For instrument graph structures
-#include "InstrumentExport.h"    // For InstrumentExportOptions
-#include "PluginProjectExport.h" // For PluginProjectExportOptions
-#include "PluginSkeletonExport.h" // For plugin skeleton export
 #include <ProtoVM/AudioQa.h>             // For Audio QA structures
 #include <ProtoVM/AudioQaAnalysis.h>    // For Audio QA analysis
-#include <ProtoVM/AudioQaDiff.h>        // For Audio QA diff operations
+#include "IrOptimization.h"       // For IrOptimizationResult / IrOptPassKind
+#include "DiffAnalysis.h"         // For BehaviorDiff / IrDiff
+#include <ProtoVM/AudioQaDiff.h>         // For Audio QA diff operations
+
+// Option struct definitions live in their export headers; include them here
+// would re-enter the JsonIO/Playbooks/CoDesigner include cycle, so forward
+// declare and let the .cpp include the full definitions.
+struct PluginSkeletonOptions;
+struct PluginProjectExportOptions;
+namespace ProtoVM { struct InstrumentExportOptions; }
 #include <string>
 #include <vector>
 #include <optional>
@@ -48,11 +54,6 @@ namespace ProtoVMCLI {
 
 // Forward declaration
 struct EditOperation;
-
-// Information about a circuit revision
-struct CircuitRevisionInfo {
-    int64_t revision;
-};
 
 // Exported circuit state
 struct CircuitStateExport {
@@ -73,7 +74,20 @@ public:
     explicit CircuitFacade(std::shared_ptr<ISessionStore> session_store = nullptr)
         : session_store_(session_store) {}
 
-    // Load the current circuit state for a session:
+    // Non-owning overload: the dispatcher already owns the store via unique_ptr.
+    explicit CircuitFacade(ISessionStore* session_store)
+        : session_store_(session_store
+            ? std::shared_ptr<ISessionStore>(session_store, [](ISessionStore*) {})
+            : nullptr) {}
+
+    // Fully assembled circuit state (base circuit + applied edit events).
+    struct CircuitRevisionInfo {
+        CircuitData circuit;      // assembled circuit
+        int64_t revision = 0;     // circuit revision after applying edits
+        std::string source_file;  // file the base circuit came from
+        bool from_snapshot = false;
+    };
+
     // - initial circuit (from .circuit or snapshot)
     // - plus all edit events up to circuit_revision.
     Result<CircuitRevisionInfo> LoadCurrentCircuit(

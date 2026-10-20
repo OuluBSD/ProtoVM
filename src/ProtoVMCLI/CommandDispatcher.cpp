@@ -46,6 +46,15 @@ static bool HasPayloadKey(const Upp::ValueMap& p, const char* key) {
     return p.Find(key) >= 0;
 }
 
+// Convert a std::vector<std::string> to an Upp::Vector<String> (Upp::Vector has
+// no iterator-pair constructor).
+static Upp::Vector<Upp::String> ToUppStringVector(const std::vector<std::string>& v) {
+    Upp::Vector<Upp::String> r;
+    for (const auto& s : v)
+        r.Add(Upp::String(s.c_str()));
+    return r;
+}
+
 // Helper function to find a branch by name in session metadata
 std::optional<ProtoVMCLI::BranchMetadata> FindBranchByName(const ProtoVMCLI::SessionMetadata& session, const std::string& branch_name) {
     for (const auto& branch : session.branches) {
@@ -74,7 +83,7 @@ std::string GetCurrentTimestamp() {
     return std::string(buffer);
 }
 
-Upp::String CommandDispatcher::RunInitWorkspace(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunInitWorkspace(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("init-workspace", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -131,7 +140,7 @@ Upp::String CommandDispatcher::RunInitWorkspace(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunCreateSession(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunCreateSession(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("create-session", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -229,7 +238,7 @@ Upp::String CommandDispatcher::RunCreateSession(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunListSessions(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunListSessions(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("list-sessions", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -276,7 +285,7 @@ Upp::String CommandDispatcher::RunListSessions(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunRunTicks(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunRunTicks(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("run-ticks", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -399,7 +408,7 @@ Upp::String CommandDispatcher::RunRunTicks(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunGetState(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunGetState(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("get-state", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -472,7 +481,7 @@ Upp::String CommandDispatcher::RunGetState(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunExportNetlist(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunExportNetlist(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("export-netlist", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -544,7 +553,7 @@ Upp::String CommandDispatcher::RunExportNetlist(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunDestroySession(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDestroySession(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("destroy-session", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -810,7 +819,7 @@ Upp::String CommandDispatcher::RunDebugPollStream(const Upp::String& poll_id) {
     }
 }
 
-Upp::String CommandDispatcher::RunEditAddComponent(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunEditAddComponent(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("edit-add-component", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -888,7 +897,7 @@ Upp::String CommandDispatcher::RunEditAddComponent(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunEditRemoveComponent(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunEditRemoveComponent(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("edit-remove-component", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -953,7 +962,7 @@ Upp::String CommandDispatcher::RunEditRemoveComponent(const CommandOptions& opts
     }
 }
 
-Upp::String CommandDispatcher::RunEditMoveComponent(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunEditMoveComponent(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("edit-move-component", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -1022,7 +1031,7 @@ Upp::String CommandDispatcher::RunEditMoveComponent(const CommandOptions& opts) 
     }
 }
 
-Upp::String CommandDispatcher::RunEditSetComponentProperty(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunEditSetComponentProperty(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("edit-set-component-property", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -1096,7 +1105,7 @@ Upp::String CommandDispatcher::RunEditSetComponentProperty(const CommandOptions&
     }
 }
 
-Upp::String CommandDispatcher::RunEditConnect(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunEditConnect(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("edit-connect", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -1171,7 +1180,7 @@ Upp::String CommandDispatcher::RunEditConnect(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunEditDisconnect(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunEditDisconnect(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("edit-disconnect", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -1246,7 +1255,7 @@ Upp::String CommandDispatcher::RunEditDisconnect(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunEditGetCircuit(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunEditGetCircuit(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("edit-get-circuit", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -1288,7 +1297,7 @@ Upp::String CommandDispatcher::RunEditGetCircuit(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunLintCircuit(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunLintCircuit(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("lint-circuit", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -1341,7 +1350,7 @@ Upp::String CommandDispatcher::RunLintCircuit(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunAnalyzeCircuit(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunAnalyzeCircuit(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("analyze-circuit", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -1399,7 +1408,7 @@ Upp::String CommandDispatcher::RunAnalyzeCircuit(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunCircuitDiff(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunCircuitDiff(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("circuit-diff", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -1441,7 +1450,7 @@ Upp::String CommandDispatcher::RunCircuitDiff(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunCircuitPatch(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunCircuitPatch(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("circuit-patch", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -1476,7 +1485,7 @@ Upp::String CommandDispatcher::RunCircuitPatch(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunCircuitReplay(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunCircuitReplay(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("circuit-replay", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -1534,7 +1543,7 @@ Upp::String CommandDispatcher::RunCircuitReplay(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunCircuitHistory(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunCircuitHistory(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("circuit-history", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -1569,12 +1578,12 @@ Upp::String CommandDispatcher::RunCircuitHistory(const CommandOptions& opts) {
         response_data.Add("session_id", opts.session_id.value());
         response_data.Add("branch", Upp::String(branch_name.c_str()));
         response_data.Add("current_revision", Upp::int64(branch_revision));
-        response_data.Add("total_operations", branch_revision);  // Simplified: each edit increases revision by 1
+        response_data.Add("total_operations", Upp::int64(branch_revision));  // Simplified: each edit increases revision by 1
 
         Upp::ValueArray history_entries;
         for (int64_t i = 0; i <= branch_revision; ++i) {
             Upp::ValueMap entry;
-            entry.Add("revision", i);
+            entry.Add("revision", Upp::int64(i));
             entry.Add("timestamp", Upp::String(GetCurrentTimestamp().c_str()));
             entry.Add("user", Upp::String("system"));
             entry.Add("operation", Upp::String("initial_state"));  // Placeholder
@@ -1590,7 +1599,7 @@ Upp::String CommandDispatcher::RunCircuitHistory(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunBranchList(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunBranchList(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("branch-list", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -1641,7 +1650,7 @@ Upp::String CommandDispatcher::RunBranchList(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunBranchCreate(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunBranchCreate(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("branch-create", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -1688,9 +1697,9 @@ Upp::String CommandDispatcher::RunBranchCreate(const CommandOptions& opts) {
 
         Upp::ValueMap branch_map;
         branch_map.Add("name", Upp::String(create_result.data.branch.name.c_str()));
-        branch_map.Add("head_revision", create_result.data.branch.head_revision);
+        branch_map.Add("head_revision", Upp::int64(create_result.data.branch.head_revision));
         branch_map.Add("sim_revision", Upp::int64(create_result.data.branch.sim_revision));
-        branch_map.Add("base_revision", create_result.data.branch.base_revision);
+        branch_map.Add("base_revision", Upp::int64(create_result.data.branch.base_revision));
         branch_map.Add("is_default", create_result.data.branch.is_default);
         response_data.Add("branch", branch_map);
 
@@ -1702,7 +1711,7 @@ Upp::String CommandDispatcher::RunBranchCreate(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunBranchSwitch(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunBranchSwitch(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("branch-switch", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -1754,7 +1763,7 @@ Upp::String CommandDispatcher::RunBranchSwitch(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunBranchDelete(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunBranchDelete(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("branch-delete", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -1806,7 +1815,7 @@ Upp::String CommandDispatcher::RunBranchDelete(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunBranchMerge(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("branch-merge", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -1863,7 +1872,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
 }
 
     // Graph commands
-    Upp::String CommandDispatcher::RunGraphExport(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunGraphExport(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("graph-export", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -1927,7 +1936,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
                 node_map.Add("id", Upp::String(node.id.c_str()));
                 nodes_array.Add(node_map);
             }
-            response_data.Add("graph", Upp::ValueMap().Add("nodes", nodes_array));
+            response_data.Add("graph", Upp::ValueMap()("nodes", nodes_array));
 
             // Add edges to response
             Upp::ValueArray edges_array;
@@ -1966,7 +1975,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunGraphPaths(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunGraphPaths(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("graph-paths", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -2090,7 +2099,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunGraphFanIn(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunGraphFanIn(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("graph-fanin", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -2200,7 +2209,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunGraphFanOut(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunGraphFanOut(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("graph-fanout", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -2310,7 +2319,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunGraphStats(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunGraphStats(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("graph-stats", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -2382,7 +2391,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunTimingSummary(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunTimingSummary(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("timing-summary", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -2448,7 +2457,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunTimingCriticalPaths(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunTimingCriticalPaths(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("timing-critical-paths", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -2532,7 +2541,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunTimingLoops(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunTimingLoops(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("timing-loops", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -2597,7 +2606,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunTimingHazards(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunTimingHazards(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("timing-hazards", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -2672,7 +2681,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunDepsSummary(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunDepsSummary(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("deps-summary", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -2758,7 +2767,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunDepsBackward(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunDepsBackward(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("deps-backward", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -2842,7 +2851,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunDepsForward(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunDepsForward(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("deps-forward", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -2926,7 +2935,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunDepsBoth(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunDepsBoth(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("deps-both", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -3030,7 +3039,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunBlocksList(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunBlocksList(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("blocks-list", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -3125,7 +3134,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunBlocksExport(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunBlocksExport(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("blocks-export", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -3229,7 +3238,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunBlockInspect(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunBlockInspect(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("block-inspect", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -3345,7 +3354,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunBehaviorBlock(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunBehaviorBlock(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("behavior-block", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -3439,7 +3448,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunBehaviorNode(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunBehaviorNode(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("behavior-node", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -3546,7 +3555,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunIrBlock(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunIrBlock(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("ir-block", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -3601,7 +3610,7 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-    Upp::String CommandDispatcher::RunIrNodeRegion(const CommandOptions& opts) {
+    Upp::String CommandDispatcher::RunIrNodeRegion(CommandOptions& opts) {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("ir-node-region", "Workspace path is required", "INVALID_ARGUMENT");
         }
@@ -3674,9 +3683,9 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         }
     }
 
-Upp::String CommandDispatcher::RunRefactorSuggest(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunRefactorSuggest(CommandOptions& opts) {
     try {
-        if (opts.workspace.empty() || opts.session_id.empty()) {
+        if (opts.workspace.empty() || !opts.session_id) {
             return JsonIO::ErrorResponse("refactor-suggest",
                                        "Required parameters: --workspace, --session-id",
                                        "PARAMETER_ERROR");
@@ -3698,12 +3707,12 @@ Upp::String CommandDispatcher::RunRefactorSuggest(const CommandOptions& opts) {
 
         // Determine max plans, defaulting to 10
         int max_plans = 10; // Default
-        if (!opts.max_plans.empty()) {
+        if (!!opts.max_plans) {
             try {
-                max_plans = std::stoi(opts.max_plans);
+                max_plans = std::stoi(*opts.max_plans);
             } catch (const std::exception&) {
                 return JsonIO::ErrorResponse("refactor-suggest",
-                                           "Invalid max-plans value: " + opts.max_plans,
+                                           "Invalid max-plans value: " + *opts.max_plans,
                                            "PARAMETER_ERROR");
             }
         }
@@ -3745,9 +3754,9 @@ Upp::String CommandDispatcher::RunRefactorSuggest(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunRefactorSuggestBlock(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunRefactorSuggestBlock(CommandOptions& opts) {
     try {
-        if (opts.workspace.empty() || opts.session_id.empty() || opts.block_id.empty()) {
+        if (opts.workspace.empty() || !opts.session_id || !opts.block_id) {
             return JsonIO::ErrorResponse("refactor-suggest-block",
                                        "Required parameters: --workspace, --session-id, --block-id",
                                        "PARAMETER_ERROR");
@@ -3769,12 +3778,12 @@ Upp::String CommandDispatcher::RunRefactorSuggestBlock(const CommandOptions& opt
 
         // Determine max plans, defaulting to 10
         int max_plans = 10; // Default
-        if (!opts.max_plans.empty()) {
+        if (!!opts.max_plans) {
             try {
-                max_plans = std::stoi(opts.max_plans);
+                max_plans = std::stoi(*opts.max_plans);
             } catch (const std::exception&) {
                 return JsonIO::ErrorResponse("refactor-suggest-block",
-                                           "Invalid max-plans value: " + opts.max_plans,
+                                           "Invalid max-plans value: " + *opts.max_plans,
                                            "PARAMETER_ERROR");
             }
         }
@@ -3817,9 +3826,9 @@ Upp::String CommandDispatcher::RunRefactorSuggestBlock(const CommandOptions& opt
     }
 }
 
-Upp::String CommandDispatcher::RunRefactorApply(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunRefactorApply(CommandOptions& opts) {
     try {
-        if (opts.workspace.empty() || opts.session_id.empty() || opts.plan_id.empty()) {
+        if (opts.workspace.empty() || !opts.session_id || !opts.plan_id) {
             return JsonIO::ErrorResponse("refactor-apply",
                                        "Required parameters: --workspace, --session-id, --plan-id",
                                        "PARAMETER_ERROR");
@@ -3852,9 +3861,9 @@ Upp::String CommandDispatcher::RunRefactorApply(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunIrOptBlock(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunIrOptBlock(CommandOptions& opts) {
     try {
-        if (opts.workspace.empty() || opts.session_id.empty() || opts.block_id.empty()) {
+        if (opts.workspace.empty() || !opts.session_id || !opts.block_id) {
             return JsonIO::ErrorResponse("ir-opt-block",
                                        "Required parameters: --workspace, --session-id, --block-id",
                                        "PARAMETER_ERROR");
@@ -3876,7 +3885,7 @@ Upp::String CommandDispatcher::RunIrOptBlock(const CommandOptions& opts) {
 
         // Parse optimization passes from command line, default to all passes if none specified
         std::vector<IrOptPassKind> passes_to_run;
-        if (!opts.passes.empty()) {
+        if (opts.passes.empty()) {
             // Parse the comma-separated pass names
             std::vector<std::string> pass_names;
             size_t start = 0;
@@ -3913,7 +3922,7 @@ Upp::String CommandDispatcher::RunIrOptBlock(const CommandOptions& opts) {
         }
 
         // Create CircuitFacade instance
-        CircuitFacade facade(session_store_);
+        CircuitFacade facade(session_store_.get());
 
         // Run IR optimization
         auto result = facade.OptimizeBlockIrInBranch(session, session_dir, branch_name, opts.block_id, passes_to_run);
@@ -3924,15 +3933,15 @@ Upp::String CommandDispatcher::RunIrOptBlock(const CommandOptions& opts) {
         }
 
         // Convert the result to JSON
-        auto converter = [](const IrOptimizationResult& opt_result) -> Upp::ValueMap {
+        auto converter = [&](const IrOptimizationResult& opt_result) -> Upp::ValueMap {
             Upp::ValueMap data;
             data.Add("session_id", Upp::String(std::to_string(*opts.session_id).c_str()));
             data.Add("branch", Upp::String(branch_name.c_str()));
             data.Add("block_id", Upp::String(opts.block_id.c_str()));
             data.Add("optimization", Upp::ValueMap()
-                .Add("original", JsonIO::IrModuleToValueMap(opt_result.original))
-                .Add("optimized", JsonIO::IrModuleToValueMap(opt_result.optimized))
-                .Add("summaries", JsonIO::IrOptChangeSummariesToValueArray(opt_result.summaries))
+                ("original", JsonIO::IrModuleToValueMap(opt_result.original))
+                ("optimized", JsonIO::IrModuleToValueMap(opt_result.optimized))
+                ("summaries", JsonIO::IrOptChangeSummariesToValueArray(opt_result.summaries))
             );
             return data;
         };
@@ -3945,9 +3954,9 @@ Upp::String CommandDispatcher::RunIrOptBlock(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunIrOptRefactorBlock(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunIrOptRefactorBlock(CommandOptions& opts) {
     try {
-        if (opts.workspace.empty() || opts.session_id.empty() || opts.block_id.empty()) {
+        if (opts.workspace.empty() || !opts.session_id || !opts.block_id) {
             return JsonIO::ErrorResponse("ir-opt-refactor-block",
                                        "Required parameters: --workspace, --session-id, --block-id",
                                        "PARAMETER_ERROR");
@@ -3969,7 +3978,7 @@ Upp::String CommandDispatcher::RunIrOptRefactorBlock(const CommandOptions& opts)
 
         // Parse optimization passes from command line, default to all passes if none specified
         std::vector<IrOptPassKind> passes_to_run;
-        if (!opts.passes.empty()) {
+        if (opts.passes.empty()) {
             // Parse the comma-separated pass names
             std::vector<std::string> pass_names;
             size_t start = 0;
@@ -4006,7 +4015,7 @@ Upp::String CommandDispatcher::RunIrOptRefactorBlock(const CommandOptions& opts)
         }
 
         // Create CircuitFacade instance
-        CircuitFacade facade(session_store_);
+        CircuitFacade facade(session_store_.get());
 
         // Run IR-based transformation proposal
         auto result = facade.ProposeIrBasedTransformationsForBlock(session, session_dir, branch_name, opts.block_id, passes_to_run);
@@ -4017,7 +4026,7 @@ Upp::String CommandDispatcher::RunIrOptRefactorBlock(const CommandOptions& opts)
         }
 
         // Convert the result to JSON
-        auto converter = [](const std::vector<TransformationPlan>& plans) -> Upp::ValueMap {
+        auto converter = [&](const std::vector<TransformationPlan>& plans) -> Upp::ValueMap {
             Upp::ValueMap data;
             data.Add("session_id", Upp::String(std::to_string(*opts.session_id).c_str()));
             data.Add("branch", Upp::String(branch_name.c_str()));
@@ -4034,9 +4043,9 @@ Upp::String CommandDispatcher::RunIrOptRefactorBlock(const CommandOptions& opts)
     }
 }
 
-Upp::String CommandDispatcher::RunBehaviorDiffBlock(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunBehaviorDiffBlock(CommandOptions& opts) {
     try {
-        if (opts.workspace.empty() || opts.session_id.empty() || opts.block_id.empty() ||
+        if (opts.workspace.empty() || !opts.session_id || !opts.block_id ||
             opts.branch_before.empty() || opts.branch_after.empty()) {
             return JsonIO::ErrorResponse("behavior-diff-block",
                                        "Required parameters: --workspace, --session-id, --block-id, --branch-before, --branch-after",
@@ -4067,7 +4076,7 @@ Upp::String CommandDispatcher::RunBehaviorDiffBlock(const CommandOptions& opts) 
 
         // Build response data
         Upp::ValueMap response_data;
-        response_data.Add("session_id", opts.session_id);
+        response_data.Add("session_id", Upp::int64(opts.session_id.value_or(-1)));
         response_data.Add("branch_before", Upp::String(opts.branch_before.c_str()));
         response_data.Add("branch_after", Upp::String(opts.branch_after.c_str()));
         response_data.Add("behavior_diff", JsonIO::BehaviorDiffToValueMap(diff_result.data));
@@ -4080,9 +4089,9 @@ Upp::String CommandDispatcher::RunBehaviorDiffBlock(const CommandOptions& opts) 
     }
 }
 
-Upp::String CommandDispatcher::RunIrDiffBlock(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunIrDiffBlock(CommandOptions& opts) {
     try {
-        if (opts.workspace.empty() || opts.session_id.empty() || opts.block_id.empty() ||
+        if (opts.workspace.empty() || !opts.session_id || !opts.block_id ||
             opts.branch_before.empty() || opts.branch_after.empty()) {
             return JsonIO::ErrorResponse("ir-diff-block",
                                        "Required parameters: --workspace, --session-id, --block-id, --branch-before, --branch-after",
@@ -4113,7 +4122,7 @@ Upp::String CommandDispatcher::RunIrDiffBlock(const CommandOptions& opts) {
 
         // Build response data
         Upp::ValueMap response_data;
-        response_data.Add("session_id", opts.session_id);
+        response_data.Add("session_id", Upp::int64(opts.session_id.value_or(-1)));
         response_data.Add("branch_before", Upp::String(opts.branch_before.c_str()));
         response_data.Add("branch_after", Upp::String(opts.branch_after.c_str()));
         response_data.Add("ir_diff", JsonIO::IrDiffToValueMap(diff_result.data));
@@ -4126,9 +4135,9 @@ Upp::String CommandDispatcher::RunIrDiffBlock(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunIrDiffNodeRegion(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunIrDiffNodeRegion(CommandOptions& opts) {
     try {
-        if (opts.workspace.empty() || opts.session_id.empty() || opts.node_id.empty() ||
+        if (opts.workspace.empty() || !opts.session_id || opts.node_id.empty() ||
             opts.branch_before.empty() || opts.branch_after.empty()) {
             return JsonIO::ErrorResponse("ir-diff-node-region",
                                        "Required parameters: --workspace, --session-id, --node-id, --branch-before, --branch-after",
@@ -4153,7 +4162,7 @@ Upp::String CommandDispatcher::RunIrDiffNodeRegion(const CommandOptions& opts) {
                 max_depth = std::stoi(opts.max_depth);
             } catch (const std::exception&) {
                 return JsonIO::ErrorResponse("ir-diff-node-region",
-                                           "Invalid max-depth value: " + opts.max_depth,
+                                           "Invalid max-depth value: " + opts.max_depth.str(),
                                            "PARAMETER_ERROR");
             }
         }
@@ -4172,7 +4181,7 @@ Upp::String CommandDispatcher::RunIrDiffNodeRegion(const CommandOptions& opts) {
 
         // Build response data
         Upp::ValueMap response_data;
-        response_data.Add("session_id", opts.session_id);
+        response_data.Add("session_id", Upp::int64(opts.session_id.value_or(-1)));
         response_data.Add("branch_before", Upp::String(opts.branch_before.c_str()));
         response_data.Add("branch_after", Upp::String(opts.branch_after.c_str()));
         response_data.Add("ir_diff", JsonIO::IrDiffToValueMap(diff_result.data));
@@ -4185,7 +4194,7 @@ Upp::String CommandDispatcher::RunIrDiffNodeRegion(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerCreateSession(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerCreateSession(CommandOptions& opts) {
     try {
         // Extract required parameters
         if (!opts.session_id.has_value()) {
@@ -4218,7 +4227,7 @@ Upp::String CommandDispatcher::RunDesignerCreateSession(const CommandOptions& op
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerSetFocus(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerSetFocus(CommandOptions& opts) {
     try {
         // Extract required parameters
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
@@ -4254,7 +4263,7 @@ Upp::String CommandDispatcher::RunDesignerSetFocus(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerGetContext(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerGetContext(CommandOptions& opts) {
     try {
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
@@ -4284,7 +4293,7 @@ Upp::String CommandDispatcher::RunDesignerGetContext(const CommandOptions& opts)
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerAnalyze(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerAnalyze(CommandOptions& opts) {
     try {
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
@@ -4347,7 +4356,7 @@ Upp::String CommandDispatcher::RunDesignerAnalyze(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerOptimize(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerOptimize(CommandOptions& opts) {
     try {
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
@@ -4407,7 +4416,7 @@ Upp::String CommandDispatcher::RunDesignerOptimize(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerProposeRefactors(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerProposeRefactors(CommandOptions& opts) {
     try {
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
@@ -4461,7 +4470,7 @@ Upp::String CommandDispatcher::RunDesignerProposeRefactors(const CommandOptions&
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerApplyRefactors(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerApplyRefactors(CommandOptions& opts) {
     try {
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
@@ -4503,7 +4512,7 @@ Upp::String CommandDispatcher::RunDesignerApplyRefactors(const CommandOptions& o
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerDiff(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerDiff(CommandOptions& opts) {
     try {
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
@@ -4561,7 +4570,7 @@ Upp::String CommandDispatcher::RunDesignerDiff(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerCodegen(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerCodegen(CommandOptions& opts) {
     try {
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
@@ -4621,7 +4630,7 @@ Upp::String CommandDispatcher::RunDesignerCodegen(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerRunPlaybook(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerRunPlaybook(CommandOptions& opts) {
     try {
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
@@ -4819,7 +4828,7 @@ Upp::String CommandDispatcher::RunDesignerRunPlaybook(const CommandOptions& opts
     }
 }
 
-Upp::String CommandDispatcher::RunScheduleBlock(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunScheduleBlock(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("schedule-block", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -4906,7 +4915,7 @@ Upp::String CommandDispatcher::RunScheduleBlock(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunScheduleNodeRegion(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunScheduleNodeRegion(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("schedule-node-region", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -5011,7 +5020,7 @@ Upp::String CommandDispatcher::RunScheduleNodeRegion(const CommandOptions& opts)
     }
 }
 
-Upp::String CommandDispatcher::RunPipelineBlock(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunPipelineBlock(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("pipeline-block", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -5067,7 +5076,7 @@ Upp::String CommandDispatcher::RunPipelineBlock(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunPipelineSubsystem(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunPipelineSubsystem(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("pipeline-subsystem", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -5143,7 +5152,7 @@ Upp::String CommandDispatcher::RunPipelineSubsystem(const CommandOptions& opts) 
     }
 }
 
-Upp::String CommandDispatcher::RunCdcBlock(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunCdcBlock(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("cdc-block", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -5199,7 +5208,7 @@ Upp::String CommandDispatcher::RunCdcBlock(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunCdcSubsystem(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunCdcSubsystem(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("cdc-subsystem", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -5275,7 +5284,7 @@ Upp::String CommandDispatcher::RunCdcSubsystem(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunRetimeBlock(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunRetimeBlock(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("retime-block", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -5314,7 +5323,7 @@ Upp::String CommandDispatcher::RunRetimeBlock(const CommandOptions& opts) {
         // Get maximum number of plans to return (optional parameter)
         int max_plans = 10; // default maximum
         if (opts.max_plans.has_value()) {
-            max_plans = opts.max_plans.value();
+            max_plans = std::stoi(*opts.max_plans);
         }
 
         // Analyze retiming for the specified block
@@ -5362,7 +5371,7 @@ Upp::String CommandDispatcher::RunRetimeBlock(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunRetimeSubsystem(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunRetimeSubsystem(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("retime-subsystem", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -5420,7 +5429,7 @@ Upp::String CommandDispatcher::RunRetimeSubsystem(const CommandOptions& opts) {
         // Get maximum number of plans to return (optional parameter)
         int max_plans = 10; // default maximum
         if (opts.max_plans.has_value()) {
-            max_plans = opts.max_plans.value();
+            max_plans = std::stoi(*opts.max_plans);
         }
 
         // Analyze retiming for the specified subsystem
@@ -5470,7 +5479,7 @@ Upp::String CommandDispatcher::RunRetimeSubsystem(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunRetimeBlockApply(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunRetimeBlockApply(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("retime-block-apply", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -5560,7 +5569,7 @@ Upp::String CommandDispatcher::RunRetimeBlockApply(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunRetimeSubsystemApply(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunRetimeSubsystemApply(CommandOptions& opts) {
     if (opts.workspace.empty()) {
         return JsonIO::ErrorResponse("retime-subsystem-apply", "Workspace path is required", "INVALID_ARGUMENT");
     }
@@ -5675,7 +5684,7 @@ Upp::String CommandDispatcher::RunRetimeSubsystemApply(const CommandOptions& opt
     }
 }
 
-Upp::String CommandDispatcher::RunRetimeOptBlock(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunRetimeOptBlock(CommandOptions& opts) {
     try {
         if (opts.Get("workspace").empty()) {
             return JsonIO::ErrorResponse("retime-opt-block", "Workspace path is required", "INVALID_ARGUMENT");
@@ -5703,7 +5712,7 @@ Upp::String CommandDispatcher::RunRetimeOptBlock(const CommandOptions& opts) {
         // Get the session metadata
         auto load_result = session_store_->LoadSessionMetadata(session_id);
         if (!load_result.ok) {
-            std::string error_code_str = ErrorCodeToString(load_result.error_code);
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
             return JsonIO::ErrorResponse("retime-opt-block", load_result.error_message, error_code_str);
         }
 
@@ -5751,12 +5760,12 @@ Upp::String CommandDispatcher::RunRetimeOptBlock(const CommandOptions& opts) {
         }
 
         // Perform retiming optimization
-        CircuitFacade circuit_facade(session_store_);
+        CircuitFacade circuit_facade(session_store_.get());
         auto result = circuit_facade.OptimizeRetimingForBlockInBranch(
             session, session_dir, branch_name, block_id, objective, app_options);
 
         if (!result.ok) {
-            std::string error_code_str = ErrorCodeToString(result.error_code);
+            std::string error_code_str = JsonIO::ErrorCodeToString(result.error_code);
             return JsonIO::ErrorResponse("retime-opt-block", result.error_message, error_code_str);
         }
 
@@ -5775,7 +5784,7 @@ Upp::String CommandDispatcher::RunRetimeOptBlock(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunRetimeOptSubsystem(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunRetimeOptSubsystem(CommandOptions& opts) {
     try {
         if (opts.Get("workspace").empty()) {
             return JsonIO::ErrorResponse("retime-opt-subsystem", "Workspace path is required", "INVALID_ARGUMENT");
@@ -5807,7 +5816,7 @@ Upp::String CommandDispatcher::RunRetimeOptSubsystem(const CommandOptions& opts)
         // Get the session metadata
         auto load_result = session_store_->LoadSessionMetadata(session_id);
         if (!load_result.ok) {
-            std::string error_code_str = ErrorCodeToString(load_result.error_code);
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
             return JsonIO::ErrorResponse("retime-opt-subsystem", load_result.error_message, error_code_str);
         }
 
@@ -5855,14 +5864,14 @@ Upp::String CommandDispatcher::RunRetimeOptSubsystem(const CommandOptions& opts)
         }
 
         // Perform retiming optimization
-        CircuitFacade circuit_facade(session_store_);
+        CircuitFacade circuit_facade(session_store_.get());
         auto result = circuit_facade.OptimizeRetimingForSubsystemInBranch(
             session, session_dir, branch_name, subsystem_id,
-            Vector<String>(block_ids.begin(), block_ids.end()),
+            ToUppStringVector(block_ids),
             objective, app_options);
 
         if (!result.ok) {
-            std::string error_code_str = ErrorCodeToString(result.error_code);
+            std::string error_code_str = JsonIO::ErrorCodeToString(result.error_code);
             return JsonIO::ErrorResponse("retime-opt-subsystem", result.error_message, error_code_str);
         }
 
@@ -5871,7 +5880,7 @@ Upp::String CommandDispatcher::RunRetimeOptSubsystem(const CommandOptions& opts)
         response_data.Add("session_id", session_id);
         response_data.Add("branch", Upp::String(branch_name.c_str()));
         response_data.Add("subsystem_id", Upp::String(subsystem_id.c_str()));
-        response_data.Add("block_ids", JsonIO::ToValueArray(Vector<String>(block_ids.begin(), block_ids.end())));
+        response_data.Add("block_ids", JsonIO::ToValueArray(ToUppStringVector(block_ids)));
         response_data.Add("optimization_result", JsonIO::ToValueMap(result.data));
 
         return JsonIO::SuccessResponse("retime-opt-subsystem", response_data);
@@ -5882,7 +5891,7 @@ Upp::String CommandDispatcher::RunRetimeOptSubsystem(const CommandOptions& opts)
     }
 }
 
-Upp::String CommandDispatcher::RunGlobalPipelineSubsystem(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunGlobalPipelineSubsystem(CommandOptions& opts) {
     try {
         if (opts.Get("workspace").empty()) {
             return JsonIO::ErrorResponse("global-pipeline-subsystem", "Workspace path is required", "INVALID_ARGUMENT");
@@ -5911,7 +5920,7 @@ Upp::String CommandDispatcher::RunGlobalPipelineSubsystem(const CommandOptions& 
         // Get the session metadata
         auto load_result = session_store_->LoadSessionMetadata(session_id);
         if (!load_result.ok) {
-            std::string error_code_str = ErrorCodeToString(load_result.error_code);
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
             return JsonIO::ErrorResponse("global-pipeline-subsystem", load_result.error_message, error_code_str);
         }
 
@@ -5919,14 +5928,14 @@ Upp::String CommandDispatcher::RunGlobalPipelineSubsystem(const CommandOptions& 
         std::string session_dir = workspace_path + "/sessions/" + std::to_string(session_id);
 
         // Build global pipeline map for the subsystem
-        CircuitFacade circuit_facade(session_store_);
+        CircuitFacade circuit_facade(session_store_.get());
         auto result = circuit_facade.BuildGlobalPipelineMapForSubsystemInBranch(
             session, session_dir, branch_name,
-            String(subsystem_id.c_str()),
-            Vector<String>(block_ids.begin(), block_ids.end()));
+            subsystem_id,
+            ToUppStringVector(block_ids));
 
-        if (!result.ok()) {
-            std::string error_code_str = ErrorCodeToString(result.error_code);
+        if (!result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(result.error_code);
             return JsonIO::ErrorResponse("global-pipeline-subsystem", result.error_message, error_code_str);
         }
 
@@ -5935,8 +5944,8 @@ Upp::String CommandDispatcher::RunGlobalPipelineSubsystem(const CommandOptions& 
         response_data.Add("session_id", session_id);
         response_data.Add("branch", Upp::String(branch_name.c_str()));
         response_data.Add("subsystem_id", Upp::String(subsystem_id.c_str()));
-        response_data.Add("block_ids", JsonIO::ToValueArray(Vector<String>(block_ids.begin(), block_ids.end())));
-        response_data.Add("global_pipeline", JsonIO::GlobalPipelineMapToValueMap(result.value()));
+        response_data.Add("block_ids", JsonIO::ToValueArray(ToUppStringVector(block_ids)));
+        response_data.Add("global_pipeline", JsonIO::GlobalPipelineMapToValueMap(result.data));
 
         return JsonIO::SuccessResponse("global-pipeline-subsystem", response_data);
     } catch (const std::exception& e) {
@@ -5946,7 +5955,7 @@ Upp::String CommandDispatcher::RunGlobalPipelineSubsystem(const CommandOptions& 
     }
 }
 
-Upp::String CommandDispatcher::RunGlobalPipelineOptSubsystem(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunGlobalPipelineOptSubsystem(CommandOptions& opts) {
     try {
         if (opts.Get("workspace").empty()) {
             return JsonIO::ErrorResponse("global-pipeline-opt-subsystem", "Workspace path is required", "INVALID_ARGUMENT");
@@ -5978,7 +5987,7 @@ Upp::String CommandDispatcher::RunGlobalPipelineOptSubsystem(const CommandOption
         // Get the session metadata
         auto load_result = session_store_->LoadSessionMetadata(session_id);
         if (!load_result.ok) {
-            std::string error_code_str = ErrorCodeToString(load_result.error_code);
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
             return JsonIO::ErrorResponse("global-pipeline-opt-subsystem", load_result.error_message, error_code_str);
         }
 
@@ -6014,15 +6023,15 @@ Upp::String CommandDispatcher::RunGlobalPipelineOptSubsystem(const CommandOption
         }
 
         // Build global pipelining plans for the subsystem
-        CircuitFacade circuit_facade(session_store_);
+        CircuitFacade circuit_facade(session_store_.get());
         auto result = circuit_facade.ProposeGlobalPipeliningPlansInBranch(
             session, session_dir, branch_name,
-            String(subsystem_id.c_str()),
-            Vector<String>(block_ids.begin(), block_ids.end()),
+            subsystem_id,
+            ToUppStringVector(block_ids),
             objective);
 
-        if (!result.ok()) {
-            std::string error_code_str = ErrorCodeToString(result.error_code);
+        if (!result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(result.error_code);
             return JsonIO::ErrorResponse("global-pipeline-opt-subsystem", result.error_message, error_code_str);
         }
 
@@ -6031,8 +6040,8 @@ Upp::String CommandDispatcher::RunGlobalPipelineOptSubsystem(const CommandOption
         response_data.Add("session_id", session_id);
         response_data.Add("branch", Upp::String(branch_name.c_str()));
         response_data.Add("subsystem_id", Upp::String(subsystem_id.c_str()));
-        response_data.Add("block_ids", JsonIO::ToValueArray(Vector<String>(block_ids.begin(), block_ids.end())));
-        response_data.Add("global_plans", JsonIO::ToValueArray(result.value()));
+        response_data.Add("block_ids", JsonIO::ToValueArray(ToUppStringVector(block_ids)));
+        response_data.Add("global_plans", JsonIO::ToValueArray(result.data));
 
         return JsonIO::SuccessResponse("global-pipeline-opt-subsystem", response_data);
     } catch (const std::exception& e) {
@@ -6042,7 +6051,7 @@ Upp::String CommandDispatcher::RunGlobalPipelineOptSubsystem(const CommandOption
     }
 }
 
-Upp::String CommandDispatcher::RunGlobalPipelineApply(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunGlobalPipelineApply(CommandOptions& opts) {
     try {
         if (opts.Get("workspace").empty()) {
             return JsonIO::ErrorResponse("global-pipeline-apply", "Workspace path is required", "INVALID_ARGUMENT");
@@ -6067,7 +6076,7 @@ Upp::String CommandDispatcher::RunGlobalPipelineApply(const CommandOptions& opts
         // Get the session metadata
         auto load_result = session_store_->LoadSessionMetadata(session_id);
         if (!load_result.ok) {
-            std::string error_code_str = ErrorCodeToString(load_result.error_code);
+            std::string error_code_str = JsonIO::ErrorCodeToString(load_result.error_code);
             return JsonIO::ErrorResponse("global-pipeline-apply", load_result.error_message, error_code_str);
         }
 
@@ -6089,12 +6098,12 @@ Upp::String CommandDispatcher::RunGlobalPipelineApply(const CommandOptions& opts
         plan.id = String(plan_id.c_str());
 
         // Apply the global pipelining plan
-        CircuitFacade circuit_facade(session_store_);
+        CircuitFacade circuit_facade(session_store_.get());
         auto result = circuit_facade.ApplyGlobalPipeliningPlanInBranch(
             session, session_dir, branch_name, plan, app_options);
 
-        if (!result.ok()) {
-            std::string error_code_str = ErrorCodeToString(result.error_code);
+        if (!result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(result.error_code);
             return JsonIO::ErrorResponse("global-pipeline-apply", result.error_message, error_code_str);
         }
 
@@ -6102,7 +6111,7 @@ Upp::String CommandDispatcher::RunGlobalPipelineApply(const CommandOptions& opts
         Upp::ValueMap response_data;
         response_data.Add("session_id", session_id);
         response_data.Add("branch", Upp::String(branch_name.c_str()));
-        response_data.Add("applied_plan", JsonIO::ToValueMap(result.value()));
+        response_data.Add("applied_plan", JsonIO::ToValueMap(result.data));
 
         return JsonIO::SuccessResponse("global-pipeline-apply", response_data);
     } catch (const std::exception& e) {
@@ -6112,7 +6121,7 @@ Upp::String CommandDispatcher::RunGlobalPipelineApply(const CommandOptions& opts
     }
 }
 
-Upp::String CommandDispatcher::RunStructAnalyzeBlock(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunStructAnalyzeBlock(CommandOptions& opts) {
     try {
         if (opts.Get("workspace").empty()) {
             return JsonIO::ErrorResponse("struct-analyze-block", "Workspace path is required", "INVALID_ARGUMENT");
@@ -6147,7 +6156,7 @@ Upp::String CommandDispatcher::RunStructAnalyzeBlock(const CommandOptions& opts)
         }
 
         // Create CircuitFacade and analyze the block structure
-        CircuitFacade circuit_facade(session_store_);
+        CircuitFacade circuit_facade(session_store_.get());
         auto analysis_result = circuit_facade.AnalyzeBlockStructureInBranch(
             session,
             workspace_path + "/sessions/" + std::to_string(session_id),
@@ -6175,7 +6184,7 @@ Upp::String CommandDispatcher::RunStructAnalyzeBlock(const CommandOptions& opts)
     }
 }
 
-Upp::String CommandDispatcher::RunStructApplyBlock(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunStructApplyBlock(CommandOptions& opts) {
     try {
         if (opts.Get("workspace").empty()) {
             return JsonIO::ErrorResponse("struct-apply-block", "Workspace path is required", "INVALID_ARGUMENT");
@@ -6222,7 +6231,7 @@ Upp::String CommandDispatcher::RunStructApplyBlock(const CommandOptions& opts) {
         // In a full implementation, we'd have a plan storage system.
 
         // For this example, we'll assume we have a way to retrieve the plan by analyzing again
-        CircuitFacade circuit_facade(session_store_);
+        CircuitFacade circuit_facade(session_store_.get());
         auto analysis_result = circuit_facade.AnalyzeBlockStructureInBranch(
             session,
             workspace_path + "/sessions/" + std::to_string(session_id),
@@ -6235,16 +6244,10 @@ Upp::String CommandDispatcher::RunStructApplyBlock(const CommandOptions& opts) {
             return JsonIO::ErrorResponse("struct-apply-block", analysis_result.error_message, error_code_str);
         }
 
-        // Find the plan with the matching ID
-        StructuralRefactorPlan target_plan;
-        bool found = false;
-        for (const auto& plan : analysis_result.data) {
-            if (std::string(plan.id.c_str()) == plan_id) {
-                target_plan = plan;
-                found = true;
-                break;
-            }
-        }
+        // AnalyzeBlockStructureInBranch returns a single plan; reinterpret the
+        // generated "find plan by id" loop accordingly.
+        StructuralRefactorPlan target_plan = analysis_result.data;
+        bool found = (target_plan.id == plan_id);
 
         if (!found) {
             return JsonIO::ErrorResponse("struct-apply-block", "Plan not found: " + plan_id, "INVALID_ARGUMENT");
@@ -6279,7 +6282,7 @@ Upp::String CommandDispatcher::RunStructApplyBlock(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunCodegenBlockIr(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunCodegenBlockIr(CommandOptions& opts) {
     try {
         if (opts.Get("workspace").empty()) {
             return JsonIO::ErrorResponse("codegen-block-ir", "Workspace path is required", "INVALID_ARGUMENT");
@@ -6314,7 +6317,7 @@ Upp::String CommandDispatcher::RunCodegenBlockIr(const CommandOptions& opts) {
         }
 
         // Build the codegen module for the block
-        CircuitFacade circuit_facade(session_store_);
+        CircuitFacade circuit_facade(session_store_.get());
         auto codegen_result = circuit_facade.BuildCodegenModuleForBlockInBranch(
             session,
             workspace_path + "/sessions/" + std::to_string(session_id),
@@ -6342,7 +6345,7 @@ Upp::String CommandDispatcher::RunCodegenBlockIr(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunCodegenBlockC(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunCodegenBlockC(CommandOptions& opts) {
     try {
         if (opts.Get("workspace").empty()) {
             return JsonIO::ErrorResponse("codegen-block-c", "Workspace path is required", "INVALID_ARGUMENT");
@@ -6386,7 +6389,7 @@ Upp::String CommandDispatcher::RunCodegenBlockC(const CommandOptions& opts) {
         }
 
         // Generate C/C++ code for the block
-        CircuitFacade circuit_facade(session_store_);
+        CircuitFacade circuit_facade(session_store_.get());
         auto code_result = circuit_facade.EmitCodeForBlockInBranch(
             session,
             workspace_path + "/sessions/" + std::to_string(session_id),
@@ -6419,7 +6422,7 @@ Upp::String CommandDispatcher::RunCodegenBlockC(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunCodegenBlockOscDemo(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunCodegenBlockOscDemo(CommandOptions& opts) {
     try {
         if (opts.Get("workspace").empty()) {
             return JsonIO::ErrorResponse("codegen-block-osc-demo", "Workspace path is required", "INVALID_ARGUMENT");
@@ -6463,7 +6466,7 @@ Upp::String CommandDispatcher::RunCodegenBlockOscDemo(const CommandOptions& opts
         }
 
         // Generate oscillator demo code for the block
-        CircuitFacade circuit_facade(session_store_);
+        CircuitFacade circuit_facade(session_store_.get());
         auto code_result = circuit_facade.EmitOscillatorDemoForBlockInBranch(
             session,
             workspace_path + "/sessions/" + std::to_string(session_id),
@@ -6493,7 +6496,7 @@ Upp::String CommandDispatcher::RunCodegenBlockOscDemo(const CommandOptions& opts
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerRetime(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerRetime(CommandOptions& opts) {
     try {
         // Extract payload values
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
@@ -6507,7 +6510,7 @@ Upp::String CommandDispatcher::RunDesignerRetime(const CommandOptions& opts) {
         }
 
         // Create CoDesignerManager instance
-        auto circuit_facade = std::make_shared<CircuitFacade>(session_store_);
+        auto circuit_facade = std::make_shared<CircuitFacade>(session_store_.get());
         CoDesignerManager designer_manager(circuit_facade);
 
         // Build the DesignerRetimeRequest
@@ -6528,10 +6531,10 @@ Upp::String CommandDispatcher::RunDesignerRetime(const CommandOptions& opts) {
 
             // Get block_ids array from payload
             Upp::Value block_ids_value = GetPayload(opts.payload, "block_ids", Upp::ValueArray());
-            if (block_ids_value.IsArray()) {
+            if (IsValueArray(block_ids_value)) {
                 Upp::ValueArray block_ids_array = block_ids_value;
                 for (int i = 0; i < block_ids_array.GetCount(); ++i) {
-                    if (block_ids_array[i].IsString()) {
+                    if (IsStringValueTypeNo(block_ids_array[i].GetType())) {
                         request.block_ids.push_back(block_ids_array[i].ToString().ToStd());
                     }
                 }
@@ -6546,26 +6549,26 @@ Upp::String CommandDispatcher::RunDesignerRetime(const CommandOptions& opts) {
 
         // Call the CoDesigner manager
         auto retiming_result = designer_manager.RetimeDesign(request);
-        if (!retiming_result.ok()) {
-            std::string error_code_str = JsonIO::ErrorCodeToString(retiming_result.error_code());
-            return JsonIO::ErrorResponse("designer-retime", retiming_result.error_message(), error_code_str);
+        if (!retiming_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(retiming_result.error_code);
+            return JsonIO::ErrorResponse("designer-retime", retiming_result.error_message, error_code_str);
         }
 
         // Build response data
         Upp::ValueMap response_data;
         Upp::ValueMap session_map;
-        session_map.Add("designer_session_id", Upp::String(retiming_result.data().designer_session.designer_session_id.c_str()));
-        session_map.Add("proto_session_id", retiming_result.data().designer_session.proto_session_id);
-        session_map.Add("branch", Upp::String(retiming_result.data().designer_session.branch.c_str()));
-        session_map.Add("current_block_id", Upp::String(retiming_result.data().designer_session.current_block_id.c_str()));
-        session_map.Add("current_node_id", Upp::String(retiming_result.data().designer_session.current_node_id.c_str()));
-        session_map.Add("current_node_kind", Upp::String(retiming_result.data().designer_session.current_node_kind.c_str()));
-        session_map.Add("use_optimized_ir", retiming_result.data().designer_session.use_optimized_ir);
+        session_map.Add("designer_session_id", Upp::String(retiming_result.data.designer_session.designer_session_id.c_str()));
+        session_map.Add("proto_session_id", retiming_result.data.designer_session.proto_session_id);
+        session_map.Add("branch", Upp::String(retiming_result.data.designer_session.branch.c_str()));
+        session_map.Add("current_block_id", Upp::String(retiming_result.data.designer_session.current_block_id.c_str()));
+        session_map.Add("current_node_id", Upp::String(retiming_result.data.designer_session.current_node_id.c_str()));
+        session_map.Add("current_node_kind", Upp::String(retiming_result.data.designer_session.current_node_kind.c_str()));
+        session_map.Add("use_optimized_ir", retiming_result.data.designer_session.use_optimized_ir);
         response_data.Add("designer_session", session_map);
 
         // Convert retiming plans to JSON
         Upp::ValueArray plans_array;
-        for (const auto& plan : retiming_result.data().retiming_plans) {
+        for (const auto& plan : retiming_result.data.retiming_plans) {
             plans_array.Add(JsonIO::RetimingPlanToValueMap(plan));
         }
         response_data.Add("retiming_plans", plans_array);
@@ -6578,7 +6581,7 @@ Upp::String CommandDispatcher::RunDesignerRetime(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerRetimeApply(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerRetimeApply(CommandOptions& opts) {
     try {
         // Extract payload values
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
@@ -6597,7 +6600,7 @@ Upp::String CommandDispatcher::RunDesignerRetimeApply(const CommandOptions& opts
         }
 
         // Create CircuitFacade to access retiming application functionality
-        auto circuit_facade = std::make_shared<CircuitFacade>(session_store_);
+        auto circuit_facade = std::make_shared<CircuitFacade>(session_store_.get());
         CoDesignerManager designer_manager(circuit_facade);
 
         // Build the DesignerRetimeApplyRequest
@@ -6611,25 +6614,25 @@ Upp::String CommandDispatcher::RunDesignerRetimeApply(const CommandOptions& opts
 
         // Call the CoDesigner manager
         auto application_result = designer_manager.ApplyRetimeDesign(request);
-        if (!application_result.ok()) {
-            std::string error_code_str = JsonIO::ErrorCodeToString(application_result.error_code());
-            return JsonIO::ErrorResponse("designer-retime-apply", application_result.error_message(), error_code_str);
+        if (!application_result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(application_result.error_code);
+            return JsonIO::ErrorResponse("designer-retime-apply", application_result.error_message, error_code_str);
         }
 
         // Build response data
         Upp::ValueMap response_data;
         Upp::ValueMap session_map;
-        session_map.Add("designer_session_id", Upp::String(application_result.data().designer_session.designer_session_id.c_str()));
-        session_map.Add("proto_session_id", application_result.data().designer_session.proto_session_id);
-        session_map.Add("branch", Upp::String(application_result.data().designer_session.branch.c_str()));
-        session_map.Add("current_block_id", Upp::String(application_result.data().designer_session.current_block_id.c_str()));
-        session_map.Add("current_node_id", Upp::String(application_result.data().designer_session.current_node_id.c_str()));
-        session_map.Add("current_node_kind", Upp::String(application_result.data().designer_session.current_node_kind.c_str()));
-        session_map.Add("use_optimized_ir", application_result.data().designer_session.use_optimized_ir);
+        session_map.Add("designer_session_id", Upp::String(application_result.data.designer_session.designer_session_id.c_str()));
+        session_map.Add("proto_session_id", application_result.data.designer_session.proto_session_id);
+        session_map.Add("branch", Upp::String(application_result.data.designer_session.branch.c_str()));
+        session_map.Add("current_block_id", Upp::String(application_result.data.designer_session.current_block_id.c_str()));
+        session_map.Add("current_node_id", Upp::String(application_result.data.designer_session.current_node_id.c_str()));
+        session_map.Add("current_node_kind", Upp::String(application_result.data.designer_session.current_node_kind.c_str()));
+        session_map.Add("use_optimized_ir", application_result.data.designer_session.use_optimized_ir);
         response_data.Add("designer_session", session_map);
 
         // Add application result data
-        Upp::ValueMap app_result_data = JsonIO::RetimingApplicationResultToValueMap(application_result.data().application_result);
+        Upp::ValueMap app_result_data = JsonIO::RetimingApplicationResultToValueMap(application_result.data.application_result);
         response_data.Add("application_result", app_result_data);
 
         return JsonIO::SuccessResponse("designer-retime-apply", response_data);
@@ -6640,7 +6643,7 @@ Upp::String CommandDispatcher::RunDesignerRetimeApply(const CommandOptions& opts
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerRetimeOpt(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerRetimeOpt(CommandOptions& opts) {
     try {
         // Extract payload values
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
@@ -6674,10 +6677,10 @@ Upp::String CommandDispatcher::RunDesignerRetimeOpt(const CommandOptions& opts) 
 
             // Parse block IDs
             Upp::Value block_ids_value = GetPayload(opts.payload, "block_ids", Upp::Value());
-            if (block_ids_value.IsArray()) {
-                Upp::ValueArray block_ids_array = block_ids_value.Array();
+            if (IsValueArray(block_ids_value)) {
+                Upp::ValueArray block_ids_array = block_ids_value;
                 for (int i = 0; i < block_ids_array.GetCount(); ++i) {
-                    if (block_ids_array[i].IsString()) {
+                    if (IsStringValueTypeNo(block_ids_array[i].GetType())) {
                         request.block_ids.push_back(block_ids_array[i].ToString().ToStd());
                     }
                 }
@@ -6715,14 +6718,15 @@ Upp::String CommandDispatcher::RunDesignerRetimeOpt(const CommandOptions& opts) 
         request.allow_suspicious = GetPayload(opts.payload, "allow_suspicious", false).operator bool();
 
         // Get the designer manager instance
-        auto& designer_manager = CoDesigner::GetInstance().GetDesignerManager();
+        auto circuit_facade_sp = std::make_shared<CircuitFacade>(session_store_.get());
+        CoDesignerManager designer_manager(circuit_facade_sp);
 
         // Perform retiming optimization
         auto result = designer_manager.OptimizeRetimeDesign(request);
 
-        if (!result.ok()) {
-            std::string error_code_str = ErrorCodeToString(result.error_code());
-            return JsonIO::ErrorResponse("designer-retime-opt", result.error_message(), error_code_str);
+        if (!result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(result.error_code);
+            return JsonIO::ErrorResponse("designer-retime-opt", result.error_message, error_code_str);
         }
 
         // Build response data
@@ -6734,7 +6738,7 @@ Upp::String CommandDispatcher::RunDesignerRetimeOpt(const CommandOptions& opts) 
         response_data.Add("designer_session", designer_session_map);
 
         // Add optimization result
-        response_data.Add("optimization_result", JsonIO::ToValueMap(result.value()));
+        response_data.Add("optimization_result", JsonIO::ToValueMap(result.data.optimization_result));
 
         return JsonIO::SuccessResponse("designer-retime-opt", response_data);
     } catch (const std::exception& e) {
@@ -6744,7 +6748,7 @@ Upp::String CommandDispatcher::RunDesignerRetimeOpt(const CommandOptions& opts) 
     }
 }
 
-Upp::String CommandDispatcher::RunCodegenBlockCppClass(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunCodegenBlockCppClass(CommandOptions& opts) {
     try {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("codegen-block-cpp-class", "Workspace path is required", "INVALID_ARGUMENT");
@@ -6752,14 +6756,14 @@ Upp::String CommandDispatcher::RunCodegenBlockCppClass(const CommandOptions& opt
         if (!opts.session_id.has_value()) {
             return JsonIO::ErrorResponse("codegen-block-cpp-class", "Session ID is required", "INVALID_ARGUMENT");
         }
-        if (opts.block_id.empty()) {
+        if (!opts.block_id) {
             return JsonIO::ErrorResponse("codegen-block-cpp-class", "Block ID is required", "INVALID_ARGUMENT");
         }
 
         // Parse the workspace path and session ID
         std::string workspace_path = opts.workspace;
         int session_id = opts.session_id.value();
-        std::string block_id = opts.block_id;
+        std::string block_id = opts.block_id.value_or("");
 
         // Parse the branch name (optional, default to main)
         std::string branch_name = opts.branch.value_or("main");
@@ -6792,7 +6796,7 @@ Upp::String CommandDispatcher::RunCodegenBlockCppClass(const CommandOptions& opt
         cpp_opts.generate_render_method = generate_render_method;
 
         // Generate C++ class code for the block
-        CircuitFacade circuit_facade(session_store_);
+        CircuitFacade circuit_facade(session_store_.get());
         auto code_result = circuit_facade.EmitCppClassForBlockInBranch(
             session,
             workspace_path + "/sessions/" + std::to_string(session_id),
@@ -6822,7 +6826,7 @@ Upp::String CommandDispatcher::RunCodegenBlockCppClass(const CommandOptions& opt
     }
 }
 
-Upp::String CommandDispatcher::RunCodegenBlockAudioDemo(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunCodegenBlockAudioDemo(CommandOptions& opts) {
     try {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("codegen-block-audio-demo", "Workspace path is required", "INVALID_ARGUMENT");
@@ -6830,14 +6834,14 @@ Upp::String CommandDispatcher::RunCodegenBlockAudioDemo(const CommandOptions& op
         if (!opts.session_id.has_value()) {
             return JsonIO::ErrorResponse("codegen-block-audio-demo", "Session ID is required", "INVALID_ARGUMENT");
         }
-        if (opts.block_id.empty()) {
+        if (!opts.block_id) {
             return JsonIO::ErrorResponse("codegen-block-audio-demo", "Block ID is required", "INVALID_ARGUMENT");
         }
 
         // Parse the workspace path and session ID
         std::string workspace_path = opts.workspace;
         int session_id = opts.session_id.value();
-        std::string block_id = opts.block_id;
+        std::string block_id = opts.block_id.value_or("");
 
         // Parse the branch name (optional, default to main)
         std::string branch_name = opts.branch.value_or("main");
@@ -6868,7 +6872,7 @@ Upp::String CommandDispatcher::RunCodegenBlockAudioDemo(const CommandOptions& op
         }
 
         // Get the circuit facade
-        CircuitFacade circuit_facade(session_store_);
+        CircuitFacade circuit_facade(session_store_.get());
 
         // Build the AudioDslGraph
         auto graph_result = circuit_facade.BuildAudioDslForOscillatorBlockInBranch(
@@ -6926,7 +6930,7 @@ Upp::String CommandDispatcher::RunCodegenBlockAudioDemo(const CommandOptions& op
     }
 }
 
-Upp::String CommandDispatcher::RunDspGraphInspect(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDspGraphInspect(CommandOptions& opts) {
     try {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("dsp-graph-inspect", "Workspace path is required", "INVALID_ARGUMENT");
@@ -6934,14 +6938,14 @@ Upp::String CommandDispatcher::RunDspGraphInspect(const CommandOptions& opts) {
         if (!opts.session_id.has_value()) {
             return JsonIO::ErrorResponse("dsp-graph-inspect", "Session ID is required", "INVALID_ARGUMENT");
         }
-        if (opts.block_id.empty()) {
+        if (!opts.block_id) {
             return JsonIO::ErrorResponse("dsp-graph-inspect", "Block ID is required", "INVALID_ARGUMENT");
         }
 
         // Parse the workspace path and session ID
         std::string workspace_path = opts.workspace;
         int session_id = opts.session_id.value();
-        std::string block_id = opts.block_id;
+        std::string block_id = opts.block_id.value_or("");
 
         // Parse the branch name (optional, default to main)
         std::string branch_name = opts.branch.value_or("main");
@@ -6967,7 +6971,7 @@ Upp::String CommandDispatcher::RunDspGraphInspect(const CommandOptions& opts) {
         }
 
         // Get the circuit facade
-        CircuitFacade circuit_facade(session_store_);
+        CircuitFacade circuit_facade(session_store_.get());
 
         // Build the AudioDslGraph
         auto graph_result = circuit_facade.BuildAudioDslForOscillatorBlockInBranch(
@@ -7015,7 +7019,7 @@ Upp::String CommandDispatcher::RunDspGraphInspect(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunDspRenderOsc(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDspRenderOsc(CommandOptions& opts) {
     try {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("dsp-render-osc", "Workspace path is required", "INVALID_ARGUMENT");
@@ -7023,14 +7027,14 @@ Upp::String CommandDispatcher::RunDspRenderOsc(const CommandOptions& opts) {
         if (!opts.session_id.has_value()) {
             return JsonIO::ErrorResponse("dsp-render-osc", "Session ID is required", "INVALID_ARGUMENT");
         }
-        if (opts.block_id.empty()) {
+        if (!opts.block_id) {
             return JsonIO::ErrorResponse("dsp-render-osc", "Block ID is required", "INVALID_ARGUMENT");
         }
 
         // Parse the workspace path and session ID
         std::string workspace_path = opts.workspace;
         int session_id = opts.session_id.value();
-        std::string block_id = opts.block_id;
+        std::string block_id = opts.block_id.value_or("");
 
         // Parse the branch name (optional, default to main)
         std::string branch_name = opts.branch.value_or("main");
@@ -7056,7 +7060,7 @@ Upp::String CommandDispatcher::RunDspRenderOsc(const CommandOptions& opts) {
         }
 
         // Get the circuit facade
-        CircuitFacade circuit_facade(session_store_);
+        CircuitFacade circuit_facade(session_store_.get());
 
         // Build the AudioDslGraph
         auto graph_result = circuit_facade.BuildAudioDslForOscillatorBlockInBranch(
@@ -7149,7 +7153,7 @@ Upp::String CommandDispatcher::RunDspRenderOsc(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunAnalogModelInspect(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunAnalogModelInspect(CommandOptions& opts) {
     try {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("analog-model-inspect", "Workspace path is required", "INVALID_ARGUMENT");
@@ -7157,14 +7161,14 @@ Upp::String CommandDispatcher::RunAnalogModelInspect(const CommandOptions& opts)
         if (!opts.session_id.has_value()) {
             return JsonIO::ErrorResponse("analog-model-inspect", "Session ID is required", "INVALID_ARGUMENT");
         }
-        if (opts.block_id.empty()) {
+        if (!opts.block_id) {
             return JsonIO::ErrorResponse("analog-model-inspect", "Block ID is required", "INVALID_ARGUMENT");
         }
 
         // Parse the workspace path and session ID
         std::string workspace_path = opts.workspace;
         int session_id = opts.session_id.value();
-        std::string block_id = opts.block_id;
+        std::string block_id = opts.block_id.value_or("");
 
         // Parse the branch name (optional, default to main)
         std::string branch_name = opts.branch.value_or("main");
@@ -7184,7 +7188,7 @@ Upp::String CommandDispatcher::RunAnalogModelInspect(const CommandOptions& opts)
         }
 
         // Get the circuit facade
-        CircuitFacade circuit_facade(session_store_);
+        CircuitFacade circuit_facade(session_store_.get());
 
         // Extract the analog model for the block
         auto model_result = circuit_facade.ExtractAnalogModelForBlockInBranch(
@@ -7204,7 +7208,7 @@ Upp::String CommandDispatcher::RunAnalogModelInspect(const CommandOptions& opts)
         response_data.Add("session_id", session_id);
         response_data.Add("branch", Upp::String(branch_name.c_str()));
         response_data.Add("block_id", Upp::String(block_id.c_str()));
-        response_data.Add("analog_model", AnalogBlockModelToValueMap(model_result.data));
+        response_data.Add("analog_model", JsonIO::AnalogBlockModelToValueMap(model_result.data));
 
         return JsonIO::SuccessResponse("analog-model-inspect", response_data);
     } catch (const std::exception& e) {
@@ -7214,7 +7218,7 @@ Upp::String CommandDispatcher::RunAnalogModelInspect(const CommandOptions& opts)
     }
 }
 
-Upp::String CommandDispatcher::RunAnalogRenderOsc(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunAnalogRenderOsc(CommandOptions& opts) {
     try {
         if (opts.workspace.empty()) {
             return JsonIO::ErrorResponse("analog-render-osc", "Workspace path is required", "INVALID_ARGUMENT");
@@ -7222,14 +7226,14 @@ Upp::String CommandDispatcher::RunAnalogRenderOsc(const CommandOptions& opts) {
         if (!opts.session_id.has_value()) {
             return JsonIO::ErrorResponse("analog-render-osc", "Session ID is required", "INVALID_ARGUMENT");
         }
-        if (opts.block_id.empty()) {
+        if (!opts.block_id) {
             return JsonIO::ErrorResponse("analog-render-osc", "Block ID is required", "INVALID_ARGUMENT");
         }
 
         // Parse the workspace path and session ID
         std::string workspace_path = opts.workspace;
         int session_id = opts.session_id.value();
-        std::string block_id = opts.block_id;
+        std::string block_id = opts.block_id.value_or("");
 
         // Parse the branch name (optional, default to main)
         std::string branch_name = opts.branch.value_or("main");
@@ -7254,7 +7258,7 @@ Upp::String CommandDispatcher::RunAnalogRenderOsc(const CommandOptions& opts) {
         }
 
         // Get the circuit facade
-        CircuitFacade circuit_facade(session_store_);
+        CircuitFacade circuit_facade(session_store_.get());
 
         // Build the AudioDslGraph using the analog block
         AudioDslGraph audio_graph;
@@ -7355,7 +7359,7 @@ Upp::String CommandDispatcher::RunAnalogRenderOsc(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerCodegenBlockCppClass(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerCodegenBlockCppClass(CommandOptions& opts) {
     try {
         // Extract payload values
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
@@ -7375,7 +7379,7 @@ Upp::String CommandDispatcher::RunDesignerCodegenBlockCppClass(const CommandOpti
         bool generate_render_method = GetPayload(opts.payload, "render_method", Upp::Value(false)).operator bool();
 
         // Create CoDesignerManager instance
-        auto circuit_facade = std::make_shared<CircuitFacade>(session_store_);
+        auto circuit_facade = std::make_shared<CircuitFacade>(session_store_.get());
         CoDesignerManager designer_manager(circuit_facade);
 
         // Build the DesignerCodegenCppClassRequest (similar structure to other designer requests)
@@ -7390,9 +7394,9 @@ Upp::String CommandDispatcher::RunDesignerCodegenBlockCppClass(const CommandOpti
         // Perform the operation via CoDesigner
         auto result = designer_manager.CodegenCppClass(request);
 
-        if (!result.ok()) {
-            std::string error_code_str = ErrorCodeToString(result.error_code());
-            return JsonIO::ErrorResponse("designer-codegen-block-cpp-class", result.error_message(), error_code_str);
+        if (!result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(result.error_code);
+            return JsonIO::ErrorResponse("designer-codegen-block-cpp-class", result.error_message, error_code_str);
         }
 
         // Build response data
@@ -7404,7 +7408,7 @@ Upp::String CommandDispatcher::RunDesignerCodegenBlockCppClass(const CommandOpti
         response_data.Add("designer_session", designer_session_map);
 
         // Add codegen result
-        response_data.Add("code", Upp::String(result.value().code.c_str()));
+        response_data.Add("code", Upp::String(result.data.result.code.c_str()));
 
         return JsonIO::SuccessResponse("designer-codegen-block-cpp-class", response_data);
     } catch (const std::exception& e) {
@@ -7414,7 +7418,7 @@ Upp::String CommandDispatcher::RunDesignerCodegenBlockCppClass(const CommandOpti
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerCodegenBlockAudioDemo(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerCodegenBlockAudioDemo(CommandOptions& opts) {
     try {
         // Extract payload values
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
@@ -7437,7 +7441,7 @@ Upp::String CommandDispatcher::RunDesignerCodegenBlockAudioDemo(const CommandOpt
         std::string namespace_name = GetPayload(opts.payload, "namespace", Upp::String("")).ToStd();
 
         // Create CoDesignerManager instance
-        auto circuit_facade = std::make_shared<CircuitFacade>(session_store_);
+        auto circuit_facade = std::make_shared<CircuitFacade>(session_store_.get());
         CoDesignerManager designer_manager(circuit_facade);
 
         // Build the DesignerCodegenAudioDemoRequest (similar structure to other designer requests)
@@ -7455,9 +7459,9 @@ Upp::String CommandDispatcher::RunDesignerCodegenBlockAudioDemo(const CommandOpt
         // Perform the operation via CoDesigner
         auto result = designer_manager.CodegenAudioDemo(request);
 
-        if (!result.ok()) {
-            std::string error_code_str = ErrorCodeToString(result.error_code());
-            return JsonIO::ErrorResponse("designer-codegen-block-audio-demo", result.error_message(), error_code_str);
+        if (!result.ok) {
+            std::string error_code_str = JsonIO::ErrorCodeToString(result.error_code);
+            return JsonIO::ErrorResponse("designer-codegen-block-audio-demo", result.error_message, error_code_str);
         }
 
         // Build response data
@@ -7469,8 +7473,8 @@ Upp::String CommandDispatcher::RunDesignerCodegenBlockAudioDemo(const CommandOpt
         response_data.Add("designer_session", designer_session_map);
 
         // Add audio DSL and codegen result
-        response_data.Add("audio_dsl", JsonIO::AudioDslGraphToValueMap(result.value().audio_dsl));
-        response_data.Add("code", Upp::String(result.value().code.c_str()));
+        response_data.Add("audio_dsl", JsonIO::AudioDslGraphToValueMap(result.data.result.audio_dsl));
+        response_data.Add("code", Upp::String(result.data.result.code.c_str()));
 
         return JsonIO::SuccessResponse("designer-codegen-block-audio-demo", response_data);
     } catch (const std::exception& e) {
@@ -7480,7 +7484,7 @@ Upp::String CommandDispatcher::RunDesignerCodegenBlockAudioDemo(const CommandOpt
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerQaAnalyze(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerQaAnalyze(CommandOptions& opts) {
     try {
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
@@ -7541,13 +7545,13 @@ Upp::String CommandDispatcher::RunDesignerQaAnalyze(const CommandOptions& opts) 
                     case AudioQaMetricKind::SilenceRatio: return "SilenceRatio";
                     default: return "Unknown";
                 }
-            }().c_str()));
+            }()));
             metric_map.Add("value", metric.value);
             metric_map.Add("description", Upp::String(metric.description.c_str()));
             metrics_array.Add(metric_map);
         }
         response_data.Add("metrics", metrics_array);
-        response_data.Add("sample_count", report.sample_count);
+        response_data.Add("sample_count", Upp::int64(report.sample_count));
         response_data.Add("duration_seconds", report.duration_seconds);
 
         return JsonIO::SuccessResponse("designer-qa-analyze", response_data);
@@ -7557,7 +7561,7 @@ Upp::String CommandDispatcher::RunDesignerQaAnalyze(const CommandOptions& opts) 
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerQaDiff(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerQaDiff(CommandOptions& opts) {
     try {
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
@@ -7633,19 +7637,19 @@ Upp::String CommandDispatcher::RunDesignerQaDiff(const CommandOptions& opts) {
                     case AudioQaMetricKind::SilenceRatio: return "SilenceRatio";
                     default: return "Unknown";
                 }
-            }().c_str()));
+            }()));
             entry_map.Add("before", entry.before_value);
             entry_map.Add("after", entry.after_value);
             entry_map.Add("delta", entry.delta);
             entry_map.Add("verdict", Upp::String([&entry]() {
                 switch (entry.verdict) {
-                    case AudioQaDiffVerdict::regression: return "regression";
-                    case AudioQaDiffVerdict::improvement: return "improvement";
-                    case AudioQaDiffVerdict::neutral: return "neutral";
-                    case AudioQaDiffVerdict::error: return "error";
+                    case AudioQa::AudioQaDiffVerdict::regression: return "regression";
+                    case AudioQa::AudioQaDiffVerdict::improvement: return "improvement";
+                    case AudioQa::AudioQaDiffVerdict::neutral: return "neutral";
+                    case AudioQa::AudioQaDiffVerdict::error: return "error";
                     default: return "unknown";
                 }
-            }().c_str()));
+            }()));
             entry_map.Add("description", Upp::String(entry.description.c_str()));
             diffs_array.Add(entry_map);
         }
@@ -7658,7 +7662,7 @@ Upp::String CommandDispatcher::RunDesignerQaDiff(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunDesignerQaVerify(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunDesignerQaVerify(CommandOptions& opts) {
     try {
         std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
@@ -7713,7 +7717,7 @@ Upp::String CommandDispatcher::RunDesignerQaVerify(const CommandOptions& opts) {
                         case AudioQaMetricKind::FundamentalFrequency: return "FundamentalFrequency";
                         default: return "Unknown";
                     }
-                }().c_str()));
+                }()));
                 violation_map.Add("error", Upp::String(check_result.second.c_str()));
                 violation_map.Add("value", metric.value);
 
@@ -7751,7 +7755,7 @@ Upp::String CommandDispatcher::RunDesignerQaVerify(const CommandOptions& opts) {
                     case AudioQaMetricKind::SilenceRatio: return "SilenceRatio";
                     default: return "Unknown";
                 }
-            }().c_str()));
+            }()));
             metric_map.Add("value", metric.value);
             metric_map.Add("description", Upp::String(metric.description.c_str()));
             metrics_array.Add(metric_map);
@@ -7759,7 +7763,7 @@ Upp::String CommandDispatcher::RunDesignerQaVerify(const CommandOptions& opts) {
         response_data.Add("metrics", metrics_array);
         response_data.Add("passed", all_passed);
         response_data.Add("violations", violations_array);
-        response_data.Add("sample_count", report.sample_count);
+        response_data.Add("sample_count", Upp::int64(report.sample_count));
         response_data.Add("duration_seconds", report.duration_seconds);
 
         return JsonIO::SuccessResponse("designer-qa-verify", response_data);
@@ -7769,7 +7773,7 @@ Upp::String CommandDispatcher::RunDesignerQaVerify(const CommandOptions& opts) {
     }
 }
 
-Upp::String CommandDispatcher::RunInstrumentBuildHybrid(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunInstrumentBuildHybrid(CommandOptions& opts) {
     try {
         // Extract required parameters
         std::string workspace_path = opts.workspace;
@@ -7825,7 +7829,7 @@ Upp::String CommandDispatcher::RunInstrumentBuildHybrid(const CommandOptions& op
         note.duration_sec = duration_sec;
 
         // Create CircuitFacade and build hybrid instrument
-        CircuitFacade facade(session_store_);
+        CircuitFacade facade(session_store_.get());
         auto instrument_result = facade.BuildHybridInstrumentInBranch(
             session,
             session_dir,
@@ -7845,7 +7849,7 @@ Upp::String CommandDispatcher::RunInstrumentBuildHybrid(const CommandOptions& op
 
         // Build response
         Upp::ValueMap response_data;
-        response_data.Add("session_id", session_id);
+        response_data.Add("session_id", Upp::int64(session_id));
         response_data.Add("branch", Upp::String(branch_name.c_str()));
         response_data.Add("instrument", JsonIO::InstrumentGraphToValueMap(instrument_result.data));
 
@@ -7858,7 +7862,7 @@ Upp::String CommandDispatcher::RunInstrumentBuildHybrid(const CommandOptions& op
     }
 }
 
-Upp::String CommandDispatcher::RunInstrumentRenderHybrid(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunInstrumentRenderHybrid(CommandOptions& opts) {
     try {
         // Extract required parameters
         std::string workspace_path = opts.workspace;
@@ -7933,7 +7937,7 @@ Upp::String CommandDispatcher::RunInstrumentRenderHybrid(const CommandOptions& o
             note.velocity = 1.0;
             note.duration_sec = duration_sec;
 
-            CircuitFacade facade(session_store_);
+            CircuitFacade facade(session_store_.get());
             auto build_result = facade.BuildHybridInstrumentInBranch(
                 session,
                 session_dir,
@@ -7957,7 +7961,7 @@ Upp::String CommandDispatcher::RunInstrumentRenderHybrid(const CommandOptions& o
         // Render the instrument
         std::vector<float> out_left, out_right;
 
-        CircuitFacade facade(session_store_);
+        CircuitFacade facade(session_store_.get());
         auto render_result = facade.RenderHybridInstrumentInBranch(
             session,
             session_dir,
@@ -7995,9 +7999,9 @@ Upp::String CommandDispatcher::RunInstrumentRenderHybrid(const CommandOptions& o
 
         // Build response
         Upp::ValueMap response_data;
-        response_data.Add("session_id", session_id);
+        response_data.Add("session_id", Upp::int64(session_id));
         response_data.Add("branch", Upp::String(branch_name.c_str()));
-        response_data.Add("instrument_id", Upp::String(instrument.instrument_id.c_str()));
+        response_data.Add("instrument_id", instrument.instrument_id);
         response_data.Add("sample_rate_hz", instrument.sample_rate_hz);
         response_data.Add("duration_sec", instrument.note.duration_sec);
         response_data.Add("voice_count", instrument.voice_count);
@@ -8015,7 +8019,7 @@ Upp::String CommandDispatcher::RunInstrumentRenderHybrid(const CommandOptions& o
     }
 }
 
-Upp::String CommandDispatcher::RunInstrumentExportCpp(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunInstrumentExportCpp(CommandOptions& opts) {
     try {
         // Extract required parameters
         std::string workspace_path = opts.workspace;
@@ -8095,7 +8099,7 @@ Upp::String CommandDispatcher::RunInstrumentExportCpp(const CommandOptions& opts
             note.velocity = 1.0;
             note.duration_sec = duration_sec;
 
-            CircuitFacade facade(session_store_);
+            CircuitFacade facade(session_store_.get());
             auto build_result = facade.BuildHybridInstrumentInBranch(
                 session,
                 session_dir,
@@ -8117,7 +8121,7 @@ Upp::String CommandDispatcher::RunInstrumentExportCpp(const CommandOptions& opts
         }
 
         // Create export options
-        InstrumentExportOptions export_options;
+        ProtoVM::InstrumentExportOptions export_options;
         export_options.program_name = program_name;
         export_options.namespace_name = namespace_name;
         export_options.include_wav_writer = include_wav_writer;
@@ -8125,7 +8129,7 @@ Upp::String CommandDispatcher::RunInstrumentExportCpp(const CommandOptions& opts
         export_options.emit_comment_banner = emit_comment_banner;
 
         // Export the instrument as standalone C++
-        CircuitFacade facade(session_store_);
+        CircuitFacade facade(session_store_.get());
         auto export_result = facade.ExportInstrumentAsStandaloneCppInBranch(
             session,
             session_dir,
@@ -8142,9 +8146,9 @@ Upp::String CommandDispatcher::RunInstrumentExportCpp(const CommandOptions& opts
 
         // Build response
         Upp::ValueMap response_data;
-        response_data.Add("session_id", session_id);
+        response_data.Add("session_id", Upp::int64(session_id));
         response_data.Add("branch", Upp::String(branch_name.c_str()));
-        response_data.Add("instrument_id", Upp::String(instrument.instrument_id.c_str()));
+        response_data.Add("instrument_id", instrument.instrument_id);
         response_data.Add("program_name", Upp::String(export_options.program_name.c_str()));
         response_data.Add("cpp_source", Upp::String(export_result.data.c_str()));
 
@@ -8157,7 +8161,7 @@ Upp::String CommandDispatcher::RunInstrumentExportCpp(const CommandOptions& opts
     }
 }
 
-Upp::String CommandDispatcher::RunInstrumentExportPluginSkeleton(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunInstrumentExportPluginSkeleton(CommandOptions& opts) {
     try {
         // Extract required parameters
         std::string workspace_path = opts.workspace;
@@ -8251,7 +8255,7 @@ Upp::String CommandDispatcher::RunInstrumentExportPluginSkeleton(const CommandOp
             note.velocity = 1.0;
             note.duration_sec = duration_sec;
 
-            CircuitFacade facade(session_store_);
+            CircuitFacade facade(session_store_.get());
             auto build_result = facade.BuildHybridInstrumentInBranch(
                 session,
                 session_dir,
@@ -8283,7 +8287,7 @@ Upp::String CommandDispatcher::RunInstrumentExportPluginSkeleton(const CommandOp
         skeleton_options.emit_comment_banner = true;  // Include comment banner for clarity
 
         // Export the plugin skeleton
-        CircuitFacade facade(session_store_);
+        CircuitFacade facade(session_store_.get());
         auto export_result = facade.ExportPluginSkeletonForInstrumentInBranch(
             session,
             session_dir,
@@ -8300,13 +8304,13 @@ Upp::String CommandDispatcher::RunInstrumentExportPluginSkeleton(const CommandOp
 
         // Build response
         Upp::ValueMap response_data;
-        response_data.Add("session_id", session_id);
+        response_data.Add("session_id", Upp::int64(session_id));
         response_data.Add("branch", Upp::String(branch_name.c_str()));
-        response_data.Add("instrument_id", Upp::String(instrument.instrument_id.c_str()));
+        response_data.Add("instrument_id", instrument.instrument_id);
         response_data.Add("plugin_target", Upp::String(plugin_target_str.c_str()));
         response_data.Add("plugin_name", Upp::String(plugin_name.c_str()));
         response_data.Add("plugin_id", Upp::String(plugin_id.c_str()));
-        response_data.Add("skeleton_source", Upp::String(export_result.data.c_str()));
+        response_data.Add("skeleton_source", export_result.data);
 
         return JsonIO::SuccessResponse("instrument-export-plugin-skeleton", response_data);
 
@@ -8317,7 +8321,7 @@ Upp::String CommandDispatcher::RunInstrumentExportPluginSkeleton(const CommandOp
     }
 }
 
-Upp::String CommandDispatcher::RunInstrumentExportPluginProject(const CommandOptions& opts) {
+Upp::String CommandDispatcher::RunInstrumentExportPluginProject(CommandOptions& opts) {
     try {
         // Extract required parameters
         std::string workspace_path = opts.workspace;
@@ -8417,7 +8421,7 @@ Upp::String CommandDispatcher::RunInstrumentExportPluginProject(const CommandOpt
             note.velocity = 1.0;
             note.duration_sec = duration_sec;
 
-            CircuitFacade facade(session_store_);
+            CircuitFacade facade(session_store_.get());
             auto build_result = facade.BuildHybridInstrumentInBranch(
                 session,
                 session_dir,
@@ -8452,7 +8456,7 @@ Upp::String CommandDispatcher::RunInstrumentExportPluginProject(const CommandOpt
         project_options.default_voice_count = voice_count;
 
         // Export the plugin project
-        CircuitFacade facade(session_store_);
+        CircuitFacade facade(session_store_.get());
         auto export_result = facade.ExportPluginProjectForInstrumentInBranch(
             session,
             session_dir,
@@ -8469,9 +8473,9 @@ Upp::String CommandDispatcher::RunInstrumentExportPluginProject(const CommandOpt
 
         // Build response
         Upp::ValueMap response_data;
-        response_data.Add("session_id", session_id);
+        response_data.Add("session_id", Upp::int64(session_id));
         response_data.Add("branch", Upp::String(branch_name.c_str()));
-        response_data.Add("instrument_id", Upp::String(instrument.instrument_id.c_str()));
+        response_data.Add("instrument_id", instrument.instrument_id);
         response_data.Add("plugin_target", Upp::String(plugin_target_str.c_str()));
         response_data.Add("plugin_name", Upp::String(plugin_name.c_str()));
         response_data.Add("plugin_id", Upp::String(plugin_id.c_str()));

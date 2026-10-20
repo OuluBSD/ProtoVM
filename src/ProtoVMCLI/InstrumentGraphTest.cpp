@@ -9,8 +9,6 @@
 #include <cassert>
 #include <cmath>
 
-using namespace ProtoVMCLI;
-
 void TestInstrumentBuilder() {
     std::cout << "Testing InstrumentBuilder..." << std::endl;
 

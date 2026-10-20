@@ -93,21 +93,21 @@ Result<void> CoDesignerManager::DestroySession(const std::string& designer_sessi
 Result<DesignerRetimeResponse> CoDesignerManager::RetimeDesign(const DesignerRetimeRequest& request) {
     // Get the designer session first
     auto session_result = GetSession(request.designer_session_id);
-    if (!session_result.ok()) {
+    if (!session_result.ok) {
         return Result<DesignerRetimeResponse>::MakeError(
-            session_result.error_code(),
-            session_result.error_message()
+            session_result.error_code,
+            session_result.error_message
         );
     }
 
     CoDesignerSessionState session = session_result.data();
 
     // Load the ProtoVM session metadata using the circuit facade
-    auto load_session_result = circuit_facade_->session_store_->LoadSession(session.proto_session_id);
-    if (!load_session_result.ok()) {
+    auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
+    if (!load_session_result.ok) {
         return Result<DesignerRetimeResponse>::MakeError(
-            load_session_result.error_code(),
-            load_session_result.error_message()
+            load_session_result.error_code,
+            load_session_result.error_message
         );
     }
 
@@ -130,10 +130,10 @@ Result<DesignerRetimeResponse> CoDesignerManager::RetimeDesign(const DesignerRet
         auto retiming_result = circuit_facade_->AnalyzeRetimingForBlockInBranch(
             metadata, session_dir, session.branch, request.block_id);
 
-        if (!retiming_result.ok()) {
+        if (!retiming_result.ok) {
             return Result<DesignerRetimeResponse>::MakeError(
-                retiming_result.error_code(),
-                retiming_result.error_message()
+                retiming_result.error_code,
+                retiming_result.error_message
             );
         }
 
@@ -166,10 +166,10 @@ Result<DesignerRetimeResponse> CoDesignerManager::RetimeDesign(const DesignerRet
         auto retiming_result = circuit_facade_->AnalyzeRetimingForSubsystemInBranch(
             metadata, session_dir, session.branch, request.subsystem_id, block_ids);
 
-        if (!retiming_result.ok()) {
+        if (!retiming_result.ok) {
             return Result<DesignerRetimeResponse>::MakeError(
-                retiming_result.error_code(),
-                retiming_result.error_message()
+                retiming_result.error_code,
+                retiming_result.error_message
             );
         }
 
@@ -197,21 +197,21 @@ Result<DesignerRetimeResponse> CoDesignerManager::RetimeDesign(const DesignerRet
 Result<DesignerRetimeApplyResponse> CoDesignerManager::ApplyRetimeDesign(const DesignerRetimeApplyRequest& request) {
     // Get the designer session first
     auto session_result = GetSession(request.designer_session_id);
-    if (!session_result.ok()) {
+    if (!session_result.ok) {
         return Result<DesignerRetimeApplyResponse>::MakeError(
-            session_result.error_code(),
-            session_result.error_message()
+            session_result.error_code,
+            session_result.error_message
         );
     }
 
     CoDesignerSessionState session = session_result.data();
 
     // Load the ProtoVM session metadata using the circuit facade
-    auto load_session_result = circuit_facade_->session_store_->LoadSession(session.proto_session_id);
-    if (!load_session_result.ok()) {
+    auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
+    if (!load_session_result.ok) {
         return Result<DesignerRetimeApplyResponse>::MakeError(
-            load_session_result.error_code(),
-            load_session_result.error_message()
+            load_session_result.error_code,
+            load_session_result.error_message
         );
     }
 
@@ -233,10 +233,10 @@ Result<DesignerRetimeApplyResponse> CoDesignerManager::ApplyRetimeDesign(const D
         auto plans_result = circuit_facade_->AnalyzeRetimingForBlockInBranch(
             metadata, session_dir, session.branch, session.current_block_id);
 
-        if (!plans_result.ok()) {
+        if (!plans_result.ok) {
             return Result<DesignerRetimeApplyResponse>::MakeError(
-                plans_result.error_code(),
-                plans_result.error_message()
+                plans_result.error_code,
+                plans_result.error_message
             );
         }
 
@@ -260,10 +260,10 @@ Result<DesignerRetimeApplyResponse> CoDesignerManager::ApplyRetimeDesign(const D
         auto application_result = circuit_facade_->ApplyRetimingPlanForBlockInBranch(
             metadata, session_dir, session.branch, *target_plan, app_options);
 
-        if (!application_result.ok()) {
+        if (!application_result.ok) {
             return Result<DesignerRetimeApplyResponse>::MakeError(
-                application_result.error_code(),
-                application_result.error_message()
+                application_result.error_code,
+                application_result.error_message
             );
         }
 
@@ -282,10 +282,10 @@ Result<DesignerRetimeApplyResponse> CoDesignerManager::ApplyRetimeDesign(const D
         auto plans_result = circuit_facade_->AnalyzeRetimingForSubsystemInBranch(
             metadata, session_dir, session.branch, session.current_block_id, block_ids);
 
-        if (!plans_result.ok()) {
+        if (!plans_result.ok) {
             return Result<DesignerRetimeApplyResponse>::MakeError(
-                plans_result.error_code(),
-                plans_result.error_message()
+                plans_result.error_code,
+                plans_result.error_message
             );
         }
 
@@ -309,10 +309,10 @@ Result<DesignerRetimeApplyResponse> CoDesignerManager::ApplyRetimeDesign(const D
         auto application_result = circuit_facade_->ApplyRetimingPlanForSubsystemInBranch(
             metadata, session_dir, session.branch, *target_plan, app_options);
 
-        if (!application_result.ok()) {
+        if (!application_result.ok) {
             return Result<DesignerRetimeApplyResponse>::MakeError(
-                application_result.error_code(),
-                application_result.error_message()
+                application_result.error_code,
+                application_result.error_message
             );
         }
 
@@ -327,10 +327,10 @@ Result<DesignerRetimeApplyResponse> CoDesignerManager::ApplyRetimeDesign(const D
 
     // Update the session state as necessary
     auto update_result = UpdateSession(response.designer_session);
-    if (!update_result.ok()) {
+    if (!update_result.ok) {
         return Result<DesignerRetimeApplyResponse>::MakeError(
-            update_result.error_code(),
-            update_result.error_message()
+            update_result.error_code,
+            update_result.error_message
         );
     }
 
@@ -340,21 +340,21 @@ Result<DesignerRetimeApplyResponse> CoDesignerManager::ApplyRetimeDesign(const D
 Result<DesignerRetimeOptResponse> CoDesignerManager::OptimizeRetimeDesign(const DesignerRetimeOptRequest& request) {
     // Get the designer session first
     auto session_result = GetSession(request.designer_session_id);
-    if (!session_result.ok()) {
+    if (!session_result.ok) {
         return Result<DesignerRetimeOptResponse>::MakeError(
-            session_result.error_code(),
-            session_result.error_message()
+            session_result.error_code,
+            session_result.error_message
         );
     }
 
     CoDesignerSessionState session = session_result.data();
 
     // Load the ProtoVM session metadata using the circuit facade
-    auto load_session_result = circuit_facade_->session_store_->LoadSession(session.proto_session_id);
-    if (!load_session_result.ok()) {
+    auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
+    if (!load_session_result.ok) {
         return Result<DesignerRetimeOptResponse>::MakeError(
-            load_session_result.error_code(),
-            load_session_result.error_message()
+            load_session_result.error_code,
+            load_session_result.error_message
         );
     }
 
@@ -388,10 +388,10 @@ Result<DesignerRetimeOptResponse> CoDesignerManager::OptimizeRetimeDesign(const 
             metadata, session_dir, session.branch, request.block_id,
             request.objective, app_options);
 
-        if (!result.ok()) {
+        if (!result.ok) {
             return Result<DesignerRetimeOptResponse>::MakeError(
-                result.error_code(),
-                result.error_message()
+                result.error_code,
+                result.error_message
             );
         }
 
@@ -416,10 +416,10 @@ Result<DesignerRetimeOptResponse> CoDesignerManager::OptimizeRetimeDesign(const 
             metadata, session_dir, session.branch, request.subsystem_id,
             block_ids, request.objective, app_options);
 
-        if (!result.ok()) {
+        if (!result.ok) {
             return Result<DesignerRetimeOptResponse>::MakeError(
-                result.error_code(),
-                result.error_message()
+                result.error_code,
+                result.error_message
             );
         }
 
@@ -434,10 +434,10 @@ Result<DesignerRetimeOptResponse> CoDesignerManager::OptimizeRetimeDesign(const 
 
     // Update the session state as necessary
     auto update_result = UpdateSession(response.designer_session);
-    if (!update_result.ok()) {
+    if (!update_result.ok) {
         return Result<DesignerRetimeOptResponse>::MakeError(
-            update_result.error_code(),
-            update_result.error_message()
+            update_result.error_code,
+            update_result.error_message
         );
     }
 
@@ -447,21 +447,21 @@ Result<DesignerRetimeOptResponse> CoDesignerManager::OptimizeRetimeDesign(const 
 Result<DesignerCodegenBlockCResponse> CoDesignerManager::CodegenBlockC(const DesignerCodegenBlockCRequest& request) {
     // Get the designer session first
     auto session_result = GetSession(request.designer_session_id);
-    if (!session_result.ok()) {
+    if (!session_result.ok) {
         return Result<DesignerCodegenBlockCResponse>::MakeError(
-            session_result.error_code(),
-            session_result.error_message()
+            session_result.error_code,
+            session_result.error_message
         );
     }
 
     CoDesignerSessionState session = session_result.data();
 
     // Load the ProtoVM session metadata using the circuit facade
-    auto load_session_result = circuit_facade_->session_store_->LoadSession(session.proto_session_id);
-    if (!load_session_result.ok()) {
+    auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
+    if (!load_session_result.ok) {
         return Result<DesignerCodegenBlockCResponse>::MakeError(
-            load_session_result.error_code(),
-            load_session_result.error_message()
+            load_session_result.error_code,
+            load_session_result.error_message
         );
     }
 
@@ -483,10 +483,10 @@ Result<DesignerCodegenBlockCResponse> CoDesignerManager::CodegenBlockC(const Des
         request.function_name
     );
 
-    if (!code_result.ok()) {
+    if (!code_result.ok) {
         return Result<DesignerCodegenBlockCResponse>::MakeError(
-            code_result.error_code(),
-            code_result.error_message()
+            code_result.error_code,
+            code_result.error_message
         );
     }
 
@@ -499,10 +499,10 @@ Result<DesignerCodegenBlockCResponse> CoDesignerManager::CodegenBlockC(const Des
 
     // Update the session state as necessary
     auto update_result = UpdateSession(response.designer_session);
-    if (!update_result.ok()) {
+    if (!update_result.ok) {
         return Result<DesignerCodegenBlockCResponse>::MakeError(
-            update_result.error_code(),
-            update_result.error_message()
+            update_result.error_code,
+            update_result.error_message
         );
     }
 
@@ -512,21 +512,21 @@ Result<DesignerCodegenBlockCResponse> CoDesignerManager::CodegenBlockC(const Des
 Result<DesignerCodegenOscDemoResponse> CoDesignerManager::CodegenOscDemo(const DesignerCodegenOscDemoRequest& request) {
     // Get the designer session first
     auto session_result = GetSession(request.designer_session_id);
-    if (!session_result.ok()) {
+    if (!session_result.ok) {
         return Result<DesignerCodegenOscDemoResponse>::MakeError(
-            session_result.error_code(),
-            session_result.error_message()
+            session_result.error_code,
+            session_result.error_message
         );
     }
 
     CoDesignerSessionState session = session_result.data();
 
     // Load the ProtoVM session metadata using the circuit facade
-    auto load_session_result = circuit_facade_->session_store_->LoadSession(session.proto_session_id);
-    if (!load_session_result.ok()) {
+    auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
+    if (!load_session_result.ok) {
         return Result<DesignerCodegenOscDemoResponse>::MakeError(
-            load_session_result.error_code(),
-            load_session_result.error_message()
+            load_session_result.error_code,
+            load_session_result.error_message
         );
     }
 
@@ -545,10 +545,10 @@ Result<DesignerCodegenOscDemoResponse> CoDesignerManager::CodegenOscDemo(const D
         request.lang
     );
 
-    if (!code_result.ok()) {
+    if (!code_result.ok) {
         return Result<DesignerCodegenOscDemoResponse>::MakeError(
-            code_result.error_code(),
-            code_result.error_message()
+            code_result.error_code,
+            code_result.error_message
         );
     }
 
@@ -559,34 +559,183 @@ Result<DesignerCodegenOscDemoResponse> CoDesignerManager::CodegenOscDemo(const D
 
     // Update the session state as necessary
     auto update_result = UpdateSession(response.designer_session);
-    if (!update_result.ok()) {
+    if (!update_result.ok) {
         return Result<DesignerCodegenOscDemoResponse>::MakeError(
-            update_result.error_code(),
-            update_result.error_message()
+            update_result.error_code,
+            update_result.error_message
         );
     }
 
     return Result<DesignerCodegenOscDemoResponse>::MakeOk(response);
 }
 
-Result<DesignerGlobalPipelineResponse> CoDesignerManager::AnalyzeGlobalPipeline(const DesignerGlobalPipelineRequest& request) {
+Result<DesignerCodegenCppClassResponse> CoDesignerManager::CodegenCppClass(const DesignerCodegenCppClassRequest& request) {
     // Get the designer session first
     auto session_result = GetSession(request.designer_session_id);
-    if (!session_result.ok()) {
-        return Result<DesignerGlobalPipelineResponse>::MakeError(
-            session_result.error_code(),
-            session_result.error_message()
+    if (!session_result.ok) {
+        return Result<DesignerCodegenCppClassResponse>::MakeError(
+            session_result.error_code,
+            session_result.error_message
         );
     }
 
     CoDesignerSessionState session = session_result.data();
 
     // Load the ProtoVM session metadata using the circuit facade
-    auto load_session_result = circuit_facade_->session_store_->LoadSession(session.proto_session_id);
-    if (!load_session_result.ok()) {
+    auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
+    if (!load_session_result.ok) {
+        return Result<DesignerCodegenCppClassResponse>::MakeError(
+            load_session_result.error_code,
+            load_session_result.error_message
+        );
+    }
+
+    SessionMetadata metadata = load_session_result.data();
+    std::string session_dir = metadata.workspace_path + "/sessions/" + std::to_string(session.proto_session_id);
+
+    // Build class codegen options from the request
+    CppClassOptions class_opts;
+    class_opts.class_name = request.class_name;
+    class_opts.state_class_name = request.state_class_name;
+    class_opts.namespace_name = request.namespace_name;
+    class_opts.generate_render_method = request.generate_render_method;
+
+    DesignerCodegenCppClassResponse response;
+    response.designer_session = session;
+
+    // Generate the C++ class code for the block
+    auto code_result = circuit_facade_->EmitCppClassForBlockInBranch(
+        metadata,
+        session_dir,
+        session.branch,
+        request.block_id,
+        class_opts
+    );
+
+    if (!code_result.ok) {
+        return Result<DesignerCodegenCppClassResponse>::MakeError(
+            code_result.error_code,
+            code_result.error_message
+        );
+    }
+
+    response.result.code = code_result.data;
+
+    // Update the session state as necessary
+    auto update_result = UpdateSession(response.designer_session);
+    if (!update_result.ok) {
+        return Result<DesignerCodegenCppClassResponse>::MakeError(
+            update_result.error_code,
+            update_result.error_message
+        );
+    }
+
+    return Result<DesignerCodegenCppClassResponse>::MakeOk(response);
+}
+
+Result<DesignerCodegenAudioDemoResponse> CoDesignerManager::CodegenAudioDemo(const DesignerCodegenAudioDemoRequest& request) {
+    // Get the designer session first
+    auto session_result = GetSession(request.designer_session_id);
+    if (!session_result.ok) {
+        return Result<DesignerCodegenAudioDemoResponse>::MakeError(
+            session_result.error_code,
+            session_result.error_message
+        );
+    }
+
+    CoDesignerSessionState session = session_result.data();
+
+    // Load the ProtoVM session metadata using the circuit facade
+    auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
+    if (!load_session_result.ok) {
+        return Result<DesignerCodegenAudioDemoResponse>::MakeError(
+            load_session_result.error_code,
+            load_session_result.error_message
+        );
+    }
+
+    SessionMetadata metadata = load_session_result.data();
+    std::string session_dir = metadata.workspace_path + "/sessions/" + std::to_string(session.proto_session_id);
+
+    DesignerCodegenAudioDemoResponse response;
+    response.designer_session = session;
+
+    // Build the audio DSL graph for the demo
+    auto dsl_result = circuit_facade_->BuildAudioDslForOscillatorBlockInBranch(
+        metadata,
+        session_dir,
+        session.branch,
+        request.block_id,
+        request.freq_hz,
+        request.pan_lfo_hz,
+        request.sample_rate,
+        request.duration_sec
+    );
+
+    if (!dsl_result.ok) {
+        return Result<DesignerCodegenAudioDemoResponse>::MakeError(
+            dsl_result.error_code,
+            dsl_result.error_message
+        );
+    }
+    response.result.audio_dsl = dsl_result.data;
+
+    // Class options for the demo code emission
+    CppClassOptions class_opts;
+    class_opts.class_name = request.class_name;
+    class_opts.state_class_name = request.state_class_name;
+    class_opts.namespace_name = request.namespace_name;
+    class_opts.generate_render_method = true;
+    class_opts.default_sample_rate = request.sample_rate;
+
+    // Emit the audio demo code for the block
+    auto code_result = circuit_facade_->EmitAudioDemoForOscillatorBlockInBranch(
+        metadata,
+        session_dir,
+        session.branch,
+        request.block_id,
+        class_opts,
+        response.result.audio_dsl
+    );
+
+    if (!code_result.ok) {
+        return Result<DesignerCodegenAudioDemoResponse>::MakeError(
+            code_result.error_code,
+            code_result.error_message
+        );
+    }
+    response.result.code = code_result.data;
+
+    // Update the session state as necessary
+    auto update_result = UpdateSession(response.designer_session);
+    if (!update_result.ok) {
+        return Result<DesignerCodegenAudioDemoResponse>::MakeError(
+            update_result.error_code,
+            update_result.error_message
+        );
+    }
+
+    return Result<DesignerCodegenAudioDemoResponse>::MakeOk(response);
+}
+
+Result<DesignerGlobalPipelineResponse> CoDesignerManager::AnalyzeGlobalPipeline(const DesignerGlobalPipelineRequest& request) {
+    // Get the designer session first
+    auto session_result = GetSession(request.designer_session_id);
+    if (!session_result.ok) {
         return Result<DesignerGlobalPipelineResponse>::MakeError(
-            load_session_result.error_code(),
-            load_session_result.error_message()
+            session_result.error_code,
+            session_result.error_message
+        );
+    }
+
+    CoDesignerSessionState session = session_result.data();
+
+    // Load the ProtoVM session metadata using the circuit facade
+    auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
+    if (!load_session_result.ok) {
+        return Result<DesignerGlobalPipelineResponse>::MakeError(
+            load_session_result.error_code,
+            load_session_result.error_message
         );
     }
 
@@ -616,14 +765,14 @@ Result<DesignerGlobalPipelineResponse> CoDesignerManager::AnalyzeGlobalPipeline(
                 metadata, session_dir, session.branch,
                 String(request.subsystem_id.c_str()), block_ids);
 
-            if (!result.ok()) {
+            if (!result.ok) {
                 return Result<DesignerGlobalPipelineResponse>::MakeError(
-                    result.error_code(),
-                    result.error_message()
+                    result.error_code,
+                    result.error_message
                 );
             }
 
-            response.global_pipeline = result.value();
+            response.global_pipeline = result.data;
         } else {
             // For now, analyze only mode is the default; we can extend this to include optimization proposals
             return Result<DesignerGlobalPipelineResponse>::MakeError(
@@ -640,10 +789,10 @@ Result<DesignerGlobalPipelineResponse> CoDesignerManager::AnalyzeGlobalPipeline(
 
     // Update the session state as necessary
     auto update_result = UpdateSession(response.designer_session);
-    if (!update_result.ok()) {
+    if (!update_result.ok) {
         return Result<DesignerGlobalPipelineResponse>::MakeError(
-            update_result.error_code(),
-            update_result.error_message()
+            update_result.error_code,
+            update_result.error_message
         );
     }
 
@@ -653,21 +802,21 @@ Result<DesignerGlobalPipelineResponse> CoDesignerManager::AnalyzeGlobalPipeline(
 Result<DesignerGlobalPipelineResponse> CoDesignerManager::OptimizeGlobalPipeline(const DesignerGlobalPipelineOptRequest& request) {
     // Get the designer session first
     auto session_result = GetSession(request.designer_session_id);
-    if (!session_result.ok()) {
+    if (!session_result.ok) {
         return Result<DesignerGlobalPipelineResponse>::MakeError(
-            session_result.error_code(),
-            session_result.error_message()
+            session_result.error_code,
+            session_result.error_message
         );
     }
 
     CoDesignerSessionState session = session_result.data();
 
     // Load the ProtoVM session metadata using the circuit facade
-    auto load_session_result = circuit_facade_->session_store_->LoadSession(session.proto_session_id);
-    if (!load_session_result.ok()) {
+    auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
+    if (!load_session_result.ok) {
         return Result<DesignerGlobalPipelineResponse>::MakeError(
-            load_session_result.error_code(),
-            load_session_result.error_message()
+            load_session_result.error_code,
+            load_session_result.error_message
         );
     }
 
@@ -696,31 +845,31 @@ Result<DesignerGlobalPipelineResponse> CoDesignerManager::OptimizeGlobalPipeline
             metadata, session_dir, session.branch,
             String(request.subsystem_id.c_str()), block_ids, request.objective);
 
-        if (!result.ok()) {
+        if (!result.ok) {
             return Result<DesignerGlobalPipelineResponse>::MakeError(
-                result.error_code(),
-                result.error_message()
+                result.error_code,
+                result.error_message
             );
         }
 
-        response.global_plans = result.value();
+        response.global_plans = result.data;
 
         // Optionally apply the best plan if requested
-        if (request.apply && !result.value().IsEmpty()) {
+        if (request.apply && !result.data.IsEmpty()) {
             // Create application options from the request
             RetimingApplicationOptions app_options;
             app_options.apply_only_safe_moves = request.apply_only_safe;
             app_options.allow_suspicious_moves = request.allow_suspicious;
 
             // Apply the first (best) plan
-            const GlobalPipeliningPlan& plan_to_apply = result.value()[0];
+            const GlobalPipeliningPlan& plan_to_apply = result.data[0];
             auto apply_result = circuit_facade_->ApplyGlobalPipeliningPlanInBranch(
                 metadata, session_dir, session.branch, plan_to_apply, app_options);
 
-            if (!apply_result.ok()) {
+            if (!apply_result.ok) {
                 return Result<DesignerGlobalPipelineResponse>::MakeError(
-                    apply_result.error_code(),
-                    apply_result.error_message()
+                    apply_result.error_code,
+                    apply_result.error_message
                 );
             }
         }
@@ -733,10 +882,10 @@ Result<DesignerGlobalPipelineResponse> CoDesignerManager::OptimizeGlobalPipeline
 
     // Update the session state as necessary
     auto update_result = UpdateSession(response.designer_session);
-    if (!update_result.ok()) {
+    if (!update_result.ok) {
         return Result<DesignerGlobalPipelineResponse>::MakeError(
-            update_result.error_code(),
-            update_result.error_message()
+            update_result.error_code,
+            update_result.error_message
         );
     }
 
@@ -746,21 +895,21 @@ Result<DesignerGlobalPipelineResponse> CoDesignerManager::OptimizeGlobalPipeline
 Result<DesignerGlobalPipelineApplyResponse> CoDesignerManager::ApplyGlobalPipeline(const DesignerGlobalPipelineApplyRequest& request) {
     // Get the designer session first
     auto session_result = GetSession(request.designer_session_id);
-    if (!session_result.ok()) {
+    if (!session_result.ok) {
         return Result<DesignerGlobalPipelineApplyResponse>::MakeError(
-            session_result.error_code(),
-            session_result.error_message()
+            session_result.error_code,
+            session_result.error_message
         );
     }
 
     CoDesignerSessionState session = session_result.data();
 
     // Load the ProtoVM session metadata using the circuit facade
-    auto load_session_result = circuit_facade_->session_store_->LoadSession(session.proto_session_id);
-    if (!load_session_result.ok()) {
+    auto load_session_result = circuit_facade_->GetSessionStore()->LoadSession(session.proto_session_id);
+    if (!load_session_result.ok) {
         return Result<DesignerGlobalPipelineApplyResponse>::MakeError(
-            load_session_result.error_code(),
-            load_session_result.error_message()
+            load_session_result.error_code,
+            load_session_result.error_message
         );
     }
 
@@ -785,21 +934,21 @@ Result<DesignerGlobalPipelineApplyResponse> CoDesignerManager::ApplyGlobalPipeli
     auto apply_result = circuit_facade_->ApplyGlobalPipeliningPlanInBranch(
         metadata, session_dir, session.branch, plan, app_options);
 
-    if (!apply_result.ok()) {
+    if (!apply_result.ok) {
         return Result<DesignerGlobalPipelineApplyResponse>::MakeError(
-            apply_result.error_code(),
-            apply_result.error_message()
+            apply_result.error_code,
+            apply_result.error_message
         );
     }
 
-    response.application_result = apply_result.value();
+    response.application_result = apply_result.data;
 
     // Update the session state as necessary
     auto update_result = UpdateSession(response.designer_session);
-    if (!update_result.ok()) {
+    if (!update_result.ok) {
         return Result<DesignerGlobalPipelineApplyResponse>::MakeError(
-            update_result.error_code(),
-            update_result.error_message()
+            update_result.error_code,
+            update_result.error_message
         );
     }
 
@@ -812,8 +961,8 @@ Result<DesignerStructAnalyzeResponse> CoDesignerManager::AnalyzeStructural(const
         auto session_result = GetSession(request.designer_session_id);
         if (!session_result.ok) {
             return Result<DesignerStructAnalyzeResponse>::MakeError(
-                session_result.error_code(),
-                session_result.error_message()
+                session_result.error_code,
+                session_result.error_message
             );
         }
         CoDesignerSessionState session = session_result.data();
@@ -881,8 +1030,8 @@ Result<DesignerStructApplyResponse> CoDesignerManager::ApplyStructural(const Des
         auto session_result = GetSession(request.designer_session_id);
         if (!session_result.ok) {
             return Result<DesignerStructApplyResponse>::MakeError(
-                session_result.error_code(),
-                session_result.error_message()
+                session_result.error_code,
+                session_result.error_message
             );
         }
         CoDesignerSessionState session = session_result.data();
@@ -928,8 +1077,8 @@ Result<DesignerStructApplyResponse> CoDesignerManager::ApplyStructural(const Des
 
         if (!apply_result.ok) {
             return Result<DesignerStructApplyResponse>::MakeError(
-                apply_result.error_code(),
-                apply_result.error_message()
+                apply_result.error_code,
+                apply_result.error_message
             );
         }
 

@@ -878,10 +878,7 @@ void Cli::ProcessQaDiffCommand(const Vector<String>& tokens) {
     AudioQa::AudioQaDiff diff = AudioQa::AudioQaComparator::CompareReports(report1, report2);
 
     // Output the diff in JSON format
-    ::Json::Value root = diff.ToJson();
-    ::Json::StreamWriterBuilder builder;
-    builder["indentation"] = "  ";
-    std::string output = ::Json::writeString(builder, root);
+    std::string output = diff.ToJsonString();
 
     Cout() << output << "\\n";
 }

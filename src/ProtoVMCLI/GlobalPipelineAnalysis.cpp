@@ -39,22 +39,22 @@ Result<GlobalPipelineMap> GlobalPipelineAnalysis::BuildGlobalPipelineMapForSubsy
 
     // Find all global paths
     auto paths_result = FindGlobalPaths(subsystem_id, block_ids, per_block_pipelines, graph);
-    if (!paths_result.ok()) {
-        return Result<GlobalPipelineMap>::Error(paths_result.error());
+    if (!paths_result.ok) {
+        return Result<GlobalPipelineMap>::MakeError(paths_result.error());
     }
-    global_map.paths = paths_result.value();
+    global_map.paths = paths_result.data;
 
     // Build global stages based on paths and per-block pipelines
     auto stages_result = BuildGlobalStages(subsystem_id, block_ids, per_block_pipelines, global_map.paths);
-    if (!stages_result.ok()) {
-        return Result<GlobalPipelineMap>::Error(stages_result.error());
+    if (!stages_result.ok) {
+        return Result<GlobalPipelineMap>::MakeError(stages_result.error());
     }
-    global_map.stages = stages_result.value();
+    global_map.stages = stages_result.data;
 
     // Update global metrics
     UpdateMetrics(global_map);
 
-    return Result<GlobalPipelineMap>::Success(global_map);
+    return Result<GlobalPipelineMap>::MakeOk(global_map);
 }
 
 Result<std::vector<GlobalPipelinePath>> GlobalPipelineAnalysis::FindGlobalPaths(

@@ -2203,4 +2203,117 @@ Upp::ValueMap JsonIO::AudioDslGraphToValueMap(const AudioDslGraph& graph) {
         }
     }
 
+Upp::ValueMap JsonIO::ToValueMap(const RetimingApplicationResult& r) {
+    return RetimingApplicationResultToValueMap(r);
+}
+
+Upp::ValueMap JsonIO::ToValueMap(const RetimingOptimizationResult& r) {
+    return RetimingOptimizationResultToValueMap(r);
+}
+
+Upp::ValueMap JsonIO::ToValueMap(const StructuralRefactorPlan& p) {
+    Upp::ValueMap m;
+    m.Add("id", Upp::String(p.id.c_str()));
+    m.Add("target_block_id", Upp::String(p.target_block_id.c_str()));
+
+    Upp::ValueArray moves;
+    for (int i = 0; i < p.moves.GetCount(); i++) {
+        const StructuralRefactorMove& mv = p.moves[i];
+        Upp::ValueMap mm;
+        mm.Add("move_id", Upp::String(mv.move_id.c_str()));
+        mm.Add("target_block_id", Upp::String(mv.target_block_id.c_str()));
+        mm.Add("kind", Upp::int64((int)mv.kind));
+        Upp::ValueArray nodes;
+        for (int j = 0; j < mv.affected_node_ids.GetCount(); j++)
+            nodes.Add(Upp::String(mv.affected_node_ids[j].c_str()));
+        mm.Add("affected_node_ids", nodes);
+        mm.Add("safety", Upp::int64((int)mv.safety));
+        mm.Add("safety_reason", Upp::String(mv.safety_reason.c_str()));
+        mm.Add("transform_hint", Upp::String(mv.transform_hint.c_str()));
+        moves.Add(mm);
+    }
+    m.Add("moves", moves);
+
+    m.Add("gate_count_before", Upp::int64(p.gate_count_before));
+    m.Add("gate_count_after_estimate", Upp::int64(p.gate_count_after_estimate));
+    m.Add("depth_before", Upp::int64(p.depth_before));
+    m.Add("depth_after_estimate", Upp::int64(p.depth_after_estimate));
+    m.Add("respects_cdc_fences", p.respects_cdc_fences);
+    return m;
+}
+
+Upp::ValueMap JsonIO::ToValueMap(const GlobalPipeliningPlan& p) {
+    Upp::ValueMap m;
+    m.Add("id", Upp::String(p.id.c_str()));
+    m.Add("subsystem_id", Upp::String(p.subsystem_id.c_str()));
+    Upp::ValueArray bids;
+    for (int i = 0; i < p.block_ids.GetCount(); i++)
+        bids.Add(Upp::String(p.block_ids[i].c_str()));
+    m.Add("block_ids", bids);
+    m.Add("objective", GlobalPipeliningObjectiveToValueMap(p.objective));
+    Upp::ValueArray steps;
+    for (int i = 0; i < p.steps.GetCount(); i++) {
+        Upp::ValueMap sm;
+        sm.Add("block_id", Upp::String(p.steps[i].block_id.c_str()));
+        sm.Add("retiming_plan_id", Upp::String(p.steps[i].retiming_plan_id.c_str()));
+        steps.Add(sm);
+    }
+    m.Add("steps", steps);
+    m.Add("estimated_global_depth_before", Upp::int64(p.estimated_global_depth_before));
+    m.Add("estimated_global_depth_after", Upp::int64(p.estimated_global_depth_after));
+    m.Add("respects_cdc_fences", p.respects_cdc_fences);
+    return m;
+}
+
+Upp::ValueArray JsonIO::ToValueArray(const Upp::Vector<GlobalPipeliningPlan>& v) {
+    Upp::ValueArray a;
+    for (int i = 0; i < v.GetCount(); i++)
+        a.Add(ToValueMap(v[i]));
+    return a;
+}
+
+Upp::ValueArray JsonIO::ToValueArray(const Upp::Vector<Upp::String>& v) {
+    Upp::ValueArray a;
+    for (int i = 0; i < v.GetCount(); i++)
+        a.Add(Upp::String(v[i].c_str()));
+    return a;
+}
+
+Upp::ValueArray JsonIO::VectorToStringValueArray(const std::vector<std::string>& v) {
+    Upp::ValueArray a;
+    for (const auto& s : v)
+        a.Add(Upp::String(s.c_str()));
+    return a;
+}
+
+std::vector<std::string> JsonIO::ParseStringList(const Upp::String& s) {
+    std::vector<std::string> out;
+    std::string cur;
+    for (int i = 0; i < s.GetCount(); i++) {
+        char c = (char)s[i];
+        if (c == ',' || c == ' ' || c == ';' || c == '\t') {
+            if (!cur.empty()) { out.push_back(cur); cur.clear(); }
+        } else {
+            cur.push_back(c);
+        }
+    }
+    if (!cur.empty()) out.push_back(cur);
+    return out;
+}
+
+
+Upp::ValueArray JsonIO::PreservationLevelsToValueArray(const std::vector<PreservationLevel>& levels) {
+    Upp::ValueArray a;
+    for (const auto& l : levels)
+        a.Add(PreservationLevelToJson(l));
+    return a;
+}
+
+Upp::ValueArray JsonIO::TransformationStepsToValueArray(const std::vector<TransformationStep>& steps) {
+    Upp::ValueArray a;
+    for (const auto& st : steps)
+        a.Add(TransformationStepToValueMap(st));
+    return a;
+}
+
 } // namespace ProtoVMCLI

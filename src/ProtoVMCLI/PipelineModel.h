@@ -8,9 +8,10 @@
 
 namespace ProtoVMCLI {
 
-struct ClockSignalInfo {
+struct ClockSignalInfo : public Upp::Moveable<ClockSignalInfo> {
     std::string signal_name;    // e.g. "CLK", "CPU_CLK"
     int    domain_id;      // numeric domain identifier
+    int    domain_id_num;  // handler-layer numeric alias
 };
 
 struct RegisterInfo {
@@ -29,16 +30,19 @@ struct PipelineStageInfo {
     int   comb_depth_estimate;    // approximate logic depth
 };
 
-struct RegToRegPathInfo {
+struct RegToRegPathInfo : public Upp::Moveable<RegToRegPathInfo> {
     std::string src_reg_id;
+    std::string src_clock_domain;  // source clock signal name
+    std::string dst_clock_domain;  // destination clock signal name
     std::string dst_reg_id;
     int    domain_id;             // domain if same; -1 if cross-domain
     int    comb_depth_estimate;   // approximate depth between them
     int    stage_span;            // how many pipeline stages between src and dst (0,1,2,...)
     bool   crosses_clock_domain;  // true if src and dst in different domains
+    int    width;                 // handler-layer alias for path width
 };
 
-struct PipelineMap {
+struct PipelineMap : public Upp::Moveable<PipelineMap> {
     std::string id;  // block id or subsystem id
 
     // Clock domains involved

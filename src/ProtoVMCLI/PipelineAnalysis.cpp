@@ -20,34 +20,34 @@ Result<PipelineMap> PipelineAnalysis::BuildPipelineMapForBlock(
         // Discover clock domains
         auto clock_domains_result = DiscoverClockDomains(graph, block_id);
         if (!clock_domains_result.ok) {
-            return Result<PipelineMap>::Error(clock_domains_result.error_message, clock_domains_result.error_code);
+            return Result<PipelineMap>::MakeError(clock_domains_result.error_message, clock_domains_result.error_code);
         }
         pipeline_map.clock_domains = std::move(clock_domains_result.data);
 
         // Discover registers and map them to domains
         auto registers_result = DiscoverRegisters(graph, pipeline_map.clock_domains, block_id);
         if (!registers_result.ok) {
-            return Result<PipelineMap>::Error(registers_result.error_message, registers_result.error_code);
+            return Result<PipelineMap>::MakeError(registers_result.error_message, registers_result.error_code);
         }
         pipeline_map.registers = std::move(registers_result.data);
 
         // Discover pipeline stages
         auto stages_result = DiscoverPipelineStages(graph, scheduled_ir, pipeline_map.registers, block_id);
         if (!stages_result.ok) {
-            return Result<PipelineMap>::Error(stages_result.error_message, stages_result.error_code);
+            return Result<PipelineMap>::MakeError(stages_result.error_message, stages_result.error_code);
         }
         pipeline_map.stages = std::move(stages_result.data);
 
         // Discover reg-to-reg paths
         auto paths_result = DiscoverRegToRegPaths(graph, timing, pipeline_map.registers, pipeline_map.stages, block_id);
         if (!paths_result.ok) {
-            return Result<PipelineMap>::Error(paths_result.error_message, paths_result.error_code);
+            return Result<PipelineMap>::MakeError(paths_result.error_message, paths_result.error_code);
         }
         pipeline_map.reg_paths = std::move(paths_result.data);
 
-        return Result<PipelineMap>::Success(std::move(pipeline_map));
+        return Result<PipelineMap>::MakeOk(std::move(pipeline_map));
     } catch (const std::exception& e) {
-        return Result<PipelineMap>::Error("Failed to build pipeline map for block: " + std::string(e.what()), "PIPELINE_ANALYSIS_ERROR");
+        return Result<PipelineMap>::MakeError("Failed to build pipeline map for block: " + std::string(e.what()), "PIPELINE_ANALYSIS_ERROR");
     }
 }
 
@@ -66,7 +66,7 @@ Result<PipelineMap> PipelineAnalysis::BuildPipelineMapForSubsystem(
         // First, discover clock domains across all relevant blocks
         auto clock_domains_result = DiscoverClockDomains(graph, subsystem_id);
         if (!clock_domains_result.ok) {
-            return Result<PipelineMap>::Error(clock_domains_result.error_message, clock_domains_result.error_code);
+            return Result<PipelineMap>::MakeError(clock_domains_result.error_message, clock_domains_result.error_code);
         }
         pipeline_map.clock_domains = std::move(clock_domains_result.data);
 
@@ -75,7 +75,7 @@ Result<PipelineMap> PipelineAnalysis::BuildPipelineMapForSubsystem(
         for (const auto& block_id : block_ids) {
             auto registers_result = DiscoverRegisters(graph, pipeline_map.clock_domains, block_id);
             if (!registers_result.ok) {
-                return Result<PipelineMap>::Error(registers_result.error_message, registers_result.error_code);
+                return Result<PipelineMap>::MakeError(registers_result.error_message, registers_result.error_code);
             }
             all_registers.insert(all_registers.end(), 
                                 registers_result.data.begin(), 
@@ -86,20 +86,20 @@ Result<PipelineMap> PipelineAnalysis::BuildPipelineMapForSubsystem(
         // Discover pipeline stages across all blocks
         auto stages_result = DiscoverPipelineStages(graph, scheduled_ir, pipeline_map.registers, subsystem_id);
         if (!stages_result.ok) {
-            return Result<PipelineMap>::Error(stages_result.error_message, stages_result.error_code);
+            return Result<PipelineMap>::MakeError(stages_result.error_message, stages_result.error_code);
         }
         pipeline_map.stages = std::move(stages_result.data);
 
         // Discover reg-to-reg paths across all blocks
         auto paths_result = DiscoverRegToRegPaths(graph, timing, pipeline_map.registers, pipeline_map.stages, subsystem_id);
         if (!paths_result.ok) {
-            return Result<PipelineMap>::Error(paths_result.error_message, paths_result.error_code);
+            return Result<PipelineMap>::MakeError(paths_result.error_message, paths_result.error_code);
         }
         pipeline_map.reg_paths = std::move(paths_result.data);
 
-        return Result<PipelineMap>::Success(std::move(pipeline_map));
+        return Result<PipelineMap>::MakeOk(std::move(pipeline_map));
     } catch (const std::exception& e) {
-        return Result<PipelineMap>::Error("Failed to build pipeline map for subsystem: " + std::string(e.what()), "PIPELINE_ANALYSIS_ERROR");
+        return Result<PipelineMap>::MakeError("Failed to build pipeline map for subsystem: " + std::string(e.what()), "PIPELINE_ANALYSIS_ERROR");
     }
 }
 

@@ -18,7 +18,8 @@ enum class GlobalPipeliningStrategyKind {
     ReduceCriticalPath // reduce max end-to-end depth/latency within constraints
 };
 
-struct GlobalPipeliningObjective {
+struct GlobalPipeliningObjective : public Upp::Moveable<GlobalPipeliningObjective>
+{
     GlobalPipeliningStrategyKind kind;
 
     // Optional constraints:
@@ -28,12 +29,31 @@ struct GlobalPipeliningObjective {
     int max_total_moves = -1;         // total retiming moves allowed
 };
 
-struct GlobalPipeliningStep {
+struct GlobalPipeliningStep : public Upp::Moveable<GlobalPipeliningStep> {
     String block_id;
     String retiming_plan_id;   // ID of a local RetimingPlan in that block
 };
 
-struct GlobalPipeliningPlan {
+struct GlobalPipeliningPlan : public Upp::Moveable<GlobalPipeliningPlan> {
+    GlobalPipeliningPlan()
+        : estimated_global_depth_before(-1)
+        , estimated_global_depth_after(-1)
+        , respects_cdc_fences(true) {}
+    GlobalPipeliningPlan(const GlobalPipeliningPlan& p)
+        : Upp::Moveable<GlobalPipeliningPlan>()
+        , id(p.id)
+        , subsystem_id(p.subsystem_id)
+        , objective(p.objective)
+        , estimated_global_depth_before(p.estimated_global_depth_before)
+        , estimated_global_depth_after(p.estimated_global_depth_after)
+        , respects_cdc_fences(p.respects_cdc_fences)
+    {
+        for (int i = 0; i < p.block_ids.GetCount(); i++)
+            block_ids.Add(p.block_ids[i]);
+        for (const auto& st : p.steps)
+            steps.Add(st);
+    }
+
     String id;                     // e.g. "GPP_ALU_PIPE_BALANCE_1"
     String subsystem_id;
     Vector<String> block_ids;

@@ -17,7 +17,27 @@ struct RetimingApplicationOptions {
     int  max_moves = -1;                // limit number of moves applied per plan (-1 = no limit)
 };
 
-struct RetimingApplicationResult {
+struct RetimingApplicationResult : public Upp::Moveable<RetimingApplicationResult> {
+    RetimingApplicationResult()
+        : new_circuit_revision(-1)
+        , estimated_max_depth_before(-1)
+        , estimated_max_depth_after(-1)
+        , all_moves_safe(true) {}
+    RetimingApplicationResult(const RetimingApplicationResult& p)
+        : Upp::Moveable<RetimingApplicationResult>()
+        , plan_id(p.plan_id)
+        , target_id(p.target_id)
+        , new_circuit_revision(p.new_circuit_revision)
+        , estimated_max_depth_before(p.estimated_max_depth_before)
+        , estimated_max_depth_after(p.estimated_max_depth_after)
+        , all_moves_safe(p.all_moves_safe)
+    {
+        for (int i = 0; i < p.applied_move_ids.GetCount(); i++)
+            applied_move_ids.Add(p.applied_move_ids[i]);
+        for (int i = 0; i < p.skipped_move_ids.GetCount(); i++)
+            skipped_move_ids.Add(p.skipped_move_ids[i]);
+    }
+
     String plan_id;                 // id of the RetimingPlan
     String target_id;               // block or subsystem id
 

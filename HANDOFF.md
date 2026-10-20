@@ -103,6 +103,39 @@ non-zero transition count (`PROBE-SPIKE PASSED`) while `Machine`'s own tracing r
 4. Add SPI/I2C/CAN decoders and search/filter
 5. Optionally fix the `ProtoVM` app build (AudioQa/CLI issues above)
 
+## ProtoVMCLI build status (side-quest, NOT done)
+
+The `src/ProtoVMCLI` package **does not compile** — and never did. ~250+ errors in
+`CommandDispatcher.cpp` alone plus more in its siblings. The handlers (Phases 18-29
+commits `eace235`..`7648c4b`) were generated against APIs that never existed:
+
+- `opts.Get("key", "def")` settings-bag accessor on `CommandOptions` (127+ sites)
+- `ISessionStore::LoadSessionMetadata`/`GetSession` (only `LoadSession` exists — wrappers added)
+- `JsonIO::ToValueMap(...)` serializers for `RetimingOptimizationResult`,
+  `RetimingApplicationResult`, etc. — never written
+- `EngineFacade` wraps `std::unique_ptr<ProtoVMCLI::Machine>` — a forward-declared
+  phantom; the real `Machine` is outside any namespace
+- `opts.` members used as plain strings (`opts.session_id.empty()`) against
+  `std::optional<>` members
+- `Upp::Vector<RetimingPlan>` copy/move semantics violations (`RetimingPlan` not Upp-Moveable, copied by value)
+- `PluginSkeletonExport.cpp`/`InstrumentExport.cpp`/`AutomationExport.cpp` etc. are
+  declared-but-not-compiled scaffolding (`ProtoVMCLI.upp` omits them)
+
+Partially fixed in this pass (committed): jsoncpp/Upp::Json include-order clash
+(`CommandDispatcher.h`. `CircuitFacade.h`, `CoDesigner.h`, `PluginProjectExport.h`,
+`InstrumentExport.h` include `<json/json.h>` before `<ProtoVM/ProtoVM.h>`), AudioQa
+namespace/scope repairs (`AudioQa.h` namespace-wrapped + `<cstdint>`, `AudioQaDiff.h`
+`::Json`-qualified), self-contained scaffolding headers, missing `CommandOptions`
+members (`max_plans`, `plan_id`, `version`, `output_dir`, `node_kind`, `payload`
+ValueMap), `CircuitFacade` duplicate ctor, `StructuralTransform.h` namespace +
+`ISessionStore`, `init_result` scope bug, ~20 `int64→Value` wraps, ~150 payload
+`IsKey/Get` sites via `GetPayload`/`HasPayloadKey` helpers, ostream `<< String`
+ambiguity fixes.
+
+Toolchain note: `ai-upp/bin/build` (wrapper) expects `/mnt/hd2/active/Dev/ai-upp`;
+a real dir with symlinks to `$HOME/Dev/ai-upp` subdirs now satisfies it. `umk` was
+rebuilt from source (bootstrap Makefile fixed in ai-upp commit `35ea3270cb`).
+
 
 
 ## Note

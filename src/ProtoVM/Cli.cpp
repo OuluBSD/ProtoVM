@@ -1,9 +1,13 @@
-#include "ProtoVM.h"
-#include "Cli.h"
+// Include the AudioQa headers (which pull in jsoncpp's `Json` namespace) before
+// ProtoVM.h. ProtoVM.h does `using namespace Upp`, and U++ Core also declares a
+// `Json` class, which would otherwise make jsoncpp's unqualified `Json` references
+// ambiguous.
 #include "AudioQa.h"
 #include "AudioQaAnalysis.h"
 #include "AudioQaScenario.h"
 #include "AudioQaDiff.h"
+#include "ProtoVM.h"
+#include "Cli.h"
 
 Cli::Cli() : machine(nullptr), running(false) {
 }
@@ -874,10 +878,10 @@ void Cli::ProcessQaDiffCommand(const Vector<String>& tokens) {
     AudioQa::AudioQaDiff diff = AudioQa::AudioQaComparator::CompareReports(report1, report2);
 
     // Output the diff in JSON format
-    Json::Value root = diff.ToJson();
-    Json::StreamWriterBuilder builder;
+    ::Json::Value root = diff.ToJson();
+    ::Json::StreamWriterBuilder builder;
     builder["indentation"] = "  ";
-    std::string output = Json::writeString(builder, root);
+    std::string output = ::Json::writeString(builder, root);
 
     Cout() << output << "\\n";
 }

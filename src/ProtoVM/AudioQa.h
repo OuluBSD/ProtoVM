@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <complex>
+#include <cstdint>
 #include <fftw3.h>
 
 // Enum for different types of audio quality metrics
@@ -32,6 +33,7 @@ struct AudioQaMetric {
 };
 
 // Report containing all metrics from an analysis
+namespace AudioQa {
 struct AudioQaReport {
     std::vector<AudioQaMetric> metrics;
     std::string analysis_timestamp;
@@ -77,5 +79,6 @@ struct AudioQaThresholdProfile {
         return {true, "No threshold defined for this metric"};
     }
 };
+}  // namespace AudioQa
 
 #endif // AUDIQA_H

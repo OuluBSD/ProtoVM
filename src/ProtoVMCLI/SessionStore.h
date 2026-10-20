@@ -25,6 +25,10 @@ public:
     virtual Result<bool> DeleteSession(int session_id) = 0;
     virtual Result<bool> UpdateSessionState(int session_id, SessionState state) = 0;
     virtual Result<bool> UpdateSessionTicks(int session_id, int ticks) = 0;
+
+    // Handler-layer convenience wrappers over the canonical store API.
+    virtual Result<SessionMetadata> LoadSessionMetadata(int session_id) { return LoadSession(session_id); }
+    virtual Result<SessionMetadata> GetSession(int session_id) { return LoadSession(session_id); }
 };
 
 } // namespace ProtoVMCLI

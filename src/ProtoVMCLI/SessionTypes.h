@@ -41,6 +41,7 @@ struct Result {
     T data;
 
     Result(T val) : ok(true), error_code(ErrorCode::None), error_message(""), data(val) {}
+    Result() : ok(false), error_code(ErrorCode::InternalError), error_message(""), data() {}
     Result(bool is_ok, ErrorCode code, const std::string& msg, T val)
         : ok(is_ok), error_code(code), error_message(msg), data(val) {}
 
@@ -167,6 +168,8 @@ struct CommandOptions {
     std::optional<bool> apply_only_safe;    // Apply only safe moves (default true)
     std::optional<bool> allow_suspicious;   // Allow suspicious moves (default false)
     std::optional<int> max_moves;           // Max number of moves to apply (default -1, no limit)
+    std::optional<std::string> max_plans;   // Max number of refactoring plans to consider
+    std::optional<std::string> plan_id;     // Specific plan id to apply
 
     // Code generation parameters
     std::optional<std::string> block_id;        // Block ID for codegen operations
@@ -202,8 +205,39 @@ struct CommandOptions {
     std::optional<std::string> plugin_name;              // Plugin name
     std::optional<std::string> plugin_id;                // Plugin ID
     std::optional<std::string> vendor;                   // Plugin vendor name
+    std::optional<std::string> version;                  // Plugin version string
+    std::optional<std::string> output_dir;               // Output directory for plugin project
+    std::optional<std::string> node_kind;                // Node kind hint (Pin, Component, Net)
+
+    // Free-form command payload (JSON object with command-specific keys)
+    Upp::ValueMap payload;
 
     // Add more options as needed
+
+    // Kebab-case settings accessor used by the handler layer. Reads the
+    // free-form JSON payload first, then falls back to the parsed command
+    // members; otherwise returns def.
+    std::string Get(const std::string& key, const std::string& def = "") const {
+        int q = payload.Find(key);
+        if (q >= 0)
+            return payload.GetValue(q).ToString().ToStd();
+        if (key == "workspace" || key == "workspace-path") return workspace;
+        if (key == "session-id") return session_id ? std::to_string(*session_id) : def;
+        if (key == "block-id") return block_id.value_or(def);
+        if (key == "max-moves") return max_moves ? std::to_string(*max_moves) : def;
+        if (key == "branch") return branch.value_or(def);
+        if (key == "plan-id") return plan_id.value_or(def);
+        if (key == "apply-only-safe") return apply_only_safe ? (*apply_only_safe ? "true" : "false") : def;
+        if (key == "allow-suspicious") return allow_suspicious ? (*allow_suspicious ? "true" : "false") : def;
+        if (key == "safe-only") return apply_only_safe ? (*apply_only_safe ? "true" : "false") : def;
+        if (key == "state-struct-name") return state_struct_name.value_or(def);
+        if (key == "lang") return lang.value_or(def);
+        if (key == "step-function-name") return step_function_name.value_or(def);
+        if (key == "render-function-name") return render_function_name.value_or(def);
+        if (key == "function-name") return function_name.value_or(def);
+        if (key == "emit-state-struct") return emit_state_struct.value_or(def);
+        return def;
+    }
 };
 
 } // namespace ProtoVMCLI

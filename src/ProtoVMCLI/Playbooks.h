@@ -1,6 +1,7 @@
 #ifndef _ProtoVM_Playbooks_h_
 #define _ProtoVM_Playbooks_h_
 
+#include <ProtoVM/ProtoVM.h>      // For Upp types (String, Result, Vector)
 #include "SessionTypes.h"
 #include "CoDesigner.h"  // For CoDesignerSessionState and related types
 #include "HlsIr.h"       // For IrModule, IrOptPassKind, IrOptimizationResult

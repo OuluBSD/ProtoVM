@@ -27,10 +27,12 @@
 #include "DspRuntime.h"          // For DSP runtime
 #include "AnalogModel.h"         // For analog model structures
 #include "InstrumentGraph.h"     // For instrument graph structures
+#include "InstrumentExport.h"    // For InstrumentExportOptions
+#include "PluginProjectExport.h" // For PluginProjectExportOptions
 #include "PluginSkeletonExport.h" // For plugin skeleton export
-#include "AudioQa.h"             // For Audio QA structures
-#include "AudioQaAnalysis.h"    // For Audio QA analysis
-#include "AudioQaDiff.h"        // For Audio QA diff operations
+#include <ProtoVM/AudioQa.h>             // For Audio QA structures
+#include <ProtoVM/AudioQaAnalysis.h>    // For Audio QA analysis
+#include <ProtoVM/AudioQaDiff.h>        // For Audio QA diff operations
 #include <string>
 #include <vector>
 #include <optional>
@@ -70,9 +72,6 @@ class CircuitFacade {
 public:
     explicit CircuitFacade(std::shared_ptr<ISessionStore> session_store = nullptr)
         : session_store_(session_store) {}
-
-    // Alternative constructor without session store - for use when session saving is handled separately
-    explicit CircuitFacade() : session_store_(nullptr) {}
 
     // Load the current circuit state for a session:
     // - initial circuit (from .circuit or snapshot)
@@ -542,7 +541,7 @@ public:
         const std::string& session_dir,
         const std::string& branch_name,
         const InstrumentGraph& instrument,
-        const InstrumentExportOptions& options
+        const ProtoVM::InstrumentExportOptions& options
     );
 
     // Plugin skeleton export methods
@@ -564,7 +563,7 @@ public:
     );
 
     // Audio QA analysis methods
-    Result<AudioQaReport> RenderAndAnalyzeBlockInBranch(
+    Result<AudioQa::AudioQaReport> RenderAndAnalyzeBlockInBranch(
         const SessionMetadata& session,
         const std::string& session_dir,
         const std::string& branch_name,
@@ -573,7 +572,7 @@ public:
         double duration_sec = 1.0
     );
 
-    Result<AudioQaReport> RenderAndAnalyzeInstrumentInBranch(
+    Result<AudioQa::AudioQaReport> RenderAndAnalyzeInstrumentInBranch(
         const SessionMetadata& session,
         const std::string& session_dir,
         const std::string& branch_name,
@@ -582,7 +581,7 @@ public:
         double duration_sec = 1.0
     );
 
-    Result<AudioQaDiff> DiffAudioQaBetweenBranches(
+    Result<AudioQa::AudioQaDiff> DiffAudioQaBetweenBranches(
         const SessionMetadata& session,
         const std::string& session_dir,
         const std::string& branch_before,

@@ -1,8 +1,7 @@
 #ifndef PLUGIN_PROJECT_EXPORT_H
 #define PLUGIN_PROJECT_EXPORT_H
 
-#include "String.h"
-#include "Result.h"
+#include <ProtoVM/ProtoVM.h>  // For Upp types (String, Result, Vector)
 #include "InstrumentGraph.h"
 #include "PluginSkeletonExport.h"  // For PluginTargetKind
 
@@ -30,46 +29,46 @@ struct PluginProjectExportOptions {
 class PluginProjectExport {
 public:
     // Generate a full plugin project scaffold on disk.
-    static Result<void> ExportPluginProject(
+    static ProtoVMCLI::Result<void> ExportPluginProject(
         const ProtoVMCLI::InstrumentGraph& instrument,
         const PluginProjectExportOptions& opts
     );
 
 private:
-    static Result<void> ExportVst3Project(
+    static ProtoVMCLI::Result<void> ExportVst3Project(
         const ProtoVMCLI::InstrumentGraph& instrument,
         const PluginProjectExportOptions& opts
     );
 
-    static Result<void> ExportLv2Project(
+    static ProtoVMCLI::Result<void> ExportLv2Project(
         const ProtoVMCLI::InstrumentGraph& instrument,
         const PluginProjectExportOptions& opts
     );
 
-    static Result<void> ExportClapProject(
+    static ProtoVMCLI::Result<void> ExportClapProject(
         const ProtoVMCLI::InstrumentGraph& instrument,
         const PluginProjectExportOptions& opts
     );
 
-    static Result<void> ExportLadspaProject(
+    static ProtoVMCLI::Result<void> ExportLadspaProject(
         const ProtoVMCLI::InstrumentGraph& instrument,
         const PluginProjectExportOptions& opts
     );
 
-    static Result<void> CreateDirectories(const String& output_dir);
-    static Result<void> WriteWrapperSource(
+    static ProtoVMCLI::Result<void> CreateDirectories(const String& output_dir);
+    static ProtoVMCLI::Result<void> WriteWrapperSource(
         const String& wrapper_path,
         const PluginProjectExportOptions& opts
     );
-    static Result<void> WriteBuildFiles(
+    static ProtoVMCLI::Result<void> WriteBuildFiles(
         const String& output_dir,
         const PluginProjectExportOptions& opts
     );
-    static Result<void> WriteMetadataFiles(
+    static ProtoVMCLI::Result<void> WriteMetadataFiles(
         const String& output_dir,
         const PluginProjectExportOptions& opts
     );
-    static Result<void> WriteReadme(
+    static ProtoVMCLI::Result<void> WriteReadme(
         const String& readme_path,
         const PluginProjectExportOptions& opts
     );

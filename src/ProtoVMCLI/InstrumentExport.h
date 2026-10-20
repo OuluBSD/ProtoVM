@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ProtoVM/ProtoVM.h>  // For Upp types (String, Vector)
 #include <string>
 #include <vector>
 
@@ -19,8 +20,8 @@ namespace ProtoVM {
     class InstrumentExport {
     public:
         // Export a standalone C++ program for a given instrument.
-        static Result<std::string> EmitStandaloneCppForInstrument(
-            const InstrumentGraph& instrument,
+        static ProtoVMCLI::Result<std::string> EmitStandaloneCppForInstrument(
+            const ProtoVMCLI::InstrumentGraph& instrument,
             const InstrumentExportOptions& options
         );
     };

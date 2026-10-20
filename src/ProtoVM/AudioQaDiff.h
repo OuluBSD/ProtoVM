@@ -24,8 +24,8 @@ struct AudioQaDiffEntry {
     AudioQaDiffVerdict verdict;
     std::string description;
     
-    Json::Value ToJson() const {
-        Json::Value json;
+    ::Json::Value ToJson() const {
+        ::Json::Value json;
         json["metric"] = MetricKindToString(metric_kind);
         json["before"] = before_value;
         json["after"] = after_value;
@@ -71,12 +71,12 @@ struct AudioQaDiff {
         entries.push_back(entry);
     }
     
-    Json::Value ToJson() const {
-        Json::Value json;
+    ::Json::Value ToJson() const {
+        ::Json::Value json;
         json["scenario"] = scenario_name;
         json["timestamp"] = comparison_timestamp;
         
-        Json::Value diffs(Json::arrayValue);
+        ::Json::Value diffs(::Json::arrayValue);
         for (const auto& entry : entries) {
             diffs.append(entry.ToJson());
         }
@@ -113,13 +113,13 @@ struct AudioQaRegression {
     std::string suggested_fix;
     double severity_score;  // 0.0 to 1.0, higher is more severe
     
-    Json::Value ToJson() const {
-        Json::Value json;
+    ::Json::Value ToJson() const {
+        ::Json::Value json;
         json["issue_description"] = issue_description;
         json["severity_score"] = severity_score;
         json["suggested_fix"] = suggested_fix;
         
-        Json::Value factors(Json::arrayValue);
+        ::Json::Value factors(::Json::arrayValue);
         for (const auto& factor : contributing_factors) {
             factors.append(factor.ToJson());
         }

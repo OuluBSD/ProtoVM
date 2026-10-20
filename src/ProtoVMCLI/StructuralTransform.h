@@ -1,13 +1,13 @@
 #pragma once
 
+#include <ProtoVM/ProtoVM.h>
 #include "StructuralSynthesis.h"
 #include "SessionTypes.h"
 #include "SessionStore.h"
 #include "Transformations.h"
 #include "RetimingTransform.h"  // For RetimingApplicationResult
 
-#include <Core/Core.h>
-using namespace Upp;
+namespace ProtoVMCLI {
 
 class StructuralTransform {
 public:
@@ -21,7 +21,7 @@ public:
     static Result<RetimingApplicationResult> ApplyStructuralRefactorInBranch(
         const StructuralRefactorPlan& plan,
         bool apply_only_safe_moves,
-        SessionStore& session_store,
+        ISessionStore& session_store,
         const SessionMetadata& session,
         const String& session_dir,
         const String& branch_name
@@ -32,3 +32,5 @@ public:
         const Vector<StructuralRefactorMove>& moves
     );
 };
+
+}  // namespace ProtoVMCLI

@@ -1,6 +1,10 @@
 #ifndef _ProtoVM_CommandDispatcher_h_
 #define _ProtoVM_CommandDispatcher_h_
 
+// jsoncpp must be parsed before SessionTypes.h -> <ProtoVM/ProtoVM.h>, which
+// pulls in Core/Core.h and its `Upp::Json` class; otherwise jsoncpp's
+// unqualified `Json` becomes ambiguous with Upp::Json.
+#include <json/json.h>
 #include "SessionTypes.h"
 #include "SessionStore.h"
 #include <ProtoVM/ProtoVM.h>

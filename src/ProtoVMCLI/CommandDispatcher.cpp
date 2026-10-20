@@ -34,8 +34,20 @@
 #include <ctime>
 #include <iomanip>
 
+// Payload accessors: CommandOptions::payload is a const Upp::ValueMap, and
+// ValueMap's two-argument Get is non-const, so access goes through the const
+// Find/GetValue API.
+static Upp::Value GetPayload(const Upp::ValueMap& p, const char* key, Upp::Value def = Upp::Value()) {
+    int q = p.Find(key);
+    return q >= 0 ? p.GetValue(q) : def;
+}
+
+static bool HasPayloadKey(const Upp::ValueMap& p, const char* key) {
+    return p.Find(key) >= 0;
+}
+
 // Helper function to find a branch by name in session metadata
-std::optional<BranchMetadata> FindBranchByName(const SessionMetadata& session, const std::string& branch_name) {
+std::optional<ProtoVMCLI::BranchMetadata> FindBranchByName(const ProtoVMCLI::SessionMetadata& session, const std::string& branch_name) {
     for (const auto& branch : session.branches) {
         if (branch.name == branch_name) {
             return branch;
@@ -95,14 +107,14 @@ Upp::String CommandDispatcher::RunInitWorkspace(const CommandOptions& opts) {
         // If workspace.json doesn't exist, create it with initial configuration
         if (!has_workspace_json) {
             Upp::ValueMap workspace_config;
-            workspace_config.Add("schema_version", 1);
+            workspace_config.Add("schema_version", Upp::int64(1));
             workspace_config.Add("created_at", Upp::String(GetCurrentTimestamp().c_str()));
             workspace_config.Add("created_with", Upp::String("proto-vm-cli/0.1.0"));
             workspace_config.Add("engine_version", Upp::String("unknown"));
-            workspace_config.Add("next_session_id", 1);
+            workspace_config.Add("next_session_id", Upp::int64(1));
 
             std::ofstream config_file(workspace_json_path);
-            config_file << Upp::String().Cat() << workspace_config;
+            config_file << ProtoVMCLI::JsonIO::ValueMapToJson(workspace_config).ToStd();
             config_file.close();
         }
 
@@ -155,9 +167,11 @@ Upp::String CommandDispatcher::RunCreateSession(const CommandOptions& opts) {
 
         // Initialize the engine facade and create the initial snapshot
         ProtoVMCLI::EngineFacade engine_facade;
+        ProtoVMCLI::Result<ProtoVMCLI::EngineSnapshotInfo> init_result;
+        init_result.ok = false;
         auto session_metadata = session_store_->LoadSession(result.data);
         if (session_metadata.ok) {
-            auto init_result = engine_facade.InitializeNewSession(
+            init_result = engine_facade.InitializeNewSession(
                 session_metadata.data,
                 opts.circuit_file.value(),
                 session_dir
@@ -185,7 +199,7 @@ Upp::String CommandDispatcher::RunCreateSession(const CommandOptions& opts) {
         response_data.Add("workspace", Upp::String(opts.workspace.c_str()));
         response_data.Add("circuit_file", Upp::String(opts.circuit_file.value().c_str()));
         response_data.Add("state", "ready");
-        response_data.Add("total_ticks", 0);
+        response_data.Add("total_ticks", Upp::int64(0));
         response_data.Add("last_snapshot_file", Upp::String(init_result.data.snapshot_file.c_str()));
 
         // Log the event
@@ -201,7 +215,7 @@ Upp::String CommandDispatcher::RunCreateSession(const CommandOptions& opts) {
 
         Upp::ValueMap results;
         results.Add("session_id", result.data);
-        results.Add("total_ticks", 0);
+        results.Add("total_ticks", Upp::int64(0));
         results.Add("snapshot_file", Upp::String(init_result.data.snapshot_file.c_str()));
         event.result = Upp::String().Cat() << results;
 
@@ -241,7 +255,7 @@ Upp::String CommandDispatcher::RunListSessions(const CommandOptions& opts) {
             session_obj.Add("circuit_file", Upp::String(session.circuit_file.c_str()));
             session_obj.Add("created_at", Upp::String(session.created_at.c_str()));
             session_obj.Add("last_used_at", Upp::String(session.last_used_at.c_str()));
-            session_obj.Add("total_ticks", session.total_ticks);
+            session_obj.Add("total_ticks", Upp::int64(session.total_ticks));
             sessions_array.Add(session_obj);
         }
 
@@ -354,7 +368,7 @@ Upp::String CommandDispatcher::RunRunTicks(const CommandOptions& opts) {
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
         response_data.Add("ticks_run", ticks);
-        response_data.Add("total_ticks", metadata.total_ticks);
+        response_data.Add("total_ticks", Upp::int64(metadata.total_ticks));
         response_data.Add("last_snapshot_file", Upp::String(run_result.data.snapshot_file.c_str()));
         response_data.Add("state", "ready");
 
@@ -371,7 +385,7 @@ Upp::String CommandDispatcher::RunRunTicks(const CommandOptions& opts) {
 
         Upp::ValueMap results;
         results.Add("ticks_run", ticks);
-        results.Add("total_ticks", metadata.total_ticks);
+        results.Add("total_ticks", Upp::int64(metadata.total_ticks));
         results.Add("snapshot_file", Upp::String(run_result.data.snapshot_file.c_str()));
         event.result = Upp::String().Cat() << results;
 
@@ -429,9 +443,9 @@ Upp::String CommandDispatcher::RunGetState(const CommandOptions& opts) {
         response_data.Add("branch", Upp::String(branch_name.c_str()));
         response_data.Add("state", static_cast<int>(metadata.state));
         response_data.Add("circuit_file", Upp::String(metadata.circuit_file.c_str()));
-        response_data.Add("total_ticks", metadata.total_ticks);
-        response_data.Add("circuit_revision", branch.head_revision);  // Use branch revision
-        response_data.Add("sim_revision", branch.sim_revision);       // Use branch sim revision
+        response_data.Add("total_ticks", Upp::int64(metadata.total_ticks));
+        response_data.Add("circuit_revision", Upp::int64(branch.head_revision));  // Use branch revision
+        response_data.Add("sim_revision", Upp::int64(branch.sim_revision));       // Use branch sim revision
         response_data.Add("created_at", Upp::String(metadata.created_at.c_str()));
         response_data.Add("last_used_at", Upp::String(metadata.last_used_at.c_str()));
 
@@ -625,7 +639,7 @@ Upp::String CommandDispatcher::RunDebugProcessLogs(int process_id) {
         status_event.Add("event", "status");
         status_event.Add("timestamp", Upp::String( Upp::FormatTime( Upp::GetSysTime(), "%Y-%m-%dT%H:%M:%S.%sZ" )));
         status_event.Add("message", Upp::String("Starting process logs stream for process ID: " + Upp::AsString(process_id)));
-        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(status_event) << std::endl;
+        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(status_event).ToStd() << std::endl;
 
         // Simulate log events
         for (int i = 0; i < 5; ++i) {  // Generate 5 log events
@@ -639,7 +653,7 @@ Upp::String CommandDispatcher::RunDebugProcessLogs(int process_id) {
             log_event.Add("data", log_data);
             log_event.Add("process_id", process_id);
 
-            std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(log_event) << std::endl;
+            std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(log_event).ToStd() << std::endl;
 
             // Sleep briefly to simulate real-time streaming
             Upp::Sleep(100); // 100ms delay
@@ -649,7 +663,7 @@ Upp::String CommandDispatcher::RunDebugProcessLogs(int process_id) {
         Upp::ValueMap end_event;
         end_event.Add("event", "end");
         end_event.Add("timestamp", Upp::String( Upp::FormatTime( Upp::GetSysTime(), "%Y-%m-%dT%H:%M:%S.%sZ" )));
-        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(end_event) << std::endl;
+        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(end_event).ToStd() << std::endl;
 
         // Return final status
         Upp::ValueMap response_data;
@@ -663,7 +677,7 @@ Upp::String CommandDispatcher::RunDebugProcessLogs(int process_id) {
         error_event.Add("event", "error");
         error_event.Add("timestamp", Upp::String( Upp::FormatTime( Upp::GetSysTime(), "%Y-%m-%dT%H:%M:%S.%sZ" )));
         error_event.Add("message", Upp::String(std::string("Error in process logs stream: ") + e.what()));
-        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(error_event) << std::endl;
+        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(error_event).ToStd() << std::endl;
 
         return ProtoVMCLI::JsonIO::ErrorResponse(
             "Failed to stream process logs: " + std::string(e.what()),
@@ -678,7 +692,7 @@ Upp::String CommandDispatcher::RunDebugWebSocketStream(const Upp::String& ws_id)
         status_event.Add("event", "status");
         status_event.Add("timestamp", Upp::String( Upp::FormatTime( Upp::GetSysTime(), "%Y-%m-%dT%H:%M:%S.%sZ" )));
         status_event.Add("message", Upp::String("Starting WebSocket frames stream for ID: " + ws_id.ToStd()));
-        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(status_event) << std::endl;
+        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(status_event).ToStd() << std::endl;
 
         // Simulate WebSocket frame events
         for (int i = 0; i < 5; ++i) {  // Generate 5 frame events
@@ -693,7 +707,7 @@ Upp::String CommandDispatcher::RunDebugWebSocketStream(const Upp::String& ws_id)
             frame_data.Add("size", 12 + i);  // Simulate varying sizes
             frame_event.Add("data", frame_data);
 
-            std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(frame_event) << std::endl;
+            std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(frame_event).ToStd() << std::endl;
 
             // Sleep briefly to simulate real-time streaming
             Upp::Sleep(150); // 150ms delay
@@ -703,7 +717,7 @@ Upp::String CommandDispatcher::RunDebugWebSocketStream(const Upp::String& ws_id)
         Upp::ValueMap end_event;
         end_event.Add("event", "end");
         end_event.Add("timestamp", Upp::String( Upp::FormatTime( Upp::GetSysTime(), "%Y-%m-%dT%H:%M:%S.%sZ" )));
-        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(end_event) << std::endl;
+        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(end_event).ToStd() << std::endl;
 
         // Return final status
         Upp::ValueMap response_data;
@@ -717,7 +731,7 @@ Upp::String CommandDispatcher::RunDebugWebSocketStream(const Upp::String& ws_id)
         error_event.Add("event", "error");
         error_event.Add("timestamp", Upp::String( Upp::FormatTime( Upp::GetSysTime(), "%Y-%m-%dT%H:%M:%S.%sZ" )));
         error_event.Add("message", Upp::String(std::string("Error in WebSocket frames stream: ") + e.what()));
-        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(error_event) << std::endl;
+        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(error_event).ToStd() << std::endl;
 
         return ProtoVMCLI::JsonIO::ErrorResponse(
             "Failed to stream WebSocket frames: " + std::string(e.what()),
@@ -732,7 +746,7 @@ Upp::String CommandDispatcher::RunDebugPollStream(const Upp::String& poll_id) {
         status_event.Add("event", "status");
         status_event.Add("timestamp", Upp::String( Upp::FormatTime( Upp::GetSysTime(), "%Y-%m-%dT%H:%M:%S.%sZ" )));
         status_event.Add("message", Upp::String("Starting poll events stream for ID: " + poll_id.ToStd()));
-        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(status_event) << std::endl;
+        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(status_event).ToStd() << std::endl;
 
         // Simulate poll events
         for (int i = 0; i < 5; ++i) {  // Generate 5 poll events
@@ -746,7 +760,7 @@ Upp::String CommandDispatcher::RunDebugPollStream(const Upp::String& poll_id) {
             poll_data.Add("sequence", i + 1);
             poll_event.Add("data", poll_data);
 
-            std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(poll_event) << std::endl;
+            std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(poll_event).ToStd() << std::endl;
 
             // Sleep briefly to simulate real-time streaming
             Upp::Sleep(120); // 120ms delay
@@ -764,7 +778,7 @@ Upp::String CommandDispatcher::RunDebugPollStream(const Upp::String& poll_id) {
             poll_data.Add("status", "success");
             poll_event.Add("data", poll_data);
 
-            std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(poll_event) << std::endl;
+            std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(poll_event).ToStd() << std::endl;
 
             // Sleep briefly to simulate real-time streaming
             Upp::Sleep(80); // 80ms delay
@@ -774,7 +788,7 @@ Upp::String CommandDispatcher::RunDebugPollStream(const Upp::String& poll_id) {
         Upp::ValueMap end_event;
         end_event.Add("event", "end");
         end_event.Add("timestamp", Upp::String( Upp::FormatTime( Upp::GetSysTime(), "%Y-%m-%dT%H:%M:%S.%sZ" )));
-        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(end_event) << std::endl;
+        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(end_event).ToStd() << std::endl;
 
         // Return final status
         Upp::ValueMap response_data;
@@ -788,7 +802,7 @@ Upp::String CommandDispatcher::RunDebugPollStream(const Upp::String& poll_id) {
         error_event.Add("event", "error");
         error_event.Add("timestamp", Upp::String( Upp::FormatTime( Upp::GetSysTime(), "%Y-%m-%dT%H:%M:%S.%sZ" )));
         error_event.Add("message", Upp::String(std::string("Error in poll events stream: ") + e.what()));
-        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(error_event) << std::endl;
+        std::cout << ProtoVMCLI::JsonIO::ValueMapToJson(error_event).ToStd() << std::endl;
 
         return ProtoVMCLI::JsonIO::ErrorResponse(
             "Failed to stream poll events: " + std::string(e.what()),
@@ -862,7 +876,7 @@ Upp::String CommandDispatcher::RunEditAddComponent(const CommandOptions& opts) {
 
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
-        response_data.Add("circuit_revision", apply_result.data.revision);
+        response_data.Add("circuit_revision", Upp::int64(apply_result.data.revision));
         // In a real implementation, we would return the actual component ID generated
         response_data.Add("component_id", Upp::String("C0000001")); // Placeholder
 
@@ -929,7 +943,7 @@ Upp::String CommandDispatcher::RunEditRemoveComponent(const CommandOptions& opts
 
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
-        response_data.Add("circuit_revision", apply_result.data.revision);
+        response_data.Add("circuit_revision", Upp::int64(apply_result.data.revision));
 
         return JsonIO::SuccessResponse("edit-remove-component", response_data);
     } catch (const std::exception& e) {
@@ -998,7 +1012,7 @@ Upp::String CommandDispatcher::RunEditMoveComponent(const CommandOptions& opts) 
 
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
-        response_data.Add("circuit_revision", apply_result.data.revision);
+        response_data.Add("circuit_revision", Upp::int64(apply_result.data.revision));
 
         return JsonIO::SuccessResponse("edit-move-component", response_data);
     } catch (const std::exception& e) {
@@ -1072,7 +1086,7 @@ Upp::String CommandDispatcher::RunEditSetComponentProperty(const CommandOptions&
 
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
-        response_data.Add("circuit_revision", apply_result.data.revision);
+        response_data.Add("circuit_revision", Upp::int64(apply_result.data.revision));
 
         return JsonIO::SuccessResponse("edit-set-component-property", response_data);
     } catch (const std::exception& e) {
@@ -1147,7 +1161,7 @@ Upp::String CommandDispatcher::RunEditConnect(const CommandOptions& opts) {
 
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
-        response_data.Add("circuit_revision", apply_result.data.revision);
+        response_data.Add("circuit_revision", Upp::int64(apply_result.data.revision));
 
         return JsonIO::SuccessResponse("edit-connect", response_data);
     } catch (const std::exception& e) {
@@ -1222,7 +1236,7 @@ Upp::String CommandDispatcher::RunEditDisconnect(const CommandOptions& opts) {
 
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
-        response_data.Add("circuit_revision", apply_result.data.revision);
+        response_data.Add("circuit_revision", Upp::int64(apply_result.data.revision));
 
         return JsonIO::SuccessResponse("edit-disconnect", response_data);
     } catch (const std::exception& e) {
@@ -1263,7 +1277,7 @@ Upp::String CommandDispatcher::RunEditGetCircuit(const CommandOptions& opts) {
 
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
-        response_data.Add("circuit_revision", export_result.data.revision);
+        response_data.Add("circuit_revision", Upp::int64(export_result.data.revision));
         response_data.Add("circuit_data", export_result.data.circuit_json);
 
         return JsonIO::SuccessResponse("edit-get-circuit", response_data);
@@ -1316,7 +1330,7 @@ Upp::String CommandDispatcher::RunLintCircuit(const CommandOptions& opts) {
         // Build response with diagnostics
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
-        response_data.Add("circuit_revision", metadata.circuit_revision);
+        response_data.Add("circuit_revision", Upp::int64(metadata.circuit_revision));
         response_data.Add("diagnostics", JsonIO::CircuitDiagnosticsToValueArray(analysis_result.data));
 
         return JsonIO::SuccessResponse("lint-circuit", response_data);
@@ -1373,7 +1387,7 @@ Upp::String CommandDispatcher::RunAnalyzeCircuit(const CommandOptions& opts) {
 
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
-        response_data.Add("circuit_revision", metadata.circuit_revision);
+        response_data.Add("circuit_revision", Upp::int64(metadata.circuit_revision));
         response_data.Add("summary", summary);
         response_data.Add("diagnostics", JsonIO::CircuitDiagnosticsToValueArray(analysis_result.data));
 
@@ -1451,7 +1465,7 @@ Upp::String CommandDispatcher::RunCircuitPatch(const CommandOptions& opts) {
         // the patch operations to the circuit
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
-        response_data.Add("circuit_revision", metadata.circuit_revision + 1);
+        response_data.Add("circuit_revision", Upp::int64(metadata.circuit_revision + 1));
         response_data.Add("applied", true);
 
         return JsonIO::SuccessResponse("circuit-patch", response_data);
@@ -1554,7 +1568,7 @@ Upp::String CommandDispatcher::RunCircuitHistory(const CommandOptions& opts) {
         Upp::ValueMap response_data;
         response_data.Add("session_id", opts.session_id.value());
         response_data.Add("branch", Upp::String(branch_name.c_str()));
-        response_data.Add("current_revision", branch_revision);
+        response_data.Add("current_revision", Upp::int64(branch_revision));
         response_data.Add("total_operations", branch_revision);  // Simplified: each edit increases revision by 1
 
         Upp::ValueArray history_entries;
@@ -1611,9 +1625,9 @@ Upp::String CommandDispatcher::RunBranchList(const CommandOptions& opts) {
         for (const auto& branch : list_result.data.branches) {
             Upp::ValueMap branch_map;
             branch_map.Add("name", Upp::String(branch.name.c_str()));
-            branch_map.Add("head_revision", branch.head_revision);
-            branch_map.Add("sim_revision", branch.sim_revision);
-            branch_map.Add("base_revision", branch.base_revision);
+            branch_map.Add("head_revision", Upp::int64(branch.head_revision));
+            branch_map.Add("sim_revision", Upp::int64(branch.sim_revision));
+            branch_map.Add("base_revision", Upp::int64(branch.base_revision));
             branch_map.Add("is_default", branch.is_default);
             branches_array.Add(branch_map);
         }
@@ -1675,7 +1689,7 @@ Upp::String CommandDispatcher::RunBranchCreate(const CommandOptions& opts) {
         Upp::ValueMap branch_map;
         branch_map.Add("name", Upp::String(create_result.data.branch.name.c_str()));
         branch_map.Add("head_revision", create_result.data.branch.head_revision);
-        branch_map.Add("sim_revision", create_result.data.branch.sim_revision);
+        branch_map.Add("sim_revision", Upp::int64(create_result.data.branch.sim_revision));
         branch_map.Add("base_revision", create_result.data.branch.base_revision);
         branch_map.Add("is_default", create_result.data.branch.is_default);
         response_data.Add("branch", branch_map);
@@ -1837,8 +1851,8 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
         response_data.Add("session_id", opts.session_id.value());
         response_data.Add("source_branch", Upp::String(merge_result.data.source_branch.c_str()));
         response_data.Add("target_branch", Upp::String(merge_result.data.target_branch.c_str()));
-        response_data.Add("target_new_revision", merge_result.data.target_new_revision);
-        response_data.Add("merged_ops_count", merge_result.data.merged_ops_count);
+        response_data.Add("target_new_revision", Upp::int64(merge_result.data.target_new_revision));
+        response_data.Add("merged_ops_count", Upp::int64(merge_result.data.merged_ops_count));
 
         return JsonIO::SuccessResponse("branch-merge", response_data);
     } catch (const std::exception& e) {
@@ -2465,16 +2479,16 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
 
             // Get max_paths and max_depth from options
             int max_paths = 5; // default
-            if (opts.payload.IsKey("max_paths")) {
-                Upp::Value max_paths_val = opts.payload.Get("max_paths");
+            if (opts.payload.Find("max_paths") >= 0) {
+                Upp::Value max_paths_val = GetPayload(opts.payload, "max_paths");
                 if (max_paths_val.Is<int>()) {
                     max_paths = max_paths_val.Get<int>();
                 }
             }
 
             int max_depth = 1024; // default
-            if (opts.payload.IsKey("max_depth")) {
-                Upp::Value max_depth_val = opts.payload.Get("max_depth");
+            if (opts.payload.Find("max_depth") >= 0) {
+                Upp::Value max_depth_val = GetPayload(opts.payload, "max_depth");
                 if (max_depth_val.Is<int>()) {
                     max_depth = max_depth_val.Get<int>();
                 }
@@ -2614,8 +2628,8 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
 
             // Get max_results from options
             int max_results = 64; // default
-            if (opts.payload.IsKey("max_results")) {
-                Upp::Value max_results_val = opts.payload.Get("max_results");
+            if (opts.payload.Find("max_results") >= 0) {
+                Upp::Value max_results_val = GetPayload(opts.payload, "max_results");
                 if (max_results_val.Is<int>()) {
                     max_results = max_results_val.Get<int>();
                 }
@@ -2674,8 +2688,8 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
 
         if (node_id.empty()) {
             // Try to get node_id from payload if not in opts
-            if (opts.payload.IsKey("node_id")) {
-                node_id = opts.payload.Get("node_id").ToString().ToStd();
+            if (opts.payload.Find("node_id") >= 0) {
+                node_id = GetPayload(opts.payload, "node_id").ToString().ToStd();
             }
         }
 
@@ -2760,8 +2774,8 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
 
         if (node_id.empty()) {
             // Try to get node_id from payload if not in opts
-            if (opts.payload.IsKey("node_id")) {
-                node_id = opts.payload.Get("node_id").ToString().ToStd();
+            if (opts.payload.Find("node_id") >= 0) {
+                node_id = GetPayload(opts.payload, "node_id").ToString().ToStd();
             }
         }
 
@@ -2844,8 +2858,8 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
 
         if (node_id.empty()) {
             // Try to get node_id from payload if not in opts
-            if (opts.payload.IsKey("node_id")) {
-                node_id = opts.payload.Get("node_id").ToString().ToStd();
+            if (opts.payload.Find("node_id") >= 0) {
+                node_id = GetPayload(opts.payload, "node_id").ToString().ToStd();
             }
         }
 
@@ -2928,8 +2942,8 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
 
         if (node_id.empty()) {
             // Try to get node_id from payload if not in opts
-            if (opts.payload.IsKey("node_id")) {
-                node_id = opts.payload.Get("node_id").ToString().ToStd();
+            if (opts.payload.Find("node_id") >= 0) {
+                node_id = GetPayload(opts.payload, "node_id").ToString().ToStd();
             }
         }
 
@@ -3434,22 +3448,22 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
             return JsonIO::ErrorResponse("behavior-node", "Session ID is required", "INVALID_ARGUMENT");
         }
 
-        if (opts.node_id.empty()) {
+        if (!opts.node_id) {
             // Try to get node_id from payload if not in opts
-            if (opts.payload.IsKey("node_id")) {
-                opts.node_id = opts.payload.Get("node_id").ToString().ToStd();
+            if (opts.payload.Find("node_id") >= 0) {
+                opts.node_id = GetPayload(opts.payload, "node_id").ToString().ToStd();
             }
         }
 
-        if (opts.node_id.empty()) {
+        if (!opts.node_id) {
             return JsonIO::ErrorResponse("behavior-node", "Node ID is required", "INVALID_ARGUMENT");
         }
 
         try {
             // Extract optional node kind
-            std::string node_kind_hint = opts.node_kind;
-            if (opts.payload.IsKey("node_kind")) {
-                node_kind_hint = opts.payload.Get("node_kind").ToString().ToStd();
+            std::string node_kind_hint = opts.node_kind.value_or("");
+            if (opts.payload.Find("node_kind") >= 0) {
+                node_kind_hint = GetPayload(opts.payload, "node_kind").ToString().ToStd();
             }
 
             // Create CircuitFacade to access behavioral analysis functionality
@@ -3596,27 +3610,27 @@ Upp::String CommandDispatcher::RunBranchMerge(const CommandOptions& opts) {
             return JsonIO::ErrorResponse("ir-node-region", "Session ID is required", "INVALID_ARGUMENT");
         }
 
-        if (opts.node_id.empty()) {
+        if (!opts.node_id) {
             // Try to get node_id from payload if not in opts
-            if (opts.payload.IsKey("node_id")) {
-                opts.node_id = opts.payload.Get("node_id").ToString().ToStd();
+            if (opts.payload.Find("node_id") >= 0) {
+                opts.node_id = GetPayload(opts.payload, "node_id").ToString().ToStd();
             }
         }
 
-        if (opts.node_id.empty()) {
+        if (!opts.node_id) {
             return JsonIO::ErrorResponse("ir-node-region", "Node ID is required", "INVALID_ARGUMENT");
         }
 
         try {
             // Extract optional parameters
-            std::string node_kind_hint = opts.node_kind;
-            if (opts.payload.IsKey("node_kind")) {
-                node_kind_hint = opts.payload.Get("node_kind").ToString().ToStd();
+            std::string node_kind_hint = opts.node_kind.value_or("");
+            if (opts.payload.Find("node_kind") >= 0) {
+                node_kind_hint = GetPayload(opts.payload, "node_kind").ToString().ToStd();
             }
 
             int max_depth = 4; // default
-            if (opts.payload.IsKey("max_depth")) {
-                max_depth = opts.payload.Get("max_depth").ToInt();
+            if (opts.payload.Find("max_depth") >= 0) {
+                max_depth = GetPayload(opts.payload, "max_depth").operator int();
             }
 
             // Create CircuitFacade to access IR functionality
@@ -3669,7 +3683,7 @@ Upp::String CommandDispatcher::RunRefactorSuggest(const CommandOptions& opts) {
         }
 
         // Get session metadata
-        auto session_result = session_store_->LoadSession(opts.session_id);
+        auto session_result = session_store_->LoadSession(*opts.session_id);
         if (!session_result.ok) {
             return JsonIO::ErrorResponse("refactor-suggest",
                                        session_result.error_message,
@@ -3677,10 +3691,10 @@ Upp::String CommandDispatcher::RunRefactorSuggest(const CommandOptions& opts) {
         }
 
         SessionMetadata session = session_result.data;
-        std::string session_dir = opts.workspace + "/sessions/" + opts.session_id;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(*opts.session_id);
 
         // Get branch name, defaulting to current branch
-        std::string branch_name = opts.branch.empty() ? session.current_branch : opts.branch;
+        std::string branch_name = opts.branch ? *opts.branch : session.current_branch;
 
         // Determine max plans, defaulting to 10
         int max_plans = 10; // Default
@@ -3707,7 +3721,7 @@ Upp::String CommandDispatcher::RunRefactorSuggest(const CommandOptions& opts) {
 
         // Build response data
         Upp::ValueMap response_data;
-        response_data.Add("session_id", Upp::String(opts.session_id.c_str()));
+        response_data.Add("session_id", Upp::String(std::to_string(*opts.session_id).c_str()));
         response_data.Add("branch", Upp::String(branch_name.c_str()));
 
         // Convert the transformation plans to JSON
@@ -3740,7 +3754,7 @@ Upp::String CommandDispatcher::RunRefactorSuggestBlock(const CommandOptions& opt
         }
 
         // Get session metadata
-        auto session_result = session_store_->LoadSession(opts.session_id);
+        auto session_result = session_store_->LoadSession(*opts.session_id);
         if (!session_result.ok) {
             return JsonIO::ErrorResponse("refactor-suggest-block",
                                        session_result.error_message,
@@ -3748,10 +3762,10 @@ Upp::String CommandDispatcher::RunRefactorSuggestBlock(const CommandOptions& opt
         }
 
         SessionMetadata session = session_result.data;
-        std::string session_dir = opts.workspace + "/sessions/" + opts.session_id;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(*opts.session_id);
 
         // Get branch name, defaulting to current branch
-        std::string branch_name = opts.branch.empty() ? session.current_branch : opts.branch;
+        std::string branch_name = opts.branch ? *opts.branch : session.current_branch;
 
         // Determine max plans, defaulting to 10
         int max_plans = 10; // Default
@@ -3778,7 +3792,7 @@ Upp::String CommandDispatcher::RunRefactorSuggestBlock(const CommandOptions& opt
 
         // Build response data
         Upp::ValueMap response_data;
-        response_data.Add("session_id", Upp::String(opts.session_id.c_str()));
+        response_data.Add("session_id", Upp::String(std::to_string(*opts.session_id).c_str()));
         response_data.Add("branch", Upp::String(branch_name.c_str()));
         response_data.Add("block_id", Upp::String(opts.block_id.c_str()));
 
@@ -3812,7 +3826,7 @@ Upp::String CommandDispatcher::RunRefactorApply(const CommandOptions& opts) {
         }
 
         // Get session metadata
-        auto session_result = session_store_->LoadSession(opts.session_id);
+        auto session_result = session_store_->LoadSession(*opts.session_id);
         if (!session_result.ok) {
             return JsonIO::ErrorResponse("refactor-apply",
                                        session_result.error_message,
@@ -3820,10 +3834,10 @@ Upp::String CommandDispatcher::RunRefactorApply(const CommandOptions& opts) {
         }
 
         SessionMetadata session = session_result.data;
-        std::string session_dir = opts.workspace + "/sessions/" + opts.session_id;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(*opts.session_id);
 
         // Get branch name, defaulting to current branch
-        std::string branch_name = opts.branch.empty() ? session.current_branch : opts.branch;
+        std::string branch_name = opts.branch ? *opts.branch : session.current_branch;
 
         // For now, we'll implement a simple approach where the plan is specified as JSON in the options
         // In a more advanced implementation, plans might be stored and referenced by ID
@@ -3847,7 +3861,7 @@ Upp::String CommandDispatcher::RunIrOptBlock(const CommandOptions& opts) {
         }
 
         // Get session metadata
-        auto session_result = session_store_->LoadSession(opts.session_id);
+        auto session_result = session_store_->LoadSession(*opts.session_id);
         if (!session_result.ok) {
             return JsonIO::ErrorResponse("ir-opt-block",
                                        session_result.error_message,
@@ -3855,10 +3869,10 @@ Upp::String CommandDispatcher::RunIrOptBlock(const CommandOptions& opts) {
         }
 
         SessionMetadata session = session_result.data;
-        std::string session_dir = opts.workspace + "/sessions/" + opts.session_id;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(*opts.session_id);
 
         // Get branch name, defaulting to current branch
-        std::string branch_name = opts.branch.empty() ? session.current_branch : opts.branch;
+        std::string branch_name = opts.branch ? *opts.branch : session.current_branch;
 
         // Parse optimization passes from command line, default to all passes if none specified
         std::vector<IrOptPassKind> passes_to_run;
@@ -3912,7 +3926,7 @@ Upp::String CommandDispatcher::RunIrOptBlock(const CommandOptions& opts) {
         // Convert the result to JSON
         auto converter = [](const IrOptimizationResult& opt_result) -> Upp::ValueMap {
             Upp::ValueMap data;
-            data.Add("session_id", Upp::String(opts.session_id.c_str()));
+            data.Add("session_id", Upp::String(std::to_string(*opts.session_id).c_str()));
             data.Add("branch", Upp::String(branch_name.c_str()));
             data.Add("block_id", Upp::String(opts.block_id.c_str()));
             data.Add("optimization", Upp::ValueMap()
@@ -3940,7 +3954,7 @@ Upp::String CommandDispatcher::RunIrOptRefactorBlock(const CommandOptions& opts)
         }
 
         // Get session metadata
-        auto session_result = session_store_->LoadSession(opts.session_id);
+        auto session_result = session_store_->LoadSession(*opts.session_id);
         if (!session_result.ok) {
             return JsonIO::ErrorResponse("ir-opt-refactor-block",
                                        session_result.error_message,
@@ -3948,10 +3962,10 @@ Upp::String CommandDispatcher::RunIrOptRefactorBlock(const CommandOptions& opts)
         }
 
         SessionMetadata session = session_result.data;
-        std::string session_dir = opts.workspace + "/sessions/" + opts.session_id;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(*opts.session_id);
 
         // Get branch name, defaulting to current branch
-        std::string branch_name = opts.branch.empty() ? session.current_branch : opts.branch;
+        std::string branch_name = opts.branch ? *opts.branch : session.current_branch;
 
         // Parse optimization passes from command line, default to all passes if none specified
         std::vector<IrOptPassKind> passes_to_run;
@@ -4005,7 +4019,7 @@ Upp::String CommandDispatcher::RunIrOptRefactorBlock(const CommandOptions& opts)
         // Convert the result to JSON
         auto converter = [](const std::vector<TransformationPlan>& plans) -> Upp::ValueMap {
             Upp::ValueMap data;
-            data.Add("session_id", Upp::String(opts.session_id.c_str()));
+            data.Add("session_id", Upp::String(std::to_string(*opts.session_id).c_str()));
             data.Add("branch", Upp::String(branch_name.c_str()));
             data.Add("block_id", Upp::String(opts.block_id.c_str()));
             data.Add("plans", JsonIO::TransformationPlansToValueArray(plans));
@@ -4030,7 +4044,7 @@ Upp::String CommandDispatcher::RunBehaviorDiffBlock(const CommandOptions& opts) 
         }
 
         // Get session metadata
-        auto session_result = session_store_->LoadSession(opts.session_id);
+        auto session_result = session_store_->LoadSession(*opts.session_id);
         if (!session_result.ok) {
             return JsonIO::ErrorResponse("behavior-diff-block",
                                        session_result.error_message,
@@ -4038,7 +4052,7 @@ Upp::String CommandDispatcher::RunBehaviorDiffBlock(const CommandOptions& opts) 
         }
 
         SessionMetadata session = session_result.data;
-        std::string session_dir = opts.workspace + "/sessions/" + opts.session_id;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(*opts.session_id);
 
         // Use CircuitFacade to compute the behavior diff between branches
         CircuitFacade circuit_facade;
@@ -4076,7 +4090,7 @@ Upp::String CommandDispatcher::RunIrDiffBlock(const CommandOptions& opts) {
         }
 
         // Get session metadata
-        auto session_result = session_store_->LoadSession(opts.session_id);
+        auto session_result = session_store_->LoadSession(*opts.session_id);
         if (!session_result.ok) {
             return JsonIO::ErrorResponse("ir-diff-block",
                                        session_result.error_message,
@@ -4084,7 +4098,7 @@ Upp::String CommandDispatcher::RunIrDiffBlock(const CommandOptions& opts) {
         }
 
         SessionMetadata session = session_result.data;
-        std::string session_dir = opts.workspace + "/sessions/" + opts.session_id;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(*opts.session_id);
 
         // Use CircuitFacade to compute the IR diff between branches
         CircuitFacade circuit_facade;
@@ -4122,7 +4136,7 @@ Upp::String CommandDispatcher::RunIrDiffNodeRegion(const CommandOptions& opts) {
         }
 
         // Get session metadata
-        auto session_result = session_store_->LoadSession(opts.session_id);
+        auto session_result = session_store_->LoadSession(*opts.session_id);
         if (!session_result.ok) {
             return JsonIO::ErrorResponse("ir-diff-node-region",
                                        session_result.error_message,
@@ -4130,7 +4144,7 @@ Upp::String CommandDispatcher::RunIrDiffNodeRegion(const CommandOptions& opts) {
         }
 
         SessionMetadata session = session_result.data;
-        std::string session_dir = opts.workspace + "/sessions/" + opts.session_id;
+        std::string session_dir = opts.workspace + "/sessions/" + std::to_string(*opts.session_id);
 
         // Determine max depth, defaulting to 4
         int max_depth = 4; // Default
@@ -4207,15 +4221,15 @@ Upp::String CommandDispatcher::RunDesignerCreateSession(const CommandOptions& op
 Upp::String CommandDispatcher::RunDesignerSetFocus(const CommandOptions& opts) {
     try {
         // Extract required parameters
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-set-focus", "designer_session_id is required", "INVALID_PARAMETER");
         }
 
-        std::string block_id = opts.payload.Get("block_id", Upp::String("")).ToStd();
-        std::string node_id = opts.payload.Get("node_id", Upp::String("")).ToStd();
-        std::string node_kind = opts.payload.Get("node_kind", Upp::String("")).ToStd();
-        bool use_optimized_ir = opts.payload.Get("use_optimized_ir", false);
+        std::string block_id = GetPayload(opts.payload, "block_id", Upp::String("")).ToStd();
+        std::string node_id = GetPayload(opts.payload, "node_id", Upp::String("")).ToStd();
+        std::string node_kind = GetPayload(opts.payload, "node_kind", Upp::String("")).ToStd();
+        bool use_optimized_ir = GetPayload(opts.payload, "use_optimized_ir", false);
 
         // This is a simulation of the command
         Upp::ValueMap response_data;
@@ -4242,7 +4256,7 @@ Upp::String CommandDispatcher::RunDesignerSetFocus(const CommandOptions& opts) {
 
 Upp::String CommandDispatcher::RunDesignerGetContext(const CommandOptions& opts) {
     try {
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-get-context", "designer_session_id is required", "INVALID_PARAMETER");
         }
@@ -4272,15 +4286,15 @@ Upp::String CommandDispatcher::RunDesignerGetContext(const CommandOptions& opts)
 
 Upp::String CommandDispatcher::RunDesignerAnalyze(const CommandOptions& opts) {
     try {
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-analyze", "designer_session_id is required", "INVALID_PARAMETER");
         }
 
-        bool include_behavior = opts.payload.Get("include_behavior", true);
-        bool include_ir = opts.payload.Get("include_ir", true);
-        bool include_graph_stats = opts.payload.Get("include_graph_stats", false);
-        bool include_timing = opts.payload.Get("include_timing", false);
+        bool include_behavior = GetPayload(opts.payload, "include_behavior", true);
+        bool include_ir = GetPayload(opts.payload, "include_ir", true);
+        bool include_graph_stats = GetPayload(opts.payload, "include_graph_stats", false);
+        bool include_timing = GetPayload(opts.payload, "include_timing", false);
 
         // This is a simulation of the command
         Upp::ValueMap response_data;
@@ -4335,13 +4349,13 @@ Upp::String CommandDispatcher::RunDesignerAnalyze(const CommandOptions& opts) {
 
 Upp::String CommandDispatcher::RunDesignerOptimize(const CommandOptions& opts) {
     try {
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-optimize", "designer_session_id is required", "INVALID_PARAMETER");
         }
 
-        std::string target = opts.payload.Get("target", Upp::String("block")).ToStd();
-        Upp::ValueArray passes_array = opts.payload.Get("passes", Upp::ValueArray());
+        std::string target = GetPayload(opts.payload, "target", Upp::String("block")).ToStd();
+        Upp::ValueArray passes_array = GetPayload(opts.payload, "passes", Upp::ValueArray());
 
         // This is a simulation of the command
         Upp::ValueMap response_data;
@@ -4395,13 +4409,13 @@ Upp::String CommandDispatcher::RunDesignerOptimize(const CommandOptions& opts) {
 
 Upp::String CommandDispatcher::RunDesignerProposeRefactors(const CommandOptions& opts) {
     try {
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-propose-refactors", "designer_session_id is required", "INVALID_PARAMETER");
         }
 
-        std::string target = opts.payload.Get("target", Upp::String("block")).ToStd();
-        Upp::ValueArray passes_array = opts.payload.Get("passes", Upp::ValueArray());
+        std::string target = GetPayload(opts.payload, "target", Upp::String("block")).ToStd();
+        Upp::ValueArray passes_array = GetPayload(opts.payload, "passes", Upp::ValueArray());
 
         // This is a simulation of the command
         Upp::ValueMap response_data;
@@ -4449,14 +4463,14 @@ Upp::String CommandDispatcher::RunDesignerProposeRefactors(const CommandOptions&
 
 Upp::String CommandDispatcher::RunDesignerApplyRefactors(const CommandOptions& opts) {
     try {
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-apply-refactors", "designer_session_id is required", "INVALID_PARAMETER");
         }
 
-        Upp::ValueArray plans_array = opts.payload.Get("plans", Upp::ValueArray());
+        Upp::ValueArray plans_array = GetPayload(opts.payload, "plans", Upp::ValueArray());
         std::string user_id = opts.user_id;
-        bool allow_unverified = opts.payload.Get("allow_unverified", false);
+        bool allow_unverified = GetPayload(opts.payload, "allow_unverified", false);
 
         // This is a simulation of the command
         Upp::ValueMap response_data;
@@ -4491,14 +4505,14 @@ Upp::String CommandDispatcher::RunDesignerApplyRefactors(const CommandOptions& o
 
 Upp::String CommandDispatcher::RunDesignerDiff(const CommandOptions& opts) {
     try {
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-diff", "designer_session_id is required", "INVALID_PARAMETER");
         }
 
-        std::string compare_branch = opts.payload.Get("compare_branch", Upp::String("main")).ToStd();
-        bool include_behavior_diff = opts.payload.Get("include_behavior_diff", true);
-        bool include_ir_diff = opts.payload.Get("include_ir_diff", true);
+        std::string compare_branch = GetPayload(opts.payload, "compare_branch", Upp::String("main")).ToStd();
+        bool include_behavior_diff = GetPayload(opts.payload, "include_behavior_diff", true);
+        bool include_ir_diff = GetPayload(opts.payload, "include_ir_diff", true);
 
         // This is a simulation of the command
         Upp::ValueMap response_data;
@@ -4549,14 +4563,14 @@ Upp::String CommandDispatcher::RunDesignerDiff(const CommandOptions& opts) {
 
 Upp::String CommandDispatcher::RunDesignerCodegen(const CommandOptions& opts) {
     try {
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-codegen", "designer_session_id is required", "INVALID_PARAMETER");
         }
 
-        std::string target = opts.payload.Get("target", Upp::String("block")).ToStd();
-        std::string flavor = opts.payload.Get("flavor", Upp::String("PseudoVerilog")).ToStd();
-        bool use_optimized_ir = opts.payload.Get("use_optimized_ir", true);
+        std::string target = GetPayload(opts.payload, "target", Upp::String("block")).ToStd();
+        std::string flavor = GetPayload(opts.payload, "flavor", Upp::String("PseudoVerilog")).ToStd();
+        bool use_optimized_ir = GetPayload(opts.payload, "use_optimized_ir", true);
 
         // This is a simulation of the command
         Upp::ValueMap response_data;
@@ -4609,7 +4623,7 @@ Upp::String CommandDispatcher::RunDesignerCodegen(const CommandOptions& opts) {
 
 Upp::String CommandDispatcher::RunDesignerRunPlaybook(const CommandOptions& opts) {
     try {
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-run-playbook", "designer_session_id is required", "INVALID_PARAMETER");
         }
@@ -4840,8 +4854,8 @@ Upp::String CommandDispatcher::RunScheduleBlock(const CommandOptions& opts) {
 
         // Strategy
         std::string strategy_str = "SingleStage";
-        if (opts.payload.IsKey("strategy")) {
-            strategy_str = opts.payload.Get("strategy").ToString().ToStd();
+        if (opts.payload.Find("strategy") >= 0) {
+            strategy_str = GetPayload(opts.payload, "strategy").ToString().ToStd();
         }
 
         if (strategy_str == "SingleStage") {
@@ -4859,10 +4873,10 @@ Upp::String CommandDispatcher::RunScheduleBlock(const CommandOptions& opts) {
 
         // Requested stages
         int requested_stages = 1;
-        if (opts.payload.IsKey("requested_stages")) {
-            requested_stages = opts.payload.Get("requested_stages").ToInt();
-        } else if (opts.payload.IsKey("stages")) {
-            requested_stages = opts.payload.Get("stages").ToInt();
+        if (opts.payload.Find("requested_stages") >= 0) {
+            requested_stages = GetPayload(opts.payload, "requested_stages").operator int();
+        } else if (opts.payload.Find("stages") >= 0) {
+            requested_stages = GetPayload(opts.payload, "stages").operator int();
         }
         config.requested_stages = requested_stages;
 
@@ -4901,27 +4915,27 @@ Upp::String CommandDispatcher::RunScheduleNodeRegion(const CommandOptions& opts)
         return JsonIO::ErrorResponse("schedule-node-region", "Session ID is required", "INVALID_ARGUMENT");
     }
 
-    if (opts.node_id.empty()) {
+    if (!opts.node_id) {
         // Try to get node_id from payload if not in opts
-        if (opts.payload.IsKey("node_id")) {
-            opts.node_id = opts.payload.Get("node_id").ToString().ToStd();
+        if (opts.payload.Find("node_id") >= 0) {
+            opts.node_id = GetPayload(opts.payload, "node_id").ToString().ToStd();
         }
     }
 
-    if (opts.node_id.empty()) {
+    if (!opts.node_id) {
         return JsonIO::ErrorResponse("schedule-node-region", "Node ID is required", "INVALID_ARGUMENT");
     }
 
     try {
         // Extract optional parameters
-        std::string node_kind_hint = opts.node_kind;
-        if (opts.payload.IsKey("node_kind")) {
-            node_kind_hint = opts.payload.Get("node_kind").ToString().ToStd();
+        std::string node_kind_hint = opts.node_kind.value_or("");
+        if (opts.payload.Find("node_kind") >= 0) {
+            node_kind_hint = GetPayload(opts.payload, "node_kind").ToString().ToStd();
         }
 
         int max_depth = 4; // default
-        if (opts.payload.IsKey("max_depth")) {
-            max_depth = opts.payload.Get("max_depth").ToInt();
+        if (opts.payload.Find("max_depth") >= 0) {
+            max_depth = GetPayload(opts.payload, "max_depth").operator int();
         }
 
         // Create CircuitFacade to access scheduled IR functionality
@@ -4945,8 +4959,8 @@ Upp::String CommandDispatcher::RunScheduleNodeRegion(const CommandOptions& opts)
 
         // Strategy
         std::string strategy_str = "SingleStage";
-        if (opts.payload.IsKey("strategy")) {
-            strategy_str = opts.payload.Get("strategy").ToString().ToStd();
+        if (opts.payload.Find("strategy") >= 0) {
+            strategy_str = GetPayload(opts.payload, "strategy").ToString().ToStd();
         }
 
         if (strategy_str == "SingleStage") {
@@ -4964,10 +4978,10 @@ Upp::String CommandDispatcher::RunScheduleNodeRegion(const CommandOptions& opts)
 
         // Requested stages
         int requested_stages = 1;
-        if (opts.payload.IsKey("requested_stages")) {
-            requested_stages = opts.payload.Get("requested_stages").ToInt();
-        } else if (opts.payload.IsKey("stages")) {
-            requested_stages = opts.payload.Get("stages").ToInt();
+        if (opts.payload.Find("requested_stages") >= 0) {
+            requested_stages = GetPayload(opts.payload, "requested_stages").operator int();
+        } else if (opts.payload.Find("stages") >= 0) {
+            requested_stages = GetPayload(opts.payload, "stages").operator int();
         }
         config.requested_stages = requested_stages;
 
@@ -6482,12 +6496,12 @@ Upp::String CommandDispatcher::RunCodegenBlockOscDemo(const CommandOptions& opts
 Upp::String CommandDispatcher::RunDesignerRetime(const CommandOptions& opts) {
     try {
         // Extract payload values
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-retime", "designer_session_id is required", "INVALID_PARAMETER");
         }
 
-        std::string target = opts.payload.Get("target", Upp::String("block")).ToStd();
+        std::string target = GetPayload(opts.payload, "target", Upp::String("block")).ToStd();
         if (target != "block" && target != "subsystem") {
             return JsonIO::ErrorResponse("designer-retime", "target must be either 'block' or 'subsystem'", "INVALID_PARAMETER");
         }
@@ -6502,18 +6516,18 @@ Upp::String CommandDispatcher::RunDesignerRetime(const CommandOptions& opts) {
         request.target = target;
 
         if (target == "block") {
-            request.block_id = opts.payload.Get("block_id", Upp::String("")).ToStd();
+            request.block_id = GetPayload(opts.payload, "block_id", Upp::String("")).ToStd();
             if (request.block_id.empty()) {
                 return JsonIO::ErrorResponse("designer-retime", "block_id is required when target is 'block'", "INVALID_PARAMETER");
             }
         } else if (target == "subsystem") {
-            request.subsystem_id = opts.payload.Get("subsystem_id", Upp::String("")).ToStd();
+            request.subsystem_id = GetPayload(opts.payload, "subsystem_id", Upp::String("")).ToStd();
             if (request.subsystem_id.empty()) {
                 return JsonIO::ErrorResponse("designer-retime", "subsystem_id is required when target is 'subsystem'", "INVALID_PARAMETER");
             }
 
             // Get block_ids array from payload
-            Upp::Value block_ids_value = opts.payload.Get("block_ids", Upp::ValueArray());
+            Upp::Value block_ids_value = GetPayload(opts.payload, "block_ids", Upp::ValueArray());
             if (block_ids_value.IsArray()) {
                 Upp::ValueArray block_ids_array = block_ids_value;
                 for (int i = 0; i < block_ids_array.GetCount(); ++i) {
@@ -6527,8 +6541,8 @@ Upp::String CommandDispatcher::RunDesignerRetime(const CommandOptions& opts) {
         }
 
         // Get optional parameters
-        request.min_depth = opts.payload.Get("min_depth", 5).operator int();
-        request.max_plans = opts.payload.Get("max_plans", 10).operator int();
+        request.min_depth = GetPayload(opts.payload, "min_depth", 5).operator int();
+        request.max_plans = GetPayload(opts.payload, "max_plans", 10).operator int();
 
         // Call the CoDesigner manager
         auto retiming_result = designer_manager.RetimeDesign(request);
@@ -6567,17 +6581,17 @@ Upp::String CommandDispatcher::RunDesignerRetime(const CommandOptions& opts) {
 Upp::String CommandDispatcher::RunDesignerRetimeApply(const CommandOptions& opts) {
     try {
         // Extract payload values
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-retime-apply", "designer_session_id is required", "INVALID_PARAMETER");
         }
 
-        std::string target = opts.payload.Get("target", Upp::String("block")).ToStd();
+        std::string target = GetPayload(opts.payload, "target", Upp::String("block")).ToStd();
         if (target != "block" && target != "subsystem") {
             return JsonIO::ErrorResponse("designer-retime-apply", "target must be either 'block' or 'subsystem'", "INVALID_PARAMETER");
         }
 
-        std::string plan_id = opts.payload.Get("plan_id", Upp::String("")).ToStd();
+        std::string plan_id = GetPayload(opts.payload, "plan_id", Upp::String("")).ToStd();
         if (plan_id.empty()) {
             return JsonIO::ErrorResponse("designer-retime-apply", "plan_id is required", "INVALID_PARAMETER");
         }
@@ -6591,9 +6605,9 @@ Upp::String CommandDispatcher::RunDesignerRetimeApply(const CommandOptions& opts
         request.designer_session_id = designer_session_id;
         request.target = target;
         request.plan_id = plan_id;
-        request.apply_only_safe = opts.payload.Get("apply_only_safe", true).operator bool();
-        request.allow_suspicious = opts.payload.Get("allow_suspicious", false).operator bool();
-        request.max_moves = opts.payload.Get("max_moves", -1).operator int();
+        request.apply_only_safe = GetPayload(opts.payload, "apply_only_safe", true).operator bool();
+        request.allow_suspicious = GetPayload(opts.payload, "allow_suspicious", false).operator bool();
+        request.max_moves = GetPayload(opts.payload, "max_moves", -1).operator int();
 
         // Call the CoDesigner manager
         auto application_result = designer_manager.ApplyRetimeDesign(request);
@@ -6629,12 +6643,12 @@ Upp::String CommandDispatcher::RunDesignerRetimeApply(const CommandOptions& opts
 Upp::String CommandDispatcher::RunDesignerRetimeOpt(const CommandOptions& opts) {
     try {
         // Extract payload values
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-retime-opt", "designer_session_id is required", "INVALID_PARAMETER");
         }
 
-        std::string target = opts.payload.Get("target", Upp::String("block")).ToStd();
+        std::string target = GetPayload(opts.payload, "target", Upp::String("block")).ToStd();
         if (target != "block" && target != "subsystem") {
             return JsonIO::ErrorResponse("designer-retime-opt", "target must be either 'block' or 'subsystem'", "INVALID_PARAMETER");
         }
@@ -6646,20 +6660,20 @@ Upp::String CommandDispatcher::RunDesignerRetimeOpt(const CommandOptions& opts) 
 
         // Extract additional parameters based on target
         if (target == "block") {
-            std::string block_id = opts.payload.Get("block_id", Upp::String("")).ToStd();
+            std::string block_id = GetPayload(opts.payload, "block_id", Upp::String("")).ToStd();
             if (block_id.empty()) {
                 return JsonIO::ErrorResponse("designer-retime-opt", "block_id is required when target is 'block'", "INVALID_PARAMETER");
             }
             request.block_id = block_id;
         } else if (target == "subsystem") {
-            std::string subsystem_id = opts.payload.Get("subsystem_id", Upp::String("")).ToStd();
+            std::string subsystem_id = GetPayload(opts.payload, "subsystem_id", Upp::String("")).ToStd();
             if (subsystem_id.empty()) {
                 return JsonIO::ErrorResponse("designer-retime-opt", "subsystem_id is required when target is 'subsystem'", "INVALID_PARAMETER");
             }
             request.subsystem_id = subsystem_id;
 
             // Parse block IDs
-            Upp::Value block_ids_value = opts.payload.Get("block_ids", Upp::Value());
+            Upp::Value block_ids_value = GetPayload(opts.payload, "block_ids", Upp::Value());
             if (block_ids_value.IsArray()) {
                 Upp::ValueArray block_ids_array = block_ids_value.Array();
                 for (int i = 0; i < block_ids_array.GetCount(); ++i) {
@@ -6673,7 +6687,7 @@ Upp::String CommandDispatcher::RunDesignerRetimeOpt(const CommandOptions& opts) 
         }
 
         // Extract objective parameters
-        std::string objective_str = opts.payload.Get("objective", Upp::String("MinimizeMaxDepth")).ToStd();
+        std::string objective_str = GetPayload(opts.payload, "objective", Upp::String("MinimizeMaxDepth")).ToStd();
         if (objective_str == "MinimizeMaxDepth") {
             request.objective.kind = RetimingObjectiveKind::MinimizeMaxDepth;
         } else if (objective_str == "MinimizeDepthWithBudget") {
@@ -6686,19 +6700,19 @@ Upp::String CommandDispatcher::RunDesignerRetimeOpt(const CommandOptions& opts) 
 
         // Extract objective constraints if provided
         if (opts.payload.Find("target_max_depth") >= 0) {
-            request.objective.target_max_depth = opts.payload.Get("target_max_depth", -1).Int();
+            request.objective.target_max_depth = GetPayload(opts.payload, "target_max_depth", -1).operator int();
         }
         if (opts.payload.Find("max_moves") >= 0) {
-            request.objective.max_moves = opts.payload.Get("max_moves", -1).Int();
+            request.objective.max_moves = GetPayload(opts.payload, "max_moves", -1).operator int();
         }
         if (opts.payload.Find("max_extra_registers") >= 0) {
-            request.objective.max_extra_registers = opts.payload.Get("max_extra_registers", -1).Int();
+            request.objective.max_extra_registers = GetPayload(opts.payload, "max_extra_registers", -1).operator int();
         }
 
         // Extract apply parameters
-        request.apply = opts.payload.Get("apply", false).Bool();
-        request.apply_only_safe = opts.payload.Get("apply_only_safe", true).Bool();
-        request.allow_suspicious = opts.payload.Get("allow_suspicious", false).Bool();
+        request.apply = GetPayload(opts.payload, "apply", false).operator bool();
+        request.apply_only_safe = GetPayload(opts.payload, "apply_only_safe", true).operator bool();
+        request.allow_suspicious = GetPayload(opts.payload, "allow_suspicious", false).operator bool();
 
         // Get the designer manager instance
         auto& designer_manager = CoDesigner::GetInstance().GetDesignerManager();
@@ -6751,10 +6765,10 @@ Upp::String CommandDispatcher::RunCodegenBlockCppClass(const CommandOptions& opt
         std::string branch_name = opts.branch.value_or("main");
 
         // Parse additional options for the C++ class
-        std::string class_name = opts.payload.Get("class_name", Upp::String("BlockClass")).ToStd();
-        std::string state_class_name = opts.payload.Get("state_class_name", Upp::String("BlockState")).ToStd();
-        std::string namespace_name = opts.payload.Get("namespace", Upp::String("")).ToStd();
-        bool generate_render_method = opts.payload.Get("render_method", Upp::Value(false)).GetBool();
+        std::string class_name = GetPayload(opts.payload, "class_name", Upp::String("BlockClass")).ToStd();
+        std::string state_class_name = GetPayload(opts.payload, "state_class_name", Upp::String("BlockState")).ToStd();
+        std::string namespace_name = GetPayload(opts.payload, "namespace", Upp::String("")).ToStd();
+        bool generate_render_method = GetPayload(opts.payload, "render_method", Upp::Value(false)).operator bool();
 
         // Load the session
         auto session_load_result = session_store_->LoadSession(session_id);
@@ -6829,15 +6843,15 @@ Upp::String CommandDispatcher::RunCodegenBlockAudioDemo(const CommandOptions& op
         std::string branch_name = opts.branch.value_or("main");
 
         // Parse audio demo parameters
-        double freq_hz = opts.payload.Get("freq_hz", 440.0); // Default to 440 Hz
-        double pan_lfo_hz = opts.payload.Get("pan_lfo_hz", 0.25); // Default to 0.25 Hz
-        double sample_rate = opts.payload.Get("sample_rate", 48000.0); // Default to 48kHz
-        double duration_sec = opts.payload.Get("duration_sec", 3.0); // Default to 3 seconds
+        double freq_hz = GetPayload(opts.payload, "freq_hz", 440.0); // Default to 440 Hz
+        double pan_lfo_hz = GetPayload(opts.payload, "pan_lfo_hz", 0.25); // Default to 0.25 Hz
+        double sample_rate = GetPayload(opts.payload, "sample_rate", 48000.0); // Default to 48kHz
+        double duration_sec = GetPayload(opts.payload, "duration_sec", 3.0); // Default to 3 seconds
 
         // Parse C++ class options
-        std::string class_name = opts.payload.Get("class_name", Upp::String("OscBlock")).ToStd();
-        std::string state_class_name = opts.payload.Get("state_class_name", Upp::String("OscState")).ToStd();
-        std::string namespace_name = opts.payload.Get("namespace", Upp::String("")).ToStd();
+        std::string class_name = GetPayload(opts.payload, "class_name", Upp::String("OscBlock")).ToStd();
+        std::string state_class_name = GetPayload(opts.payload, "state_class_name", Upp::String("OscState")).ToStd();
+        std::string namespace_name = GetPayload(opts.payload, "namespace", Upp::String("")).ToStd();
 
         // Load the session
         auto session_load_result = session_store_->LoadSession(session_id);
@@ -6933,10 +6947,10 @@ Upp::String CommandDispatcher::RunDspGraphInspect(const CommandOptions& opts) {
         std::string branch_name = opts.branch.value_or("main");
 
         // Parse audio parameters
-        double freq_hz = opts.payload.Get("freq_hz", 440.0); // Default to 440 Hz
-        double pan_lfo_hz = opts.payload.Get("pan_lfo_hz", 0.25); // Default to 0.25 Hz
-        double sample_rate = opts.payload.Get("sample_rate", 48000.0); // Default to 48kHz
-        double duration_sec = opts.payload.Get("duration_sec", 3.0); // Default to 3 seconds
+        double freq_hz = GetPayload(opts.payload, "freq_hz", 440.0); // Default to 440 Hz
+        double pan_lfo_hz = GetPayload(opts.payload, "pan_lfo_hz", 0.25); // Default to 0.25 Hz
+        double sample_rate = GetPayload(opts.payload, "sample_rate", 48000.0); // Default to 48kHz
+        double duration_sec = GetPayload(opts.payload, "duration_sec", 3.0); // Default to 3 seconds
 
         // Load the session
         auto session_load_result = session_store_->LoadSession(session_id);
@@ -7022,10 +7036,10 @@ Upp::String CommandDispatcher::RunDspRenderOsc(const CommandOptions& opts) {
         std::string branch_name = opts.branch.value_or("main");
 
         // Parse audio parameters
-        double freq_hz = opts.payload.Get("freq_hz", 440.0); // Default to 440 Hz
-        double pan_lfo_hz = opts.payload.Get("pan_lfo_hz", 0.25); // Default to 0.25 Hz
-        double sample_rate = opts.payload.Get("sample_rate", 48000.0); // Default to 48kHz
-        double duration_sec = opts.payload.Get("duration_sec", 3.0); // Default to 3 seconds
+        double freq_hz = GetPayload(opts.payload, "freq_hz", 440.0); // Default to 440 Hz
+        double pan_lfo_hz = GetPayload(opts.payload, "pan_lfo_hz", 0.25); // Default to 0.25 Hz
+        double sample_rate = GetPayload(opts.payload, "sample_rate", 48000.0); // Default to 48kHz
+        double duration_sec = GetPayload(opts.payload, "duration_sec", 3.0); // Default to 3 seconds
 
         // Load the session
         auto session_load_result = session_store_->LoadSession(session_id);
@@ -7221,9 +7235,9 @@ Upp::String CommandDispatcher::RunAnalogRenderOsc(const CommandOptions& opts) {
         std::string branch_name = opts.branch.value_or("main");
 
         // Parse audio parameters
-        double pan_lfo_hz = opts.payload.Get("pan_lfo_hz", 0.25); // Default to 0.25 Hz
-        double sample_rate = opts.payload.Get("sample_rate", 48000.0); // Default to 48kHz
-        double duration_sec = opts.payload.Get("duration_sec", 3.0); // Default to 3 seconds
+        double pan_lfo_hz = GetPayload(opts.payload, "pan_lfo_hz", 0.25); // Default to 0.25 Hz
+        double sample_rate = GetPayload(opts.payload, "sample_rate", 48000.0); // Default to 48kHz
+        double duration_sec = GetPayload(opts.payload, "duration_sec", 3.0); // Default to 3 seconds
 
         // Load the session
         auto session_load_result = session_store_->LoadSession(session_id);
@@ -7344,21 +7358,21 @@ Upp::String CommandDispatcher::RunAnalogRenderOsc(const CommandOptions& opts) {
 Upp::String CommandDispatcher::RunDesignerCodegenBlockCppClass(const CommandOptions& opts) {
     try {
         // Extract payload values
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-codegen-block-cpp-class", "designer_session_id is required", "INVALID_PARAMETER");
         }
 
-        std::string block_id = opts.payload.Get("block_id", Upp::String("")).ToStd();
+        std::string block_id = GetPayload(opts.payload, "block_id", Upp::String("")).ToStd();
         if (block_id.empty()) {
             return JsonIO::ErrorResponse("designer-codegen-block-cpp-class", "block_id is required", "INVALID_PARAMETER");
         }
 
         // Extract parameters
-        std::string class_name = opts.payload.Get("class_name", Upp::String("BlockClass")).ToStd();
-        std::string state_class_name = opts.payload.Get("state_class_name", Upp::String("BlockState")).ToStd();
-        std::string namespace_name = opts.payload.Get("namespace", Upp::String("")).ToStd();
-        bool generate_render_method = opts.payload.Get("render_method", Upp::Value(false)).GetBool();
+        std::string class_name = GetPayload(opts.payload, "class_name", Upp::String("BlockClass")).ToStd();
+        std::string state_class_name = GetPayload(opts.payload, "state_class_name", Upp::String("BlockState")).ToStd();
+        std::string namespace_name = GetPayload(opts.payload, "namespace", Upp::String("")).ToStd();
+        bool generate_render_method = GetPayload(opts.payload, "render_method", Upp::Value(false)).operator bool();
 
         // Create CoDesignerManager instance
         auto circuit_facade = std::make_shared<CircuitFacade>(session_store_);
@@ -7403,24 +7417,24 @@ Upp::String CommandDispatcher::RunDesignerCodegenBlockCppClass(const CommandOpti
 Upp::String CommandDispatcher::RunDesignerCodegenBlockAudioDemo(const CommandOptions& opts) {
     try {
         // Extract payload values
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-codegen-block-audio-demo", "designer_session_id is required", "INVALID_PARAMETER");
         }
 
-        std::string block_id = opts.payload.Get("block_id", Upp::String("")).ToStd();
+        std::string block_id = GetPayload(opts.payload, "block_id", Upp::String("")).ToStd();
         if (block_id.empty()) {
             return JsonIO::ErrorResponse("designer-codegen-block-audio-demo", "block_id is required", "INVALID_PARAMETER");
         }
 
         // Extract parameters
-        double freq_hz = opts.payload.Get("freq_hz", 440.0); // Default to 440 Hz
-        double pan_lfo_hz = opts.payload.Get("pan_lfo_hz", 0.25); // Default to 0.25 Hz
-        double sample_rate = opts.payload.Get("sample_rate", 48000.0); // Default to 48kHz
-        double duration_sec = opts.payload.Get("duration_sec", 3.0); // Default to 3 seconds
-        std::string class_name = opts.payload.Get("class_name", Upp::String("OscBlock")).ToStd();
-        std::string state_class_name = opts.payload.Get("state_class_name", Upp::String("OscState")).ToStd();
-        std::string namespace_name = opts.payload.Get("namespace", Upp::String("")).ToStd();
+        double freq_hz = GetPayload(opts.payload, "freq_hz", 440.0); // Default to 440 Hz
+        double pan_lfo_hz = GetPayload(opts.payload, "pan_lfo_hz", 0.25); // Default to 0.25 Hz
+        double sample_rate = GetPayload(opts.payload, "sample_rate", 48000.0); // Default to 48kHz
+        double duration_sec = GetPayload(opts.payload, "duration_sec", 3.0); // Default to 3 seconds
+        std::string class_name = GetPayload(opts.payload, "class_name", Upp::String("OscBlock")).ToStd();
+        std::string state_class_name = GetPayload(opts.payload, "state_class_name", Upp::String("OscState")).ToStd();
+        std::string namespace_name = GetPayload(opts.payload, "namespace", Upp::String("")).ToStd();
 
         // Create CoDesignerManager instance
         auto circuit_facade = std::make_shared<CircuitFacade>(session_store_);
@@ -7468,13 +7482,13 @@ Upp::String CommandDispatcher::RunDesignerCodegenBlockAudioDemo(const CommandOpt
 
 Upp::String CommandDispatcher::RunDesignerQaAnalyze(const CommandOptions& opts) {
     try {
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-qa-analyze", "designer_session_id is required", "INVALID_PARAMETER");
         }
 
-        std::string target = opts.payload.Get("target", Upp::String("block")).ToStd();
-        std::string block_id = opts.payload.Get("block_id", Upp::String("")).ToStd();
+        std::string target = GetPayload(opts.payload, "target", Upp::String("block")).ToStd();
+        std::string block_id = GetPayload(opts.payload, "block_id", Upp::String("")).ToStd();
 
         if (block_id.empty()) {
             return JsonIO::ErrorResponse("designer-qa-analyze", "block_id is required", "INVALID_PARAMETER");
@@ -7545,14 +7559,14 @@ Upp::String CommandDispatcher::RunDesignerQaAnalyze(const CommandOptions& opts) 
 
 Upp::String CommandDispatcher::RunDesignerQaDiff(const CommandOptions& opts) {
     try {
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-qa-diff", "designer_session_id is required", "INVALID_PARAMETER");
         }
 
-        std::string target = opts.payload.Get("target", Upp::String("block")).ToStd();
-        std::string before_block_id = opts.payload.Get("before_block_id", Upp::String("")).ToStd();
-        std::string after_block_id = opts.payload.Get("after_block_id", Upp::String("")).ToStd();
+        std::string target = GetPayload(opts.payload, "target", Upp::String("block")).ToStd();
+        std::string before_block_id = GetPayload(opts.payload, "before_block_id", Upp::String("")).ToStd();
+        std::string after_block_id = GetPayload(opts.payload, "after_block_id", Upp::String("")).ToStd();
 
         if (before_block_id.empty() || after_block_id.empty()) {
             return JsonIO::ErrorResponse("designer-qa-diff", "both before_block_id and after_block_id are required", "INVALID_PARAMETER");
@@ -7646,13 +7660,13 @@ Upp::String CommandDispatcher::RunDesignerQaDiff(const CommandOptions& opts) {
 
 Upp::String CommandDispatcher::RunDesignerQaVerify(const CommandOptions& opts) {
     try {
-        std::string designer_session_id = opts.payload.Get("designer_session_id", Upp::String("")).ToStd();
+        std::string designer_session_id = GetPayload(opts.payload, "designer_session_id", Upp::String("")).ToStd();
         if (designer_session_id.empty()) {
             return JsonIO::ErrorResponse("designer-qa-verify", "designer_session_id is required", "INVALID_PARAMETER");
         }
 
-        std::string target = opts.payload.Get("target", Upp::String("block")).ToStd();
-        std::string block_id = opts.payload.Get("block_id", Upp::String("")).ToStd();
+        std::string target = GetPayload(opts.payload, "target", Upp::String("block")).ToStd();
+        std::string block_id = GetPayload(opts.payload, "block_id", Upp::String("")).ToStd();
 
         if (block_id.empty()) {
             return JsonIO::ErrorResponse("designer-qa-verify", "block_id is required", "INVALID_PARAMETER");

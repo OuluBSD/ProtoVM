@@ -21,6 +21,7 @@ class JsonIO {
 public:
     // Create a success response with a standard envelope
     static Upp::String SuccessResponse(const std::string& command, const Upp::ValueMap& data = Upp::ValueMap());
+    static Upp::String SuccessResponse(const Upp::ValueMap& data);
 
     // Create an error response with a standard envelope
     static Upp::String ErrorResponse(const std::string& command, const std::string& error_msg, const std::string& error_code = "");

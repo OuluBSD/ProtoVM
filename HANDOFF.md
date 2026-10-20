@@ -103,6 +103,27 @@ non-zero transition count (`PROBE-SPIKE PASSED`) while `Machine`'s own tracing r
 4. Add SPI/I2C/CAN decoders and search/filter
 5. Optionally fix the `ProtoVM` app build (AudioQa/CLI issues above)
 
+### CLI compile playbook (fast loop)
+
+```
+cd src/ProtoVMCLI
+clang++ -std=c++17 -x c++-header -ferror-limit=0 -DflagDEBUG -DflagDEBUG_FULL \
+  -DflagMAIN -DflagSHARED -DflagLINUX -DflagPOSIX \
+  -I$PWD/.. -I. -I$HOME/Dev/ai-upp/uppsrc -c CommandDispatcher.h -o /tmp/kilo/uppcmd.pch
+clang++ -std=c++17 -fsyntax-only -ferror-limit=0 <same flags> \
+  -include-pch /tmp/kilo/uppcmd.pch <TU>.cpp
+```
+PCH makes each TU check ~10s instead of ~4min. Recompile the PCH after any
+header edit. Remaining ~350 errors in 8 TUs (Transformations 61, JsonIO 61,
+CoDesigner 41, AnalogBlockExtractor 25, PipelineAnalysis 23, CommandDispatcher
+17, CircuitFacade 9, + tail). Recurring categories: `.c_str()` on `Upp::String`
+(use `.ToStd()`/`c_str()`), `.Contains(x)` (use `Find(x) >= 0`),
+`Result<T>::MakeError(ErrorCode, msg)` arg-order, phantom facade methods
+(`LoadCircuitForBranch` -> `LoadInitialCircuit`), `CircuitGraph::BuildFrom`,
+`BlockAnalysis::AnalyzeCircuit`, out-of-line decl/def signature mismatches,
+`std::vector`/`Upp::Vector` conversions. Files mixing global-scope member
+definitions need `using namespace ProtoVMCLI;` (already applied where safe).
+
 ## ProtoVMCLI build status (side-quest, NOT done)
 
 The `src/ProtoVMCLI` package **does not compile** — and never did. ~250+ errors in
